@@ -76,126 +76,126 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="fixed inset-0 z-50 bg-white flex overflow-hidden lg:static lg:h-auto lg:min-h-screen lg:bg-transparent">
 
       {/* LEFT SIDE - Hero/Informational */}
-      <div className="hidden lg:flex w-[45%] bg-[#0B1120] relative flex-col justify-between p-12 overflow-hidden text-white">
+      <div className="hidden lg:flex w-[40%] bg-[#0B1120] relative flex-col justify-between p-8 lg:p-10 overflow-hidden text-white">
         {/* Animated Background Elements */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32 animate-pulse-slow"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] -ml-20 -mb-20 animate-pulse-slow delay-700"></div>
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[80px] -mr-32 -mt-32 animate-pulse-slow"></div>
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/10 rounded-full blur-[80px] -ml-20 -mb-20 animate-pulse-slow delay-700"></div>
 
         {/* Content */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-emerald-300 text-xs font-bold mb-6 backdrop-blur-sm">
-            <ShieldCheck size={14} /> Official Partner of 500+ Companies
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-emerald-300 text-[10px] font-bold mb-4 backdrop-blur-sm">
+            <ShieldCheck size={12} /> Official Partner of 500+ Companies
           </div>
-          <h1 className="text-5xl font-extrabold tracking-tight mb-6 leading-[1.1]">
+          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-4 leading-[1.1]">
             Landing your <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Dream Job</span> just got easier.
           </h1>
-          <p className="text-lg text-gray-400 max-w-md leading-relaxed">
+          <p className="text-base text-gray-400 max-w-md leading-relaxed">
             Stop guessing with your resume. Get instant, AI-powered feedback to match any job description perfectly.
           </p>
         </div>
 
         {/* Feature List */}
-        <div className="relative z-10 space-y-5">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center backdrop-blur-sm">
-              <ShieldCheck size={20} />
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center backdrop-blur-sm">
+              <ShieldCheck size={16} />
             </div>
             <div>
-              <h4 className="font-bold text-white">ATS Compliance Check</h4>
-              <p className="text-sm text-gray-500">Pass the bot filters automatically.</p>
+              <h4 className="font-bold text-white text-sm">ATS Compliance Check</h4>
+              <p className="text-xs text-gray-500">Pass the bot filters automatically.</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center backdrop-blur-sm">
-              <Lock size={20} />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center backdrop-blur-sm">
+              <Lock size={16} />
             </div>
             <div>
-              <h4 className="font-bold text-white">Secure & Private</h4>
-              <p className="text-sm text-gray-500">Your data is encrypted and safe.</p>
+              <h4 className="font-bold text-white text-sm">Secure & Private</h4>
+              <p className="text-xs text-gray-500">Your data is encrypted and safe.</p>
             </div>
           </div>
         </div>
 
         {/* Review Card */}
-        <div className="relative z-10 p-6 bg-white/10 border border-white/5 backdrop-blur-md rounded-2xl">
-          <div className="flex gap-1 text-yellow-400 mb-3">
-            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} className="fill-yellow-400" />)}
+        <div className="relative z-10 p-5 bg-white/10 border border-white/5 backdrop-blur-md rounded-xl">
+          <div className="flex gap-1 text-yellow-400 mb-2">
+            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} className="fill-yellow-400" />)}
           </div>
-          <p className="text-gray-300 text-sm mb-4 leading-relaxed">
+          <p className="text-gray-300 text-xs mb-3 leading-relaxed">
             "I applied to 50 jobs with no luck. After using JobEasy, I got 3 interviews in my first week! It's actually insane."
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold">AK</div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-[10px] font-bold">AK</div>
             <div>
               <div className="text-sm font-bold">Alex K.</div>
-              <div className="text-xs text-gray-500">Software Engineer @ Google</div>
+              <div className="text-[10px] text-gray-500">Software Engineer @ Google</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* RIGHT SIDE - Form */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative bg-white lg:bg-gray-50/50">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8 sm:p-10 relative overflow-hidden animate-fade-in-up">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 relative bg-white lg:bg-gray-50/50">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 sm:p-8 relative overflow-hidden animate-fade-in-up">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">
               {isSignUp ? 'Create your account' : 'Welcome back'}
             </h2>
-            <p className="text-gray-500">
-              {isSignUp ? 'Start your specialized career journey today.' : 'Please enter your details to sign in.'}
+            <p className="text-xs text-gray-500">
+              {isSignUp ? 'Start your specialized journey.' : 'Please enter your details to sign in.'}
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-start gap-3">
-              <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-3 transform active:scale-95 duration-200"
+              className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
             >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="Google" />
               {loading ? 'Connecting...' : 'Continue with Google'}
             </button>
 
-            <div className="relative flex items-center py-2">
+            <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-gray-200"></div>
-              <span className="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase font-bold tracking-wider">Or with email</span>
+              <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] uppercase font-bold tracking-wider">Or with email</span>
               <div className="flex-grow border-t border-gray-200"></div>
             </div>
 
-            <form onSubmit={handleEmailAuth} className="space-y-4">
+            <form onSubmit={handleEmailAuth} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 ml-1">Email Address</label>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1 ml-1">Email Address</label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
                     placeholder="name@company.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 ml-1">Password</label>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1 ml-1">Password</label>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
                     placeholder="••••••••"
                     minLength={6}
                   />
@@ -205,15 +205,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold shadow-lg shadow-gray-200 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-bold shadow-lg shadow-gray-200 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-sm"
               >
-                {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
-                {!loading && <ArrowRight size={18} />}
+                {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+                {!loading && <ArrowRight size={16} />}
               </button>
             </form>
           </div>
 
-          <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-xs text-gray-500">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
