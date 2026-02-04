@@ -1,0 +1,112 @@
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+
+# --- Sub-components ---
+
+class ExperienceItem(BaseModel):
+    id: str
+    role: str
+    company: str
+    startDate: str
+    endDate: str
+    description: str
+
+class EducationItem(BaseModel):
+    id: str
+    degree: str
+    school: str
+    year: str
+
+class ProjectItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    link: str
+
+class CertificationItem(BaseModel):
+    id: str
+    name: str
+    issuer: str
+    date: str
+
+class GenericItem(BaseModel):
+    id: str
+    title: str
+    subtitle: str  # e.g. Issuer, Organization
+    date: str
+    description: str
+
+class CustomSection(BaseModel):
+    id: str
+    name: str
+    items: List[GenericItem] = []
+
+class PersonalInfo(BaseModel):
+    fullName: str = ""
+    email: str = ""
+    phone: str = ""
+    location: str = ""
+    linkedin: str = ""
+    website: str = ""
+    title: str = ""
+
+# --- Main Resume Model ---
+
+class Resume(BaseModel):
+    id: str
+    templateId: str = "modern"
+    title: str = "Untitled Resume"
+    lastModified: str
+    score: int = 0
+    personalInfo: PersonalInfo
+    summary: str = ""
+    experience: List[ExperienceItem] = []
+    education: List[EducationItem] = []
+    skills: List[str] = []
+    projects: List[ProjectItem] = []
+    certifications: List[CertificationItem] = []
+    awards: List[GenericItem] = []
+    achievements: List[GenericItem] = []
+    publications: List[GenericItem] = []
+    references: List[GenericItem] = []
+    volunteering: List[GenericItem] = []
+    custom: List[CustomSection] = []
+    userId: Optional[str] = None # Added for ownership
+
+# --- AI Analysis Models ---
+
+class AnalysisRequest(BaseModel):
+    resume_text: str
+    job_description: Optional[str] = None
+
+class SectionScore(BaseModel):
+    impact: int
+    brevity: int
+    style: int
+    structure: int
+
+class CandidateInfo(BaseModel):
+    name: str = "Unknown"
+    headline: str = "Unknown"
+    email: str = "Unknown"
+
+class AnalysisResult(BaseModel):
+    score: int
+    candidateInfo: CandidateInfo
+    summary: str
+    skillsDetected: List[str]
+    keywordsMissing: List[str]
+    formattingIssues: List[str]
+    improvements: List[str]
+    sectionScores: SectionScore
+
+# --- Generation Models ---
+
+class BulletPointRequest(BaseModel):
+    role: str
+    company: str
+    description: Optional[str] = None
+
+class SummaryRequest(BaseModel):
+    role: str
+    skills: List[str]

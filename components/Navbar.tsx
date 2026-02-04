@@ -1,0 +1,100 @@
+import React from 'react';
+import { Briefcase, LogIn, LogOut } from 'lucide-react';
+import { AppState } from '../types';
+
+import { useNavigate, useLocation } from 'react-router-dom';
+
+interface NavbarProps {
+  isLoggedIn: boolean;
+  userEmail: string | null;
+  onLogout: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const scrollToSection = (id: string) => {
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-6">
+      <div className="max-w-6xl mx-auto glass-panel shadow-sm rounded-2xl px-6 py-4 flex items-center justify-between transition-all duration-300">
+
+        {/* Logo */}
+        <div
+          className="flex items-center gap-2 cursor-pointer group"
+          onClick={() => navigate('/')}
+        >
+          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md group-hover:bg-emerald-700 transition-all duration-300">
+            <Briefcase size={18} strokeWidth={2.5} />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-gray-900">JobEasy</span>
+        </div>
+
+        {/* Links - Hidden on Mobile */}
+        <div className="hidden md:flex items-center gap-8 font-medium text-sm text-gray-600">
+          <button onClick={() => scrollToSection('features')} className="hover:text-emerald-600 transition-colors">Features</button>
+          <button onClick={() => scrollToSection('pricing')} className="hover:text-emerald-600 transition-colors">Pricing</button>
+          <button onClick={() => scrollToSection('blog')} className="hover:text-emerald-600 transition-colors">Blog</button>
+          <button onClick={() => scrollToSection('contact')} className="hover:text-emerald-600 transition-colors">Contact</button>
+        </div>
+
+        {/* Auth / CTA */}
+        <div className="flex items-center gap-4">
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                {userEmail}
+              </div>
+              <button
+                onClick={onLogout}
+                className="text-gray-500 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full"
+                title="Sign Out"
+              >
+                <LogOut size={18} />
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-300 shadow-lg shadow-emerald-200"
+              >
+                Dashboard
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/login')}
+                className="hidden sm:block text-sm font-semibold text-gray-600 hover:text-emerald-600 transition-colors"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="group flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                Get Started
+                <LogIn size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
