@@ -308,7 +308,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                            </div>
 
                            {/* Secondary Action: Resume Builder */}
-                           <div onClick={() => navigate('/dashboard/create')} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white shadow-xl shadow-gray-200 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform">
+                           <div onClick={() => navigate('/dashboard/resumes/new')} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white shadow-xl shadow-gray-200 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform">
                               <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mb-10"></div>
                               <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
                                  <PlusCircle size={24} className="text-emerald-400" />
