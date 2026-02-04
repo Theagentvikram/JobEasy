@@ -10,4 +10,3 @@ pydantic==2.6.0
 httpx==0.26.0
 tiktoken==0.5.2
 pypdf==4.0.1
-pdfminer.six==20231228
