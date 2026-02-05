@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 import {
    LayoutDashboard,
    FileText,
@@ -39,6 +40,8 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
    const navigate = useNavigate();
    const location = useLocation();
 
+   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
    // Determine Plan based on Email
    const isPro = user?.email?.toLowerCase() === 'theagentvikram@gmail.com';
    console.log('DEBUG: Scanner - User:', user, 'Calculated isPro:', isPro);
@@ -53,7 +56,6 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
 
    const fetchResumes = async () => {
       try {
-         const { default: api } = await import('../services/api');
          const response = await api.get<Resume[]>('/resumes');
          setResumes(response.data);
       } catch (error) {
@@ -63,7 +65,6 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
 
    const saveResume = async (resume: Resume) => {
       try {
-         const { default: api } = await import('../services/api');
          if (resumes.some(r => r.id === resume.id)) {
             await api.put(`/resumes/${resume.id}`, resume);
          } else {
@@ -105,13 +106,17 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
 
       // Save immediately to create the record
       try {
-         const { default: api } = await import('../services/api');
          await api.post('/resumes', newResume);
          await fetchResumes();
          navigate(`/dashboard/resumes/${newResume.id}/edit`);
       } catch (e) {
          console.error("Failed to create resume", e);
+         alert("Failed to create resume. Please try again.");
       }
+   };
+
+   const handleUploadClick = () => {
+      fileInputRef.current?.click();
    };
 
    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +132,6 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
             // remove "data:application/pdf;base64," prefix for cleaner backend handling if needed, 
             // but our backend logic handles both.
 
-            const { default: api } = await import('../services/api'); // Dynamically import api
             const response = await api.post('/resumes/parse', { file_content: base64String });
             const newResume = response.data;
 
@@ -297,9 +301,16 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                                  <h2 className="text-2xl font-bold text-gray-900 mb-3">Optimize your Resume</h2>
                                  <p className="text-gray-500 mb-8 max-w-md">Get an ATS score and tailored keywords for any job application. Our AI ensures you match the job description perfectly.</p>
                                  <div className="flex gap-4">
-                                    <button onClick={() => navigate('/dashboard/ats')} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all">
+                                    <button onClick={handleUploadClick} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all">
                                        <UploadCloud size={18} /> Upload Resume
                                     </button>
+                                    <input
+                                       type="file"
+                                       ref={fileInputRef}
+                                       className="hidden"
+                                       accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                       onChange={handleFileUpload}
+                                    />
                                     <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors">
                                        <Linkedin size={18} className="text-blue-600" /> Import Profile
                                     </button>
@@ -308,7 +319,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                            </div>
 
                            {/* Secondary Action: Resume Builder */}
-                           <div onClick={() => navigate('/dashboard/resumes/new')} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white shadow-xl shadow-gray-200 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform">
+                           <div onClick={handleCreateNew} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white shadow-xl shadow-gray-200 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform">
                               <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mb-10"></div>
                               <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
                                  <PlusCircle size={24} className="text-emerald-400" />
