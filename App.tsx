@@ -12,6 +12,7 @@ import { Pricing } from './components/Pricing';
 import { Blog } from './components/Blog';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
+import { BlogDetail } from './components/BlogDetail'; // Import BlogDetail
 import { AppState } from './types';
 
 // DEV MODE: Set to false to enable actual Authentication (Firebase + Mock)
@@ -113,6 +114,7 @@ export default function App() {
       <main className="min-h-screen flex flex-col">
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/blog/:id" element={<BlogDetail />} /> {/* Add Blog Route */}
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/dashboard/*" element={
             // Dashboard takes full height and manages its own layout

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, ShieldCheck, Lock, AlertCircle, Star } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, Lock, AlertCircle, Star, ArrowLeft, CheckCircle } from 'lucide-react';
 import { auth } from '../firebase/config';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 
 interface LoginProps {
@@ -14,20 +15,23 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim() || (!isForgotPassword && !password.trim())) return;
 
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     // BACKDOOR for Test Accounts
-    if (email === 'theagentvikram@gmail.com' || email === 'sidhardharoy9@gmail.com') {
+    if (!isForgotPassword && (email === 'theagentvikram@gmail.com' || email === 'sidhardharoy9@gmail.com')) {
       setTimeout(() => {
         onLogin(email);
       }, 500);
@@ -35,12 +39,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        await sendPasswordResetEmail(auth, email);
+        setSuccessMessage("Password reset email sent! Check your inbox.");
+      } else if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
+        onLogin(email);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
+        onLogin(email);
       }
-      onLogin(email);
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/invalid-credential') {
@@ -49,8 +57,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError("Email already in use. Try logging in.");
       } else if (err.code === 'auth/weak-password') {
         setError("Password should be at least 6 characters.");
+      } else if (err.code === 'auth/user-not-found') {
+        setError("No account found with this email.");
       } else {
-        setError("Authentication failed. Please try again.");
+        setError(err.message || "Authentication failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -65,8 +75,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const result = await signInWithPopup(auth, provider);
       onLogin(result.user.email || '');
     } catch (err: any) {
-      console.error(err);
-      setError("Google Sign-In failed. Please try again.");
+      console.error("Google Sign-in Error:", err);
+      // Detailed error for debugging
+      const errorMessage = err.message || "Unknown error";
+      const errorCode = err.code || "No code";
+      setError(`Google Sign-In failed: ${errorCode} - ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -140,10 +153,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 sm:p-8 relative overflow-hidden animate-fade-in-up">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-1">
-              {isSignUp ? 'Create your account' : 'Welcome back'}
+              {isForgotPassword ? 'Reset Password' : (isSignUp ? 'Create your account' : 'Welcome back')}
             </h2>
             <p className="text-xs text-gray-500">
-              {isSignUp ? 'Start your specialized journey.' : 'Please enter your details to sign in.'}
+              {isForgotPassword
+                ? 'Enter your email to receive a reset link.'
+                : (isSignUp ? 'Start your specialized journey.' : 'Please enter your details to sign in.')}
             </p>
           </div>
 
@@ -154,21 +169,32 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           )}
 
-          <div className="space-y-4">
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
-            >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="Google" />
-              {loading ? 'Connecting...' : 'Continue with Google'}
-            </button>
-
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-gray-200"></div>
-              <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] uppercase font-bold tracking-wider">Or with email</span>
-              <div className="flex-grow border-t border-gray-200"></div>
+          {successMessage && (
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs rounded-lg flex items-start gap-2">
+              <CheckCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{successMessage}</span>
             </div>
+          )}
+
+          <div className="space-y-4">
+            {!isForgotPassword && (
+              <>
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
+                >
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="Google" />
+                  {loading ? 'Connecting...' : 'Continue with Google'}
+                </button>
+
+                <div className="relative flex items-center py-1">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] uppercase font-bold tracking-wider">Or with email</span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleEmailAuth} className="space-y-3">
               <div>
@@ -186,42 +212,65 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1 ml-1">Password</label>
-                <div className="relative group">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
-                    placeholder="••••••••"
-                    minLength={6}
-                  />
+              {!isForgotPassword && (
+                <div>
+                  <div className="flex justify-between items-center mb-1 ml-1">
+                    <label className="block text-[10px] font-bold text-gray-700 uppercase">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-[10px] text-emerald-600 font-bold hover:underline"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
+                      placeholder="••••••••"
+                      minLength={6}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-bold shadow-lg shadow-gray-200 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-sm"
               >
-                {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
-                {!loading && <ArrowRight size={16} />}
+                {loading ? 'Processing...' : (isForgotPassword ? 'Send Reset Link' : (isSignUp ? 'Create Account' : 'Sign In'))}
+                {!loading && !isForgotPassword && <ArrowRight size={16} />}
               </button>
+
+              {isForgotPassword && (
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(false)}
+                  className="w-full py-2 text-gray-500 hover:text-gray-900 font-bold text-xs flex items-center justify-center gap-1"
+                >
+                  <ArrowLeft size={14} /> Back to Log In
+                </button>
+              )}
             </form>
           </div>
 
-          <p className="mt-6 text-center text-xs text-gray-500">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
-              className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline transition-all"
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </p>
+          {!isForgotPassword && (
+            <p className="mt-6 text-center text-xs text-gray-500">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+                className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline transition-all"
+              >
+                {isSignUp ? 'Sign In' : 'Sign Up'}
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

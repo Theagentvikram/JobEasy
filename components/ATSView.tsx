@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FileText, Check, AlertCircle, Sparkles, Loader2, Target, BarChart, ChevronRight, User, Briefcase, Zap } from 'lucide-react';
 import { analyzeResume } from '../services/geminiService';
 import { AnalysisResult } from '../types';
@@ -15,6 +16,18 @@ export const ATSView: React.FC<{ isPro?: boolean }> = ({ isPro = false }) => {
   const handleFileSelect = (base64: string, mimeType: string, name: string) => {
     setFileData({ base64, mimeType, name });
   };
+
+  /* New Logic: Handle incoming file from Scanner/Dashboard */
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.file) {
+      const { base64, name, type } = location.state.file;
+      setFileData({ base64, mimeType: type, name });
+      // clear state so it doesn't re-trigger on refresh if we wanted to be strict, 
+      // but keeping it simple for now.
+    }
+  }, [location.state]);
 
   const handleAnalyze = async () => {
     if (!fileData) return;

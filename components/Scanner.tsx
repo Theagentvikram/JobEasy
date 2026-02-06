@@ -129,14 +129,19 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
          reader.readAsDataURL(file);
          reader.onload = async () => {
             const base64String = reader.result as string;
-            // remove "data:application/pdf;base64," prefix for cleaner backend handling if needed, 
+            // remove "data:application/pdf;base64," prefix for cleaner backend handling if needed
             // but our backend logic handles both.
 
-            const response = await api.post('/resumes/parse', { file_content: base64String });
-            const newResume = response.data;
-
-            setResumes(prev => [newResume, ...prev]);
-            navigate(`/dashboard/resumes/${newResume.id}/edit`);
+            // FIX: Navigate to ATS Scanner instead of Resume Builder
+            navigate('/dashboard/ats', {
+               state: {
+                  file: {
+                     base64: base64String,
+                     name: file.name,
+                     type: file.type
+                  }
+               }
+            });
             setIsLoading(false);
          };
       } catch (error) {
