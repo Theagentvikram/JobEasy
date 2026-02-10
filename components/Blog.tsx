@@ -33,14 +33,14 @@ export const Blog: React.FC = () => {
   ];
 
   return (
-    <section id="blog" className="py-24 relative">
+    <section id="blog" className="py-24 relative dark:bg-slate-950 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex justify-between items-end mb-12">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Latest Insights</h2>
-            <p className="text-gray-500">Expert advice to supercharge your job search.</p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Latest Insights</h2>
+            <p className="text-gray-500 dark:text-gray-400">Expert advice to supercharge your job search.</p>
           </div>
-          <button className="hidden md:flex items-center gap-2 text-emerald-600 font-semibold hover:gap-3 transition-all">
+          <button className="hidden md:flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold hover:gap-3 transition-all">
             View all articles <ArrowRight size={18} />
           </button>
         </div>
@@ -48,7 +48,7 @@ export const Blog: React.FC = () => {
         <div className="grid md:grid-cols-3 gap-8">
           {posts.map((post, i) => (
             <div key={i} onClick={() => navigate(`/blog/${post.id}`)} className="group cursor-pointer">
-              <div className="h-48 bg-gray-100 rounded-2xl mb-6 relative overflow-hidden">
+              <div className="h-48 bg-gray-100 dark:bg-slate-800 rounded-2xl mb-6 relative overflow-hidden transition-colors">
                 <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </div>
@@ -56,12 +56,12 @@ export const Blog: React.FC = () => {
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${post.color}`}>
                   {post.category}
                 </span>
-                <span className="text-xs text-gray-400 font-medium">{post.date}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">{post.date}</span>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 {post.title}
               </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
+              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
                 Learn the strategies that are helping thousands of candidates land interviews at top tech companies...
               </p>
             </div>

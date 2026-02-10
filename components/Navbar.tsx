@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-6">
-      <div className="max-w-6xl mx-auto glass-panel shadow-sm rounded-2xl px-6 py-4 flex items-center justify-between transition-all duration-300">
+      <div className="max-w-6xl mx-auto glass-panel dark:bg-black/80 dark:border-dark-gray shadow-sm rounded-2xl px-6 py-4 flex items-center justify-between transition-all duration-300 backdrop-blur-md">
 
         {/* Logo */}
         <div
@@ -43,22 +43,22 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
           <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md group-hover:bg-emerald-700 transition-all duration-300">
             <Briefcase size={18} strokeWidth={2.5} />
           </div>
-          <span className="font-bold text-xl tracking-tight text-gray-900">JobEasy</span>
+          <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white">JobEasy</span>
         </div>
 
         {/* Links - Hidden on Mobile */}
-        <div className="hidden md:flex items-center gap-8 font-medium text-sm text-gray-600">
-          <button onClick={() => scrollToSection('features')} className="hover:text-emerald-600 transition-colors">Features</button>
-          <button onClick={() => scrollToSection('pricing')} className="hover:text-emerald-600 transition-colors">Pricing</button>
-          <button onClick={() => scrollToSection('blog')} className="hover:text-emerald-600 transition-colors">Blog</button>
-          <button onClick={() => scrollToSection('contact')} className="hover:text-emerald-600 transition-colors">Contact</button>
+        <div className="hidden md:flex items-center gap-8 font-medium text-sm text-gray-600 dark:text-gray-300">
+          <button onClick={() => scrollToSection('features')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Features</button>
+          <button onClick={() => scrollToSection('pricing')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Pricing</button>
+          <button onClick={() => scrollToSection('blog')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Blog</button>
+          <button onClick={() => scrollToSection('contact')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Contact</button>
         </div>
 
         {/* Auth / CTA */}
         <div className="flex items-center gap-4">
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+              <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-dark-gray px-3 py-1.5 rounded-full border border-gray-100 dark:border-dark-gray">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 {userEmail}
               </div>
@@ -80,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/login')}
-                className="hidden sm:block text-sm font-semibold text-gray-600 hover:text-emerald-600 transition-colors"
+                className="hidden sm:block text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
               >
                 Sign In
               </button>

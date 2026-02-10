@@ -27,16 +27,18 @@ interface Project {
 }
 
 // --- Main Component ---
-export const CareerDesk: React.FC = () => {
+export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
     // --- State with Persistence ---
     const [profile, setProfile] = useState<Profile>(() => {
         const saved = localStorage.getItem('desk_profile');
-        return saved ? JSON.parse(saved) : {
-            name: "Abhinay Cherupally",
-            role: "Senior Full Stack Engineer",
-            email: "cherupallyabhi@gmail.com",
-            phone: "+91 98765 43210",
-            location: "Hyderabad, India"
+        if (saved) return JSON.parse(saved);
+
+        return {
+            name: user?.displayName || "User Name",
+            role: "Job Seeker",
+            email: user?.email || "",
+            phone: "",
+            location: ""
         };
     });
 
@@ -138,16 +140,16 @@ export const CareerDesk: React.FC = () => {
 
 
     return (
-        <div className="min-h-screen bg-[#e2e8f0] p-8 font-sans overflow-hidden relative selection:bg-emerald-200">
-            <div className="absolute inset-0 z-0 bg-repeat opacity-50" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+        <div className="min-h-screen bg-[#e2e8f0] dark:bg-black p-8 font-sans overflow-hidden relative selection:bg-emerald-200 dark:selection:bg-emerald-900 transition-colors duration-300">
+            <div className="absolute inset-0 z-0 bg-repeat opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
             <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 h-full">
 
                 {/* Header */}
                 <div className="md:col-span-12 flex justify-between items-end mb-4">
                     <div>
-                        <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">My Career Desk</h1>
-                        <p className="text-slate-500 font-medium ml-1">Master Profile & Assets</p>
+                        <h1 className="text-4xl font-extrabold text-slate-800 dark:text-white tracking-tight">My Career Desk</h1>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium ml-1">Master Profile & Assets</p>
                     </div>
                 </div>
 
@@ -155,7 +157,7 @@ export const CareerDesk: React.FC = () => {
                 <div className="md:col-span-4 space-y-8">
 
                     {/* ID Card */}
-                    <div className="bg-white rounded-2xl shadow-xl shadow-slate-300/50 p-6 border border-slate-200 relative transform hover:rotate-1 transition-transform duration-300 w-full max-w-sm mx-auto md:mx-0 group">
+                    <div className="bg-white dark:bg-dark-gray rounded-2xl shadow-xl shadow-slate-300/50 dark:shadow-none p-6 border border-slate-200 dark:border-dark-gray relative transform hover:rotate-1 transition-transform duration-300 w-full max-w-sm mx-auto md:mx-0 group">
                         {/* Lanyard Hole */}
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-800 rounded-full z-10"></div>
 
@@ -170,10 +172,10 @@ export const CareerDesk: React.FC = () => {
                             <div className="w-24 h-24 bg-gradient-to-tr from-emerald-400 to-cyan-500 rounded-full mb-4 shadow-inner flex items-center justify-center text-white">
                                 <User size={48} />
                             </div>
-                            <h2 className="text-xl font-bold text-gray-900">{profile.name}</h2>
-                            <p className="text-emerald-600 font-medium mb-4">{profile.role}</p>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{profile.name}</h2>
+                            <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-4">{profile.role}</p>
 
-                            <div className="w-full text-left space-y-3 text-sm text-gray-600 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div className="w-full text-left space-y-3 text-sm text-gray-600 dark:text-gray-300 bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-slate-100 dark:border-dark-gray">
                                 <div className="flex items-center gap-2 overflow-hidden text-ellipsis">
                                     <Mail size={14} className="text-slate-400" /> {profile.email}
                                 </div>
@@ -227,7 +229,7 @@ export const CareerDesk: React.FC = () => {
                 <div className="md:col-span-8 space-y-8">
 
                     {/* Projects Screen */}
-                    <div className="bg-slate-900 rounded-3xl p-1 shadow-2xl shadow-slate-900/20">
+                    <div className="bg-slate-900 dark:bg-dark-gray rounded-3xl p-1 shadow-2xl shadow-slate-900/20 dark:shadow-emerald-900/10">
                         <div className="bg-slate-800 rounded-[20px] p-6 h-full flex flex-col">
                             <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
                                 <h3 className="text-slate-100 font-bold flex items-center gap-2">
@@ -268,11 +270,11 @@ export const CareerDesk: React.FC = () => {
 
                     {/* Experience Folder */}
                     <div className="relative pt-6">
-                        <div className="absolute top-0 left-0 w-40 h-10 bg-amber-200 rounded-t-xl border-l border-t border-r border-amber-300/50 shadow-sm z-0 flex items-center justify-center font-bold text-amber-800/70 text-sm tracking-wider uppercase">
+                        <div className="absolute top-0 left-0 w-40 h-10 bg-amber-200 dark:bg-amber-800 rounded-t-xl border-l border-t border-r border-amber-300/50 dark:border-amber-700/50 shadow-sm z-0 flex items-center justify-center font-bold text-amber-800/70 dark:text-amber-100 text-sm tracking-wider uppercase">
                             Experience
                         </div>
 
-                        <div className="bg-[#fdfbf6] rounded-b-xl rounded-tr-xl shadow-xl border border-l-4 border-amber-100 border-l-amber-300 p-8 relative z-10 min-h-[400px]">
+                        <div className="bg-[#fdfbf6] dark:bg-dark-gray rounded-b-xl rounded-tr-xl shadow-xl border border-l-4 border-amber-100 dark:border-dark-gray border-l-amber-300 dark:border-l-amber-600 p-8 relative z-10 min-h-[400px]">
                             <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '100% 32px', marginTop: '32px' }}></div>
                             <div className="absolute left-16 top-0 bottom-0 w-0.5 bg-red-300/30 z-0"></div>
 
@@ -282,14 +284,14 @@ export const CareerDesk: React.FC = () => {
                                         <div className="absolute -left-16 top-1 w-3 h-3 bg-slate-400 rounded-full border-2 border-white shadow-sm group-hover:bg-emerald-500 group-hover:scale-125 transition-all"></div>
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h4 className="font-bold text-lg text-slate-800">{exp.role} <span className="text-slate-400 font-normal">at</span> {exp.company}</h4>
-                                                <div className="text-sm text-slate-500 font-medium mb-1">{exp.year}</div>
+                                                <h4 className="font-bold text-lg text-slate-800 dark:text-white">{exp.role} <span className="text-slate-400 font-normal">at</span> {exp.company}</h4>
+                                                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">{exp.year}</div>
                                             </div>
                                             <button onClick={() => deleteExperience(exp.id)} className="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
-                                        <p className="text-slate-600 leading-relaxed font-handwriting text-lg">{exp.description}</p>
+                                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-handwriting text-lg">{exp.description}</p>
                                     </div>
                                 ))}
 
@@ -311,8 +313,8 @@ export const CareerDesk: React.FC = () => {
             {/* Edit Profile Modal */}
             {isEditingProfile && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md m-4">
-                        <h3 className="text-xl font-bold mb-4">Edit Profile Card</h3>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md m-4 border border-gray-100 dark:border-slate-800">
+                        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Edit Profile Card</h3>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase">Full Name</label>
@@ -331,12 +333,12 @@ export const CareerDesk: React.FC = () => {
                                 <input type="text" value={tempProfile.phone} onChange={e => setTempProfile({ ...tempProfile, phone: e.target.value })} className="w-full p-2 border rounded-lg" />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase">Location</label>
-                                <input type="text" value={tempProfile.location} onChange={e => setTempProfile({ ...tempProfile, location: e.target.value })} className="w-full p-2 border rounded-lg" />
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Location</label>
+                                <input type="text" value={tempProfile.location} onChange={e => setTempProfile({ ...tempProfile, location: e.target.value })} className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white" />
                             </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
-                            <button onClick={() => setIsEditingProfile(false)} className="px-4 py-2 text-gray-500 font-medium">Cancel</button>
+                            <button onClick={() => setIsEditingProfile(false)} className="px-4 py-2 text-gray-500 dark:text-gray-400 font-medium hover:text-gray-700 dark:hover:text-gray-200">Cancel</button>
                             <button onClick={handleSaveProfile} className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700">Save Badge</button>
                         </div>
                     </div>
@@ -346,8 +348,8 @@ export const CareerDesk: React.FC = () => {
             {/* Add Experience Modal */}
             {isAddingExp && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg m-4">
-                        <h3 className="text-xl font-bold mb-4">Add Experience</h3>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-lg m-4 border border-gray-100 dark:border-slate-800">
+                        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Add Experience</h3>
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -364,12 +366,12 @@ export const CareerDesk: React.FC = () => {
                                 <input type="text" placeholder="e.g. 2022 - Present" value={tempExp.year || ''} onChange={e => setTempExp({ ...tempExp, year: e.target.value })} className="w-full p-2 border rounded-lg" />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
-                                <textarea placeholder="Briefly describe what you did..." value={tempExp.description || ''} onChange={e => setTempExp({ ...tempExp, description: e.target.value })} className="w-full p-2 border rounded-lg h-24" />
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Description</label>
+                                <textarea placeholder="Briefly describe what you did..." value={tempExp.description || ''} onChange={e => setTempExp({ ...tempExp, description: e.target.value })} className="w-full p-2 border border-gray-200 dark:border-slate-700 rounded-lg h-24 bg-white dark:bg-slate-800 text-gray-900 dark:text-white" />
                             </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
-                            <button onClick={() => setIsAddingExp(false)} className="px-4 py-2 text-gray-500 font-medium">Cancel</button>
+                            <button onClick={() => setIsAddingExp(false)} className="px-4 py-2 text-gray-500 dark:text-gray-400 font-medium hover:text-gray-700 dark:hover:text-gray-200">Cancel</button>
                             <button onClick={handleSaveExperience} className="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600">Add to Folder</button>
                         </div>
                     </div>
@@ -379,8 +381,8 @@ export const CareerDesk: React.FC = () => {
             {/* Add Project Modal */}
             {isAddingProject && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg m-4">
-                        <h3 className="text-xl font-bold mb-4">New Project</h3>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-lg m-4 border border-gray-100 dark:border-slate-800">
+                        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">New Project</h3>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase">Project Name</label>
@@ -392,8 +394,8 @@ export const CareerDesk: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
-                            <button onClick={() => setIsAddingProject(false)} className="px-4 py-2 text-gray-500 font-medium">Cancel</button>
-                            <button onClick={handleSaveProject} className="px-4 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700">Add Project</button>
+                            <button onClick={() => setIsAddingProject(false)} className="px-4 py-2 text-gray-500 dark:text-gray-400 font-medium hover:text-gray-700 dark:hover:text-gray-200">Cancel</button>
+                            <button onClick={handleSaveProject} className="px-4 py-2 bg-slate-800 dark:bg-slate-700 text-white rounded-lg font-bold hover:bg-slate-700 dark:hover:bg-slate-600">Add Project</button>
                         </div>
                     </div>
                 </div>

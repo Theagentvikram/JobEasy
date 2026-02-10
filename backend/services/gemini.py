@@ -131,6 +131,26 @@ async def analyze_resume_with_context(resume_input: str, job_desc: str = None) -
             "brevity": <0-100 score on conciseness>,
             "style": <0-100 score on language/tone>,
             "structure": <0-100 score on organization>
+        }},
+        "audit": {{
+            "actionVerbs": {{
+                "score": <0-100>,
+                "issues": ["<bullet point that lacks strong action verb>", ...],
+                "suggestions": ["<better verb>", ...]
+            }},
+            "quantifiableResults": {{
+                "score": <0-100>,
+                "issues": ["<bullet point that lacks metrics>", ...],
+                "suggestions": ["Add numbers like % growth, $ revenue, or team size"]
+            }},
+            "buzzwords": {{
+                "score": <0-100 (100 is good/no buzzwords)>,
+                "found": ["<buzzword1>", "<buzzword2>", ...]
+            }},
+            "personals": {{
+                "score": <0-100 (100 is good/no I/me/my)>,
+                "found": ["<sentence containing I/me/my>", ...]
+            }}
         }}
     }}
     """

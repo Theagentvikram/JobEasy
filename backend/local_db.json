@@ -799,9 +799,211 @@
     },
     "6825458e-04e8-4823-966a-60fbd66c2f58": {
       "id": "6825458e-04e8-4823-966a-60fbd66c2f58",
-      "templateId": "professional",
+      "templateId": "creative",
       "title": "Abhinay Cherupally",
       "lastModified": "2026-02-04T09:41:25.504380",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Abhinay Cherupally",
+        "email": "cherupallyabhi@gmail.com",
+        "phone": "+91-6302323643",
+        "location": "Hyderabad, Telangana, India",
+        "linkedin": "https://www.linkedin.com/in/AbhiCherupally",
+        "website": "https://github.com/Theagentvikram",
+        "title": "Data Science \u2014 AI/ML Engineer \u2014 Full-Stack ML Developer"
+      },
+      "summary": "AI/ML Engineer with expertise in developing scalable machine learning and generative AI solutions, including Retrieval-Augmented Generation (RAG). Built NLP-based fake news detection system during internship at Intel by applying strong problem-solving skills. Published research on real-time retail theft detection using YOLOv8 and DeepSORT. Developed ResuMatch, a SaaS resume matching platform leveraging FastAPI, LangChain, vector databases, and NoSQL technologies. Proficient in Python, TensorFlow, PyTorch, FastAPI, LangChain, React.js, Node.js, Docker, Kubernetes, Git, AWS (Lambda, S3, EC2), and GCP. Strong experience in full-stack development, LLM integration, and deploying end-to-end AI/ML pipelines.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "Machine Learning Intern",
+          "company": "Intel Corporation",
+          "startDate": "May 2023",
+          "endDate": "Jul 2023",
+          "description": "Built comprehensive fake news detection system using advanced NLP pipelines, RAG techniques, NoSQL databases, and classification models, demonstrating strong problem-solving skills to address complex data challenges\nImplemented end-to-end ML workflows from data preprocessing to model evaluation and deployment on GCP infrastructure, applying problem-solving techniques to optimize performance\nCollaborated with cross-functional teams on real-world AI applications with production-level requirements\nAchieved high accuracy in text classification using transformer-based models and traditional ML techniques"
+        },
+        {
+          "id": "exp_2",
+          "role": "Machine Learning Engineer",
+          "company": "Syncd Analytics",
+          "startDate": "Aug 2025",
+          "endDate": "Present",
+          "description": "Contributed to the design and deployment of an AI-powered Quality Control platform for appraisal document processing, helping achieve 60\u201380% reduction in manual review time.\nDeveloped microservices using Flask REST APIs and integrated Next.js frontend components, working with ChromaDB for vector storage and implementing Dockerized deployments on AWS infrastructure.\nBuilt ML pipelines integrating OpenAI GPT-4 and AWS models, implementing DSPy for document parsing workflows, QC rule verification logic, and multi-model fallback mechanisms.\nImplemented authentication flows using JWT, created real-time dashboard components for monitoring, optimized parallel document processing pipelines, and ensured compliance with MISMO/FHA/UAD standards."
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Bachelor's in Artificial Intelligence & Machine Learning",
+          "school": "Sreenidhi Institute of Science and Technology (SNIST)",
+          "year": "Dec 2021 - Aug 2025"
+        }
+      ],
+      "skills": [
+        "Python",
+        "JavaScript",
+        "Java",
+        "C/C++",
+        "SQL",
+        "R",
+        "TensorFlow",
+        "PyTorch",
+        "Scikit-learn",
+        "Keras",
+        "YOLOv8",
+        "OpenCV",
+        "DsPy",
+        "NLP",
+        "Vision Models",
+        "LangChain",
+        "Transformers",
+        "Ollama",
+        "Mistral",
+        "Fine-tuning",
+        "LoRa",
+        "QLoRa",
+        "React.js",
+        "FastAPI",
+        "Node.js",
+        "HTML/CSS",
+        "RESTful APIs",
+        "AWS (Lambda, Elastic Beanstalk, S3, EC2, Fargate)",
+        "Docker",
+        "Git",
+        "Linux",
+        "OCI",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter",
+        "MySQL",
+        "PostgreSQL",
+        "MongoDB",
+        "ChromaDB",
+        "Supabase",
+        "Teamwork",
+        "Problem Solving",
+        "Communication",
+        "Critical Thinking"
+      ],
+      "projects": [
+        {
+          "id": "proj_2",
+          "name": "Retail Theft Detection System",
+          "description": "Developed an advanced retail theft detection framework using YOLOv8 and DeepSORT, delivering 95%+ object detection accuracy and robust multi-object tracking under varying lighting and occlusion conditions.\nImplemented a scalable computer vision pipeline spanning data collection, annotation, model optimization, and deployment.\nLeveraged Python and OpenCV to streamline video data extraction and preprocessing, improving detection speed by 20% while maintaining high accuracy.\nContributed to academic knowledge by publishing research outcomes in a peer-reviewed journal, highlighting novel applications of deep learning in retail security monitoring.",
+          "link": "https://ijsrem.com/download/retail-theft-detection-system-using-yolov8-and-deepsort/"
+        },
+        {
+          "id": "proj_3",
+          "name": "MeetNote",
+          "description": "Engineered a SaaS Chrome extension to capture and transcribe meeting audio in real-time using Whisper, achieving a 90% transcription accuracy rate and boosting user productivity.\nIntegrated state-of-the-art LLM models (Mistral and Whisper) for automatic summarization, delivering concise meeting highlights and reducing user review time by 35%.\nConstructed the frontend with Next.js, React, and TypeScript and developed backend APIs with FastAPI and Python, ensuring scalable and efficient full-stack performance.",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "dev_user_123"
+    },
+    "1770451404727": {
+      "id": "1770451404727",
+      "templateId": "creative",
+      "title": "Untitled Resume",
+      "lastModified": "2026-02-07T08:03:24.727Z",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Abhinay Cherupally",
+        "email": "cherupallyabhi@gmail.com",
+        "phone": "+91 98765 43210",
+        "location": "Hyderabad, India",
+        "linkedin": "",
+        "website": "",
+        "title": "Senior Full Stack Engineer"
+      },
+      "summary": "",
+      "experience": [
+        {
+          "id": "1",
+          "role": "Senior Developer",
+          "company": "TechCorp",
+          "startDate": "2022",
+          "endDate": "Present",
+          "description": "Leading frontend architecture."
+        },
+        {
+          "id": "2",
+          "role": "Software Engineer",
+          "company": "StartupInc",
+          "startDate": "2020",
+          "endDate": "2022",
+          "description": "Built MVP from scratch."
+        }
+      ],
+      "education": [],
+      "skills": [
+        "React",
+        "TypeScript",
+        "Python",
+        "Node.js",
+        "AWS",
+        "Docker"
+      ],
+      "projects": [
+        {
+          "id": "1",
+          "name": "Project Alpha",
+          "description": "E-commerce dashboard.",
+          "link": "#"
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "dev_user_123"
+    },
+    "1770459651627": {
+      "id": "1770459651627",
+      "templateId": "modern",
+      "title": "Resume Abhi",
+      "lastModified": "2026-02-07T10:20:51.629Z",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Imported User",
+        "email": "",
+        "phone": "",
+        "location": "",
+        "linkedin": "",
+        "website": "",
+        "title": "Job Title"
+      },
+      "summary": "Resume imported from file. Content extraction pending.",
+      "experience": [],
+      "education": [],
+      "skills": [],
+      "projects": [],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "dev_user_123"
+    },
+    "98208d37-a44e-4580-89e4-c0485312d8c7": {
+      "id": "98208d37-a44e-4580-89e4-c0485312d8c7",
+      "templateId": "creative",
+      "title": "Abhinay Cherupally",
+      "lastModified": "2026-02-07T10:25:31.634078",
       "score": 0,
       "personalInfo": {
         "fullName": "Abhinay Cherupally",
@@ -915,6 +1117,161 @@
       "volunteering": [],
       "custom": [],
       "userId": "dev_user_123"
+    },
+    "4fdf56a5-70dc-4f95-a1de-2aef0fa57f08": {
+      "id": "4fdf56a5-70dc-4f95-a1de-2aef0fa57f08",
+      "templateId": "modern",
+      "title": "Abhinay Cherupally",
+      "lastModified": "2026-02-08T09:42:21.930756",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Abhinay Cherupally",
+        "email": "cherupallyabhi@gmail.com",
+        "phone": "+91-6302323643",
+        "location": "Hyderabad, Telangana, India",
+        "linkedin": "https://www.linkedin.com/in/AbhiCherupally",
+        "website": "https://github.com/Theagentvikram",
+        "title": "Data Science \u2014 AI/ML Engineer \u2014 Full-Stack ML Developer"
+      },
+      "summary": "AI/ML Engineer with expertise in developing scalable machine learning and generative AI solutions, including Retrieval-Augmented Generation (RAG). Built NLP-based fake news detection system during internship at Intel by applying strong problem-solving skills. Published research on real-time retail theft detection using YOLOv8 and DeepSORT. Developed ResuMatch, a SaaS resume matching platform leveraging FastAPI, LangChain, vector databases, and NoSQL technologies. Proficient in Python, TensorFlow, PyTorch, FastAPI, LangChain, React.js, Node.js, Docker, Kubernetes, Git, AWS (Lambda, S3, EC2), and GCP. Strong experience in full-stack development, LLM integration, and deploying end-to-end AI/ML pipelines.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "Machine Learning Intern",
+          "company": "Intel Corporation",
+          "startDate": "May 2023",
+          "endDate": "Jul 2023",
+          "description": "Built comprehensive fake news detection system using advanced NLP pipelines, RAG techniques, NoSQL databases, and classification models, demonstrating strong problem-solving skills to address complex data challenges\nImplemented end-to-end ML workflows from data preprocessing to model evaluation and deployment on GCP infrastructure, applying problem-solving techniques to optimize performance\nCollaborated with cross-functional teams on real-world AI applications with production-level requirements\nAchieved high accuracy in text classification using transformer-based models and traditional ML techniques"
+        },
+        {
+          "id": "exp_2",
+          "role": "Machine Learning Engineer",
+          "company": "Syncd Analytics",
+          "startDate": "Aug 2025",
+          "endDate": "Present",
+          "description": "Contributed to the design and deployment of an AI-powered Quality Control platform for appraisal document processing, helping achieve 60\u201380% reduction in manual review time.\nDeveloped microservices using Flask REST APIs and integrated Next.js frontend components, working with ChromaDB for vector storage and implementing Dockerized deployments on AWS infrastructure.\nBuilt ML pipelines integrating OpenAI GPT-4 and AWS models, implementing DSPy for document parsing workflows, QC rule verification logic, and multi-model fallback mechanisms.\nImplemented authentication flows using JWT, created real-time dashboard components for monitoring, optimized parallel document processing pipelines, and ensured compliance with MISMO/FHA/UAD standards."
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Bachelor's in Artificial Intelligence & Machine Learning",
+          "school": "Sreenidhi Institute of Science and Technology (SNIST)",
+          "year": "Dec 2021 - Aug 2025"
+        }
+      ],
+      "skills": [
+        "Python",
+        "JavaScript",
+        "Java",
+        "C/C++",
+        "SQL",
+        "R",
+        "TensorFlow",
+        "PyTorch",
+        "Scikit-learn",
+        "Keras",
+        "YOLOv8",
+        "OpenCV",
+        "DsPy",
+        "NLP",
+        "Vision Models",
+        "LangChain",
+        "Transformers",
+        "Ollama",
+        "Mistral",
+        "Fine-tuning",
+        "LoRa",
+        "QLoRa",
+        "React.js",
+        "FastAPI",
+        "Node.js",
+        "HTML/CSS",
+        "RESTful APIs",
+        "AWS (Lambda, Elastic Beanstalk, S3, EC2, Fargate)",
+        "Docker",
+        "Git",
+        "Linux",
+        "OCI",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter",
+        "MySQL",
+        "PostgreSQL",
+        "MongoDB",
+        "ChromaDB",
+        "Supabase",
+        "Teamwork",
+        "Problem Solving",
+        "Communication",
+        "Critical Thinking"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "name": "ResuMatch - Hiring Assistant for HR",
+          "description": "Collaborated in developing an AI-driven recruitment platform using React with TypeScript and FastAPI, integrating Mistral 7B LLM and OpenRouter APIs to automate resume parsing with 95% skill extraction accuracy.\nWorked in engineering a scalable microservices architecture with SQLite and RESTful APIs, enabling role-based authentication and concurrent workflows for 100+ recruiters and applicants.\nCo-designed a responsive UI using Tailwind CSS and React Context for real-time job postings and interactive resume visualization, increasing recruiter efficiency by 30%.\nContributed to Docker-based containerization and deployment on Vercel and Render, establishing CI/CD pipelines that reduced deployment time by 40%.",
+          "link": ""
+        },
+        {
+          "id": "proj_2",
+          "name": "Retail Theft Detection System",
+          "description": "Developed an advanced retail theft detection framework using YOLOv8 and DeepSORT, delivering 95%+ object detection accuracy and robust multi-object tracking under varying lighting and occlusion conditions.\nImplemented a scalable computer vision pipeline spanning data collection, annotation, model optimization, and deployment.\nLeveraged Python and OpenCV to streamline video data extraction and preprocessing, improving detection speed by 20% while maintaining high accuracy.\nContributed to academic knowledge by publishing research outcomes in a peer-reviewed journal, highlighting novel applications of deep learning in retail security monitoring.",
+          "link": "https://ijsrem.com/download/retail-theft-detection-system-using-yolov8-and-deepsort/"
+        },
+        {
+          "id": "proj_3",
+          "name": "MeetNote",
+          "description": "Engineered a SaaS Chrome extension to capture and transcribe meeting audio in real-time using Whisper, achieving a 90% transcription accuracy rate and boosting user productivity.\nIntegrated state-of-the-art LLM models (Mistral and Whisper) for automatic summarization, delivering concise meeting highlights and reducing user review time by 35%.\nConstructed the frontend with Next.js, React, and TypeScript and developed backend APIs with FastAPI and Python, ensuring scalable and efficient full-stack performance.",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "1770546612953": {
+      "id": "1770546612953",
+      "templateId": "modern",
+      "title": "Untitled Resume",
+      "lastModified": "2026-02-08T10:30:12.953Z",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Your Name",
+        "email": "",
+        "phone": "",
+        "location": "",
+        "linkedin": "",
+        "website": "",
+        "title": "Job Title"
+      },
+      "summary": "",
+      "experience": [],
+      "education": [],
+      "skills": [],
+      "projects": [],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    }
+  },
+  "users": {
+    "mock_user_theagentvikram@gmail.com": {
+      "scan_count": 2,
+      "resume_count": 2,
+      "plan": "free"
     }
   }
 }

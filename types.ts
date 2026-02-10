@@ -7,15 +7,24 @@ export interface AnalysisResult {
   };
   summary: string;
   skillsDetected: string[];
-  keywordsMissing: string[];
+  missingKeywords: string[];
   formattingIssues: string[];
   improvements: string[];
+  hardSkills: string[];
+  softSkills: string[];
   sectionScores: {
     impact: number;
     brevity: number;
     style: number;
     structure: number;
+    hardSkills?: number; // New split
+    softSkills?: number; // New split
+    recruiterImpact?: number; // New split
   };
+  // New detailed fields for Premium Views
+  hardSkillsAnalysis?: { skill: string; mastery: number }[];
+  softSkillsAnalysis?: { skill: string; context: string }[];
+  impactAnalysis?: { point: string; score: number; feedback: string }[];
 }
 
 export enum AppState {

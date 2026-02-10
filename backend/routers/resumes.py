@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Header
 from typing import List, Optional
 from pydantic import BaseModel
 from models import Resume
-from services.firebase import get_db, verify_token
+from services.firebase import get_db, verify_token, check_user_limit, increment_scan_count
+from services.auth import get_current_user
 from services.gemini import parse_resume_to_json as parse_resume_legacy
 from services.resume_parser import extract_resume_data
 import json
@@ -11,30 +12,24 @@ from datetime import datetime
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
-# DEV MODE: Set to True to bypass authentication
-DEV_MODE = True
-DEV_USER = {"uid": "dev_user_123", "email": "dev@jobeasy.local", "name": "Developer"}
 
-# Auth Dependency - Must be defined before routes that use it
-async def get_current_user(authorization: Optional[str] = Header(None)):
-    # DEV MODE bypass - skip auth entirely
-    if DEV_MODE:
-        return DEV_USER
-    
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
-    
-    token = authorization.split(" ")[1]
-    decoded = verify_token(token)
-    if not decoded:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return decoded
+# Auth is now handled by services.auth
+
 
 class UploadRequest(BaseModel):
     file_content: str
+    file_url: Optional[str] = None
 
 @router.post("/parse")
 async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
+    user_id = user['uid']
+    # Check limit for RESUME UPLOADS
+    if not check_user_limit(user_id, limit_type="resume_count"):
+        raise HTTPException(
+            status_code=403, 
+            detail="Free plan limit reached (2 resumes). Upgrade to Pro for unlimited."
+        )
+
     try:
         # Try new LLM parser first
         try:
@@ -56,7 +51,9 @@ async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
             skills=parsed_data.get('skills', []),
             projects=parsed_data.get('projects', []),
             templateId="modern",
-            lastModified=datetime.utcnow().isoformat()
+            lastModified=datetime.utcnow().isoformat(),
+            score=0,
+            fileUrl=request.file_url
         )
         
         # Save to DB immediately so it persists
@@ -64,12 +61,15 @@ async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
         if db:
             db.collection('resumes').document(resume.id).set(resume.model_dump())
             
+        # Increment usage for RESUME UPLOADS
+        increment_scan_count(user_id, limit_type="resume_count")
+            
         return resume
     except Exception as e:
         print(f"Parsing error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=List[Resume])
+@router.get("", response_model=List[Resume])
 async def list_resumes(user=Depends(get_current_user)):
     db = get_db()
     if not db:
@@ -83,17 +83,29 @@ async def list_resumes(user=Depends(get_current_user)):
         resumes.append(Resume(**doc.to_dict()))
     return resumes
 
-@router.post("/", response_model=Resume)
+@router.post("", response_model=Resume)
 async def create_resume(resume: Resume, user=Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=503, detail="Database unavailable")
     
     user_id = user['uid']
+    
+    # Check limit for RESUME CREATION
+    if not check_user_limit(user_id, limit_type="resume_count"):
+        raise HTTPException(
+            status_code=403, 
+            detail="Free plan limit reached (2 resumes). Upgrade to Pro for unlimited."
+        )
+
     resume.userId = user_id # Enforce ownership
     
     # Store in Firestore
     db.collection('resumes').document(resume.id).set(resume.model_dump())
+    
+    # Increment usage
+    increment_scan_count(user_id, limit_type="resume_count")
+    
     return resume
 
 @router.get("/{resume_id}", response_model=Resume)

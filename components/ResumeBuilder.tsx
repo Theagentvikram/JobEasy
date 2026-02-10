@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Resume, ExperienceItem, EducationItem } from '../types';
-import { ArrowLeft, Save, Download, Sparkles, Plus, Trash2, ChevronDown, Wand2, Star, Briefcase, FileText, Palette, User, Mail, Phone, MapPin, Linkedin, Globe, Menu, LayoutDashboard, LogOut, GraduationCap, FolderOpen, Award, Layers } from 'lucide-react';
+import { ArrowLeft, Save, Download, Sparkles, Plus, Trash2, ChevronDown, Wand2, Star, Briefcase, FileText, Palette, User, Mail, Phone, MapPin, Linkedin, Globe, LayoutDashboard, LogOut, GraduationCap, FolderOpen, Award, Layers, CheckCircle, ChevronUp } from 'lucide-react';
 import { generateExperienceContent, generateProfessionalSummary } from '../services/geminiService';
 import { ResumePreview } from './ResumePreview';
+import { ResumeAudit } from './ResumeAudit';
+import { auditResume } from '../utils/resumeAudit';
+import api from '../services/api';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 interface ResumeBuilderProps {
    initialResume: Resume;
@@ -12,14 +17,17 @@ interface ResumeBuilderProps {
 
 export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onBack, onSave }) => {
    const [resume, setResume] = useState<Resume>(initialResume);
-   const [activeSection, setActiveSection] = useState<string>('personal');
+   const [activeSection, setActiveSection] = useState<string | null>('personal'); // Allow null for all collapsed
    const [isGenerating, setIsGenerating] = useState(false);
-   const [jobContextOpen, setJobContextOpen] = useState(false);
    const [jobDescription, setJobDescription] = useState('');
    const [isSaving, setIsSaving] = useState(false);
-   const [menuOpen, setMenuOpen] = useState(false); // Added missing state
+   const [menuOpen, setMenuOpen] = useState(false);
+   const [isDownloading, setIsDownloading] = useState(false);
 
-   // Auto-save effect mock
+   const [aiAuditResults, setAiAuditResults] = useState<any>(null);
+   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+   // Auto-save effect
    useEffect(() => {
       const timer = setTimeout(() => {
          onSave(resume);
@@ -27,7 +35,49 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
       return () => clearTimeout(timer);
    }, [resume, onSave]);
 
-   const handleDownload = () => {
+   const handleDownload = async () => {
+      setIsDownloading(true);
+
+      // Wait for element to be fully rendered and layout settled
+      // 2 seconds to be safe for heavy layouts
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const element = document.getElementById('resume-preview-content');
+
+      if (!element) {
+         console.error("Resume preview element not found");
+         alert("Error: Could not find resume element.");
+         setIsDownloading(false);
+         return;
+      }
+
+      try {
+         const opt = {
+            margin: 0,
+            filename: `${resume.title || 'Resume'}.pdf`,
+            image: { type: 'jpeg' as const, quality: 0.98 },
+            html2canvas: {
+               scale: 2,
+               useCORS: true,
+               logging: true,
+               scrollY: 0,
+               windowWidth: document.documentElement.scrollWidth,
+               windowHeight: document.documentElement.scrollHeight
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+         };
+
+         await html2pdf().set(opt).from(element).save();
+      } catch (error) {
+         console.error("Download failed", error);
+         alert("Download failed. Please try print option.");
+      } finally {
+         setIsDownloading(false);
+      }
+   };
+
+   // Fallback for Safari/Mobile if needed
+   const handlePrint = () => {
       window.print();
    };
 
@@ -38,14 +88,15 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
    };
 
    const sections = [
-      { id: 'personal', label: 'Personal Info', icon: <User size={18} /> },
+      { id: 'personal', label: 'Personal Information', icon: <User size={18} /> },
       { id: 'summary', label: 'Summary', icon: <FileText size={18} /> },
-      { id: 'experience', label: 'Work Experience', icon: <Briefcase size={18} /> },
       { id: 'education', label: 'Education', icon: <GraduationCap size={18} /> },
+      { id: 'experience', label: 'Work Experience', icon: <Briefcase size={18} /> },
       { id: 'projects', label: 'Projects', icon: <FolderOpen size={18} /> },
       { id: 'skills', label: 'Skills', icon: <Star size={18} /> },
       { id: 'certifications', label: 'Certifications', icon: <Award size={18} /> },
-      { id: 'custom', label: 'Custom Section', icon: <Layers size={18} /> },
+      // { id: 'custom', label: 'Custom Section', icon: <Layers size={18} /> },
+      { id: 'review', label: 'Review & Audit', icon: <CheckCircle size={18} /> },
    ];
 
    // --- Handlers ---
@@ -97,7 +148,6 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
       setResume(prev => ({ ...prev, templateId: nextTemplate }));
    };
 
-   // --- Import from Desk Logic ---
    const handleImportFromDesk = () => {
       if (!window.confirm("This will overwrite your current resume details with data from your Career Desk. Continue?")) return;
 
@@ -139,7 +189,6 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
       }
    };
 
-   // AI Generators
    const generateBullets = async (id: string) => {
       const exp = resume.experience.find(e => e.id === id);
       if (!exp?.role) return;
@@ -159,8 +208,38 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
       setIsGenerating(false);
    };
 
+   // --- Audit Handler ---
+   const runAudit = async () => {
+      if (aiAuditResults) return;
+      setIsAnalyzing(true);
+      try {
+         const resumeText = JSON.stringify(resume, null, 2);
+         const response = await api.post('/ai/analyze', {
+            resume_text: resumeText,
+            job_description: jobDescription || "General Professional Context"
+         });
+         setAiAuditResults(response.data);
+      } catch (error) {
+         console.error("Audit failed", error);
+         alert("Failed to run AI audit. Please try again.");
+      } finally {
+         setIsAnalyzing(false);
+      }
+   };
+
+   useEffect(() => {
+      if (activeSection === 'review') {
+         runAudit();
+      }
+   }, [activeSection]);
+
+
+   const toggleSection = (id: string) => {
+      setActiveSection(current => current === id ? null : id);
+   };
+
    return (
-      <div className="flex flex-col h-screen bg-[#f8fafc]">
+      <div className="flex flex-col h-screen bg-[#f8fafc] dark:bg-black transition-colors duration-300">
          <style>{`
             @media print {
                @page { margin: 0; size: A4 portrait; }
@@ -169,278 +248,267 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
             }
          `}</style>
 
-         {/* TOP HEADER */}
-         <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-30 shadow-sm print:hidden shrink-0 relative">
+         {/* DASHBOARD HEADER */}
+         <div className="h-16 bg-white dark:bg-dark-gray border-b border-gray-200 dark:border-dark-gray flex items-center justify-between px-4 z-30 shadow-sm print:hidden shrink-0 relative transition-colors duration-300">
             <div className="flex items-center gap-3">
-               {/* Hamburger Menu */}
-               <div className="relative">
-                  <button
-                     onClick={() => setMenuOpen(!menuOpen)}
-                     className="p-2 hover:bg-gray-100 rounded-lg text-gray-700 transition-colors"
-                  >
-                     <Menu size={20} />
-                  </button>
-
-                  {menuOpen && (
-                     <>
-                        <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}></div>
-                        <div className="absolute top-12 left-0 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
-                           <div className="px-4 py-2 border-b border-gray-100 mb-2">
-                              <div className="text-xs font-bold text-gray-400 uppercase">Menu</div>
-                           </div>
-                           <button onClick={onBack} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                              <LayoutDashboard size={16} /> Dashboard
-                           </button>
-                           <button onClick={onBack} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                              <FileText size={16} /> My Resumes
-                           </button>
-                           <div className="border-t border-gray-100 my-1"></div>
-                           <button
-                              onClick={async () => {
-                                 const { auth } = await import('../firebase/config');
-                                 await auth.signOut();
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                           >
-                              <LogOut size={16} /> Sign Out
-                           </button>
-                        </div>
-                     </>
-                  )}
+               <button onClick={onBack} className="p-2 hover:bg-gray-100 dark:hover:bg-black rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <ArrowLeft size={20} />
+               </button>
+               <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Builder</span>
+                  <input
+                     value={resume.title}
+                     onChange={(e) => setResume({ ...resume, title: e.target.value })}
+                     className="text-sm font-bold text-gray-900 dark:text-white bg-transparent outline-none w-48 truncate"
+                  />
                </div>
-
-               <div className="h-6 w-px bg-gray-200 mx-1"></div>
-               <input
-                  value={resume.title}
-                  onChange={(e) => setResume({ ...resume, title: e.target.value })}
-                  className="text-sm font-semibold text-gray-800 bg-transparent hover:bg-gray-50 p-1.5 rounded transition-colors focus:ring-2 focus:ring-emerald-500 outline-none w-48 truncate"
-               />
-               <span className="text-xs text-gray-400">{isSaving ? 'Saving...' : 'Saved'}</span>
             </div>
 
             <div className="flex items-center gap-2">
+               <div className="hidden md:flex items-center text-xs text-gray-400 mr-2">
+                  {isSaving ? 'Saving changes...' : 'All changes saved'}
+               </div>
                <button
                   onClick={handleImportFromDesk}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
-                  title="Auto-fill from Career Desk"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-100"
                >
-                  <Briefcase size={14} />
-                  <span className="hidden sm:inline">Import Desk</span>
+                  <Briefcase size={14} /> Import Desk
                </button>
-
+               <div className="h-6 w-px bg-gray-200 mx-1"></div>
                <button
                   onClick={updateTemplate}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white text-gray-700 border border-gray-200 text-xs font-medium rounded-md hover:bg-gray-50 transition-all"
-                  title="Cycle Template Style"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-dark-gray text-xs font-bold rounded-lg hover:bg-gray-50 dark:hover:bg-dark-gray transition-all shadow-sm"
                >
-                  <Palette size={14} />
-                  <span className="capitalize">{resume.templateId}</span>
+                  <Palette size={14} /> {resume.templateId}
                </button>
-
-               <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 text-xs font-medium rounded-md hover:bg-emerald-50 transition-all"
-               >
-                  <Save size={14} /> Save
-               </button>
-
                <button
                   onClick={handleDownload}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-md hover:bg-emerald-700 shadow-sm transition-all"
+                  disabled={isDownloading}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-wait"
                >
-                  <Download size={14} /> Download PDF
+                  {isDownloading ? <Sparkles size={14} className="animate-spin" /> : <Download size={14} />}
+                  {isDownloading ? 'Processing...' : 'Download PDF'}
                </button>
             </div>
          </div>
 
-         {/* MAIN WORKSPACE SPLIT */}
          <div className="flex flex-1 overflow-hidden">
 
-            {/* LEFT PANEL: EDITOR FORM */}
-            <div className="w-1/2 flex flex-col border-r border-gray-200 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
-               {/* Sections Tab Bar */}
-               <div className="flex items-center gap-1 overflow-x-auto p-2 border-b border-gray-100 bg-gray-50/50 no-scrollbar">
-                  {sections.map(section => (
-                     <button
-                        key={section.id}
-                        onClick={() => setActiveSection(section.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all border
-                        ${activeSection === section.id
-                              ? 'bg-white text-emerald-700 border-emerald-100 shadow-sm ring-1 ring-emerald-50'
-                              : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100'}`}
-                     >
-                        {section.icon}
-                        {section.label}
-                     </button>
-                  ))}
-               </div>
+            {/* LEFT PANEL: VERTICAL ACCORDION EDITOR */}
+            <div className="w-1/2 flex flex-col border-r border-gray-200 dark:border-dark-gray bg-[#f8fafc] dark:bg-black z-10 overflow-hidden transition-colors duration-300">
 
-               {/* Form Area */}
-               <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-white custom-scrollbar">
+               <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
 
                   {/* Context Helper */}
-                  <div className="mb-6 p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex items-start gap-3">
-                     <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                        <Sparkles size={16} />
+                  <div className="mb-6 bg-white dark:bg-dark-gray p-4 rounded-xl border border-gray-200 dark:border-dark-gray shadow-sm transition-colors duration-300">
+                     <div className="flex items-center gap-2 mb-2 text-gray-900 dark:text-white font-bold text-sm">
+                        <Sparkles size={16} className="text-emerald-500" />
+                        Add the job description for accurate suggestions...
                      </div>
-                     <div className="flex-1">
-                        <h4 className="text-sm font-bold text-gray-800 mb-1">AI Assistant Ready</h4>
-                        <p className="text-xs text-gray-500 mb-2">Paste the job description to get tailored suggestions.</p>
-                        <textarea
-                           value={jobDescription}
-                           onChange={(e) => setJobDescription(e.target.value)}
-                           placeholder="Paste job description here..."
-                           className="w-full text-xs p-2 bg-white border border-blue-100 rounded-md focus:ring-1 focus:ring-blue-400 outline-none resize-none h-16"
-                        />
-                     </div>
+
+                     <textarea
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        placeholder="Paste job description here..."
+                        className="w-full text-xs p-3 bg-gray-50 dark:bg-black border border-gray-200 dark:border-dark-gray rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none resize-none h-12 transition-all focus:h-24 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                     />
                   </div>
 
-                  <div className="space-y-6 max-w-2xl mx-auto pb-20">
-                     {/* Render Form Sections */}
-                     {activeSection === 'personal' && (
-                        <div className="animate-fade-in space-y-4">
-                           <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Personal Information</h2>
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="col-span-2">
-                                 <label className="text-xs font-bold text-gray-500 uppercase">Target Job Title</label>
-                                 <input value={resume.personalInfo.title} onChange={(e) => updateInfo('title', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+                  <div className="space-y-3 pb-20">
+                     {sections.map(section => (
+                        <div key={section.id} className="bg-white dark:bg-dark-gray rounded-xl border border-gray-200 dark:border-dark-gray shadow-sm overflow-hidden transition-all duration-300">
+                           <button
+                              onClick={() => toggleSection(section.id)}
+                              className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors ${activeSection === section.id ? 'bg-gray-50 dark:bg-slate-800' : ''}`}
+                           >
+                              <div className="flex items-center gap-3">
+                                 <div className={`p-2 rounded-lg ${activeSection === section.id ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-black text-gray-500 dark:text-gray-400'}`}>
+                                    {section.icon}
+                                 </div>
+                                 <span className="font-bold text-sm text-gray-800 dark:text-white">{section.label}</span>
                               </div>
-                              <div>
-                                 <label className="text-xs font-bold text-gray-500 uppercase">Full Name</label>
-                                 <input value={resume.personalInfo.fullName} onChange={(e) => updateInfo('fullName', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                              </div>
-                              <div>
-                                 <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
-                                 <input value={resume.personalInfo.email} onChange={(e) => updateInfo('email', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                              </div>
-                              <div>
-                                 <label className="text-xs font-bold text-gray-500 uppercase">Phone</label>
-                                 <input value={resume.personalInfo.phone} onChange={(e) => updateInfo('phone', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                              </div>
-                              <div>
-                                 <label className="text-xs font-bold text-gray-500 uppercase">Location</label>
-                                 <input value={resume.personalInfo.location} onChange={(e) => updateInfo('location', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                              </div>
-                              <div className="col-span-2">
-                                 <label className="text-xs font-bold text-gray-500 uppercase">LinkedIn</label>
-                                 <input value={resume.personalInfo.linkedin} onChange={(e) => updateInfo('linkedin', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder="https://linkedin.com/in/..." />
-                              </div>
-                           </div>
-                        </div>
-                     )}
-
-                     {activeSection === 'summary' && (
-                        <div className="animate-fade-in">
-                           <h2 className="text-lg font-bold text-gray-900 border-b pb-2 mb-4">Professional Summary</h2>
-                           <textarea
-                              value={resume.summary}
-                              onChange={(e) => setResume(prev => ({ ...prev, summary: e.target.value }))}
-                              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm h-64 focus:ring-2 focus:ring-emerald-500 outline-none leading-relaxed"
-                              placeholder="Experienced professional..."
-                           />
-                           <button onClick={generateSummary} disabled={isGenerating} className="mt-3 text-emerald-600 font-bold text-xs flex items-center gap-1 hover:underline">
-                              <Sparkles size={12} /> {isGenerating ? 'Generating...' : 'Rewrite with AI'}
+                              {activeSection === section.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                            </button>
-                        </div>
-                     )}
 
-                     {activeSection === 'experience' && (
-                        <div className="animate-fade-in space-y-6">
-                           <div className="flex justify-between items-center border-b pb-2 mb-4">
-                              <h2 className="text-lg font-bold text-gray-900">Work Experience</h2>
-                              <button onClick={addExperience} className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100">+ Add</button>
-                           </div>
-                           {resume.experience.map((exp) => (
-                              <div key={exp.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl relative group">
-                                 <button onClick={() => setResume(prev => ({ ...prev, experience: prev.experience.filter(e => e.id !== exp.id) }))} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
-                                 <div className="grid grid-cols-2 gap-3 mb-3">
-                                    <input value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} placeholder="Job Title" className="col-span-2 font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                                    <input value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} placeholder="Company" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                                    <div className="flex gap-2">
-                                       <input value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} placeholder="Start" className="w-full text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                                       <input value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} placeholder="End" className="w-full text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
+                           {activeSection === section.id && (
+                              <div className="p-4 border-t border-gray-100 dark:border-dark-gray animate-slide-down">
+                                 {/* Personal Info */}
+                                 {section.id === 'personal' && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                       <div className="col-span-2">
+                                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Target Job Title</label>
+                                          <input value={resume.personalInfo.title} onChange={(e) => updateInfo('title', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-black border border-gray-200 dark:border-dark-gray rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                       </div>
+                                       <div>
+                                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Full Name</label>
+                                          <input value={resume.personalInfo.fullName} onChange={(e) => updateInfo('fullName', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                       </div>
+                                       <div>
+                                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Email</label>
+                                          <input value={resume.personalInfo.email} onChange={(e) => updateInfo('email', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                       </div>
+                                       <div>
+                                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Phone</label>
+                                          <input value={resume.personalInfo.phone} onChange={(e) => updateInfo('phone', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                       </div>
+                                       <div>
+                                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Location</label>
+                                          <input value={resume.personalInfo.location} onChange={(e) => updateInfo('location', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                       </div>
+                                       <div className="col-span-2">
+                                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">LinkedIn</label>
+                                          <input value={resume.personalInfo.linkedin} onChange={(e) => updateInfo('linkedin', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="https://linkedin.com/in/..." />
+                                       </div>
                                     </div>
-                                 </div>
-                                 <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} className="w-full p-2 text-sm border border-gray-200 rounded-lg h-24 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Description..." />
-                                 <button onClick={() => generateBullets(exp.id)} disabled={!exp.role} className="mt-2 text-xs text-purple-600 font-bold flex items-center gap-1"><Wand2 size={12} /> Enhance with AI</button>
-                              </div>
-                           ))}
-                        </div>
-                     )}
+                                 )}
 
-                     {activeSection === 'education' && (
-                        <div className="animate-fade-in space-y-6">
-                           <div className="flex justify-between items-center border-b pb-2 mb-4">
-                              <h2 className="text-lg font-bold text-gray-900">Education</h2>
-                              <button onClick={addEducation} className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100">+ Add</button>
-                           </div>
-                           {resume.education.map((edu) => (
-                              <div key={edu.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl relative group">
-                                 <button onClick={() => setResume(prev => ({ ...prev, education: prev.education.filter(e => e.id !== edu.id) }))} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
-                                 <div className="grid grid-cols-2 gap-3">
-                                    <input value={edu.school} onChange={(e) => updateEducation(edu.id, 'school', e.target.value)} placeholder="School / University" className="col-span-2 font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                                    <input value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} placeholder="Degree" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                                    <input value={edu.year} onChange={(e) => updateEducation(edu.id, 'year', e.target.value)} placeholder="Year" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                                 </div>
-                              </div>
-                           ))}
-                        </div>
-                     )}
+                                 {/* Summary */}
+                                 {section.id === 'summary' && (
+                                    <>
+                                       <textarea
+                                          value={resume.summary}
+                                          onChange={(e) => setResume(prev => ({ ...prev, summary: e.target.value }))}
+                                          className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm h-64 focus:ring-2 focus:ring-emerald-500 outline-none leading-relaxed text-gray-900 dark:text-white"
+                                          placeholder="Experienced professional..."
+                                       />
+                                       <div className="flex justify-end mt-2">
+                                          <button onClick={generateSummary} disabled={isGenerating} className="text-emerald-600 font-bold text-xs flex items-center gap-1 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors">
+                                             <Sparkles size={14} /> {isGenerating ? 'Generating...' : 'Rewrite with AI'}
+                                          </button>
+                                       </div>
+                                    </>
+                                 )}
 
-                     {activeSection === 'skills' && (
-                        <div className="animate-fade-in">
-                           <h2 className="text-lg font-bold text-gray-900 border-b pb-2 mb-4">Skills</h2>
-                           <textarea
-                              value={resume.skills.join(', ')}
-                              onChange={(e) => setResume(prev => ({ ...prev, skills: e.target.value.split(', ') }))}
-                              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm h-40 focus:ring-2 focus:ring-emerald-500 outline-none"
-                              placeholder="Java, Python, Leadership..."
-                           />
+                                 {/* Experience */}
+                                 {section.id === 'experience' && (
+                                    <div className="space-y-6">
+                                       <div className="flex justify-end">
+                                          <button onClick={addExperience} className="text-xs font-bold text-white bg-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-700 flex items-center gap-1 shadow-sm"><Plus size={14} /> Add Position</button>
+                                       </div>
+                                       {resume.experience.map((exp) => (
+                                          <div key={exp.id} className="p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl relative group hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors">
+                                             <button onClick={() => setResume(prev => ({ ...prev, experience: prev.experience.filter(e => e.id !== exp.id) }))} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
+                                             <div className="grid grid-cols-2 gap-3 mb-3">
+                                                <input value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} placeholder="Job Title" className="col-span-2 font-bold bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                <input value={exp.company} onChange={(e) => updateExperience(exp.id, 'company', e.target.value)} placeholder="Company" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                <div className="flex gap-2">
+                                                   <input value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} placeholder="Start" className="w-full text-xs bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                   <input value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} placeholder="End" className="w-full text-xs bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                </div>
+                                             </div>
+                                             <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} className="w-full p-3 text-sm border border-gray-200 dark:border-slate-700 rounded-lg h-32 focus:ring-1 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white" placeholder="Description..." />
+                                             <button onClick={() => generateBullets(exp.id)} disabled={!exp.role} className="mt-2 text-xs text-purple-600 font-bold flex items-center gap-1 hover:text-purple-700"><Wand2 size={12} /> Enhance with AI</button>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 )}
+
+                                 {/* Education */}
+                                 {section.id === 'education' && (
+                                    <div className="space-y-6">
+                                       <div className="flex justify-end">
+                                          <button onClick={addEducation} className="text-xs font-bold text-white bg-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-700 flex items-center gap-1 shadow-sm"><Plus size={14} /> Add Education</button>
+                                       </div>
+                                       {resume.education.map((edu) => (
+                                          <div key={edu.id} className="p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl relative group hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors">
+                                             <button onClick={() => setResume(prev => ({ ...prev, education: prev.education.filter(e => e.id !== edu.id) }))} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
+                                             <div className="grid grid-cols-2 gap-3">
+                                                <input value={edu.school} onChange={(e) => updateEducation(edu.id, 'school', e.target.value)} placeholder="School / University" className="col-span-2 font-bold bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                <input value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} placeholder="Degree" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                <input value={edu.year} onChange={(e) => updateEducation(edu.id, 'year', e.target.value)} placeholder="Year" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                             </div>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 )}
+
+                                 {/* Projects */}
+                                 {section.id === 'projects' && (
+                                    <div className="space-y-6">
+                                       <div className="flex justify-end">
+                                          <button onClick={addProject} className="text-xs font-bold text-white bg-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-700 flex items-center gap-1 shadow-sm"><Plus size={14} /> Add Project</button>
+                                       </div>
+                                       {(resume.projects || []).map((proj) => (
+                                          <div key={proj.id} className="p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl relative group hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors">
+                                             <button onClick={() => {
+                                                const newProjs = (resume.projects || []).filter(p => p.id !== proj.id);
+                                                setResume(prev => ({ ...prev, projects: newProjs }));
+                                             }} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Trash2 size={14} />
+                                             </button>
+                                             <div className="grid grid-cols-1 gap-3 mb-3">
+                                                <input value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} placeholder="Project Name" className="w-full font-bold bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                                <input value={proj.link} onChange={(e) => updateProject(proj.id, 'link', e.target.value)} placeholder="Link (URL)" className="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-slate-600 focus:border-emerald-500 outline-none p-1 text-blue-500 dark:text-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-600" />
+                                             </div>
+                                             <textarea value={proj.description} onChange={(e) => updateProject(proj.id, 'description', e.target.value)} className="w-full p-2 text-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg h-24 focus:ring-1 focus:ring-emerald-500 outline-none resize-none text-gray-900 dark:text-white" placeholder="Description..." />
+                                          </div>
+                                       ))}
+                                    </div>
+                                 )}
+
+                                 {/* Skills */}
+                                 {section.id === 'skills' && (
+                                    <>
+                                       <textarea
+                                          value={resume.skills.join(', ')}
+                                          onChange={(e) => setResume(prev => ({ ...prev, skills: e.target.value.split(', ') }))}
+                                          className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm h-40 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white"
+                                          placeholder="Java, Python, Leadership (comma separated)..."
+                                       />
+                                    </>
+                                 )}
+
+                                 {/* Certifications (Just a placeholder for now as it was in original list but not implemented) */}
+                                 {section.id === 'certifications' && (
+                                    <div className="text-sm text-gray-500 italic p-4 text-center">
+                                       Certifications section coming soon...
+                                    </div>
+                                 )}
+
+
+                                 {/* Review & Audit */}
+                                 {section.id === 'review' && (
+                                    <ResumeAudit
+                                       auditResult={auditResume(resume)}
+                                       aiAudit={aiAuditResults}
+                                       isAnalyzing={isAnalyzing}
+                                       onFix={(issue) => console.log("Fixing", issue)}
+                                    />
+                                 )}
+                              </div>
+                           )}
                         </div>
-                     )}
+                     ))}
                   </div>
+
                </div>
             </div>
 
-            {activeSection === 'projects' && (
-               <div className="animate-fade-in space-y-6">
-                  <div className="flex justify-between items-center border-b pb-2 mb-4">
-                     <h2 className="text-lg font-bold text-gray-900">Projects</h2>
-                     <button onClick={addProject} className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100">+ Add</button>
-                  </div>
-                  {(resume.projects || []).map((proj) => (
-                     <div key={proj.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl relative group">
-                        <button onClick={() => setResume(prev => ({ ...prev, projects: prev.projects.filter(p => p.id !== proj.id) }))} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
-                        <div className="grid grid-cols-1 gap-3 mb-3">
-                           <input value={proj.name} onChange={(e) => updateProject(proj.id, 'name', e.target.value)} placeholder="Project Name" className="font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1" />
-                           <input value={proj.link} onChange={(e) => updateProject(proj.id, 'link', e.target.value)} placeholder="Link (URL)" className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 outline-none p-1 text-blue-500" />
-                        </div>
-                        <textarea value={proj.description} onChange={(e) => updateProject(proj.id, 'description', e.target.value)} className="w-full p-2 text-sm border border-gray-200 rounded-lg h-20 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Description..." />
-                     </div>
-                  ))}
-               </div>
-            )}
-
             {/* RIGHT PANEL: LIVE PREVIEW */}
-            {/* We use flex-1 to take remaining space, and a gray background to contrast the A4 sheet */}
-            <div className="w-1/2 bg-gray-200/50 h-full overflow-hidden flex flex-col justify-start items-center relative print:hidden">
-
-               {/* Preview Container: Fixed width/height relative logic to allow accurate scaling */}
+            <div className="w-1/2 bg-gray-200/50 dark:bg-gray-900 h-full overflow-hidden flex flex-col justify-start items-center relative print:hidden transition-colors duration-300">
                <div className="h-full w-full overflow-y-auto custom-scrollbar flex flex-col items-center py-8">
                   <div className="origin-top transform scale-75 xl:scale-90 shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-transform duration-300">
                      <ResumePreview resume={resume} />
                   </div>
                </div>
-
                <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-xs font-bold text-gray-500 shadow-sm border border-gray-200 pointer-events-none">
                   A4 Live Preview
                </div>
             </div>
+
          </div>
 
-         {/* Hidden Print Container */}
-         <div className="hidden print:block print:w-full print:m-0 print:p-0">
-            <ResumePreview resume={resume} scale={1} />
+         {/* Hidden Print Container - made visible during download for html2canvas to capture it properly */}
+         <div
+            id="resume-preview-content"
+            className={isDownloading
+               ? "absolute top-0 left-0 z-[9999] bg-white w-auto h-auto" // Visible High-Z for capture, natural flow
+               : "absolute left-[-9999px] top-0 print:static print:visible" // Hidden normally
+            }
+         >
+            <div style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+               <ResumePreview resume={resume} scale={1} />
+            </div>
          </div>
 
       </div>

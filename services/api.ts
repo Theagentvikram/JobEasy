@@ -14,6 +14,12 @@ api.interceptors.request.use(async (config) => {
   if (user) {
     const token = await user.getIdToken();
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    // Check for mock user (backdoor login)
+    const mockUser = localStorage.getItem('jobeasy_mock_user');
+    if (mockUser) {
+      config.headers.Authorization = `Bearer mock-token-${mockUser}`;
+    }
   }
   return config;
 }, (error) => {

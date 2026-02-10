@@ -86,7 +86,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex overflow-hidden lg:static lg:h-auto lg:min-h-screen lg:bg-transparent">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-black flex overflow-hidden lg:static lg:h-auto lg:min-h-screen lg:bg-transparent">
 
       {/* LEFT SIDE - Hero/Informational */}
       <div className="hidden lg:flex w-[40%] bg-[#0B1120] relative flex-col justify-between p-8 lg:p-10 overflow-hidden text-white">
@@ -149,10 +149,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </div>
 
       {/* RIGHT SIDE - Form */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative bg-white lg:bg-gray-50/50">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 sm:p-8 relative overflow-hidden animate-fade-in-up">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 relative bg-white dark:bg-black lg:bg-gray-50/50 dark:lg:bg-black/50">
+        <div className="w-full max-w-md bg-white dark:bg-dark-gray rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-dark-gray p-6 sm:p-8 relative overflow-hidden animate-fade-in-up">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
               {isForgotPassword ? 'Reset Password' : (isSignUp ? 'Create your account' : 'Welcome back')}
             </h2>
             <p className="text-xs text-gray-500">
@@ -182,7 +182,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
+                  className="w-full py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-white rounded-lg font-bold hover:bg-gray-50 dark:hover:bg-gray-900 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
                 >
                   <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="Google" />
                   {loading ? 'Connecting...' : 'Continue with Google'}
@@ -198,7 +198,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             <form onSubmit={handleEmailAuth} className="space-y-3">
               <div>
-                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1 ml-1">Email Address</label>
+                <label className="block text-[10px] font-bold text-gray-700 dark:text-gray-400 uppercase mb-1 ml-1">Email Address</label>
                 <div className="relative group">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
                   <input
@@ -206,7 +206,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-900"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -215,7 +215,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {!isForgotPassword && (
                 <div>
                   <div className="flex justify-between items-center mb-1 ml-1">
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase">Password</label>
+                    <label className="block text-[10px] font-bold text-gray-700 dark:text-gray-400 uppercase">Password</label>
                     <button
                       type="button"
                       onClick={() => setIsForgotPassword(true)}
@@ -231,7 +231,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-900"
                       placeholder="••••••••"
                       minLength={6}
                     />

@@ -124,12 +124,107 @@ class LocalFirestore:
     def collection(self, name):
         return LocalCollection(name)
 
+# Global DB instances for caching
+_db_instance = None
+_is_local = False
+
 def get_db():
+    global _db_instance, _is_local
+    
+    # 1. If we've already decided to use local DB, return it (singleton)
+    if _is_local:
+        if _db_instance is None or not isinstance(_db_instance, LocalFirestore):
+             _db_instance = LocalFirestore()
+        return _db_instance
+
+    # 2. If we have a valid real Firestore client, return it
+    if _db_instance:
+        return _db_instance
+
+    # 3. Try to initialize and verify real Firestore
     if firebase_admin._apps:
         try:
-            return firestore.client()
-        except:
+            print("Attempting to connect to real Firestore...")
+            db = firestore.client()
+            
+            # Connectivity Check: Try a minimal operation to verify permissions/API status
+            try:
+                # Attempt to stream 1 document with a short timeout to fail fast
+                # This catches 'API not enabled' (403) or 'Service Unavailable' errors
+                list(db.collection('resumes').limit(1).stream(timeout=5))
+                print("Firestore Connection Verified.")
+                _db_instance = db
+                return _db_instance
+                
+            except Exception as e:
+                print(f"Firestore Verification Failed (falling back to Local DB): {e}")
+                _is_local = True
+                _db_instance = LocalFirestore()
+                return _db_instance
+                
+        except Exception as e:
+            print(f"Firestore Client Init Failed: {e}")
             pass
-    # Fallback to local persistence
-    print("Using Local JSON Database (Persistence Mode)")
-    return LocalFirestore()
+
+    # 4. Default Fallback
+    print("Using Local JSON Database (Persistence Mode) - Default Fallback")
+    _is_local = True
+    _db_instance = LocalFirestore()
+    return _db_instance
+
+def check_user_limit(user_id: str, limit_type: str = "scan_count"):
+    """
+    Checks if a user has reached their limit for a specific action.
+    limit_type: 'scan_count' (for ATS) or 'resume_count' (for Uploads)
+    Free users: Max 2 scans, Max 2 resumes.
+    Pro users: Unlimited.
+    Returns: True if allowed, False if limit reached.
+    """
+    db = get_db()
+    # Check user document in 'users' collection
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+    
+    if not user_doc.exists:
+        # Create new user record
+        user_ref.set({"scan_count": 0, "resume_count": 0, "plan": "free"})
+        return True
+        
+    data = user_doc.to_dict()
+    # Check plan - if 'pro', unlimited
+    if data.get("plan") == "pro":
+        return True
+        
+    # Check count based on type
+    # Default limit is 2 for both
+    current_count = data.get(limit_type, 0)
+    if current_count >= 2:
+        return False
+        
+    return True
+
+def increment_scan_count(user_id: str, limit_type: str = "scan_count"):
+    """
+    Increments the usage count for a user.
+    """
+    db = get_db()
+    user_ref = db.collection('users').document(user_id)
+    doc = user_ref.get()
+    
+    if doc.exists:
+        data = doc.to_dict()
+        current_count = data.get(limit_type, 0)
+        
+        # Determine the other count to preserve it (for local DB)
+        updates = {limit_type: current_count + 1}
+        
+        if hasattr(user_ref, "update"):
+             user_ref.update(updates)
+        else:
+             data[limit_type] = current_count + 1
+             user_ref.set(data)
+    else:
+        # Initialize with 1 for the current type
+        initial_data = {"scan_count": 0, "resume_count": 0, "plan": "free"}
+        initial_data[limit_type] = 1
+        user_ref.set(initial_data)

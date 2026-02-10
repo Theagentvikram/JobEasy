@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import api from '../services/api';
 import {
-   LayoutDashboard,
+   SquaresFour,
    FileText,
-   ScanSearch,
-   Settings as SettingsIcon,
+   Scan,
+   Gear,
    Briefcase,
-   Mail,
-   Linkedin,
-   ChevronRight,
-   ChevronDown,
-   ExternalLink,
-   Zap,
-   UploadCloud,
-   MessageSquare,
+   Envelope,
+   LinkedinLogo,
+   CaretRight,
+   CaretDown,
+   ArrowSquareOut,
+   Lightning,
+   CloudArrowUp,
+   ChatCircle,
    PlusCircle,
-   LogOut
-} from 'lucide-react';
+   SignOut,
+   Moon,
+   Sun,
+   Trash
+} from '@phosphor-icons/react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase/config';
 import { ATSView } from './ATSView';
 import { ResumeBuilder } from './ResumeBuilder';
 import { ResumePreview } from './ResumePreview';
@@ -31,19 +37,22 @@ import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router
 interface ScannerProps {
    user: any; // User from Firebase
    onLogout: () => void;
+   requestRefresh?: () => void; // Function to refresh user profile from parent
 }
 
-export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
+export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh }) => {
    const [resumes, setResumes] = useState<Resume[]>([]);
    const [documentsOpen, setDocumentsOpen] = useState(true);
    const [isLoading, setIsLoading] = useState(false);
    const navigate = useNavigate();
    const location = useLocation();
+   const { theme, toggleTheme } = useTheme();
 
    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-   // Determine Plan based on Email
-   const isPro = user?.email?.toLowerCase() === 'theagentvikram@gmail.com';
+   // Determine Plan based on 'plan' field from backend, or fallback to email check if legacy
+   // Also check for 'plan' === 'pro'
+   const isPro = user?.plan === 'pro' || user?.email?.toLowerCase() === 'theagentvikram@gmail.com';
    console.log('DEBUG: Scanner - User:', user, 'Calculated isPro:', isPro);
 
    const planName = isPro ? 'Pro Plan' : 'Free Plan';
@@ -76,12 +85,75 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
       }
    };
 
+   const importInputRef = React.useRef<HTMLInputElement>(null);
+
+   const handleImportClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      importInputRef.current?.click();
+   };
+
+   const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setIsLoading(true);
+      try {
+         // Upload to Firebase Storage
+         const storageRef = ref(storage, `resumes/${user.uid}/${Date.now()}_${file.name}`);
+         await uploadBytes(storageRef, file);
+         const downloadURL = await getDownloadURL(storageRef);
+
+         // Read file as Base64 for legacy parser fallback (if needed)
+         const reader = new FileReader();
+         reader.readAsDataURL(file);
+
+         reader.onload = async () => {
+            const base64String = reader.result as string;
+
+            try {
+               const response = await api.post<Resume>('/resumes/parse', {
+                  file_content: base64String,
+                  file_url: downloadURL
+               });
+
+               const importedResume = response.data;
+
+               // Fetch updated list and navigate
+               await fetchResumes();
+
+               // Navigate to editor with the new resume loaded
+               navigate(`/dashboard/resumes/${importedResume.id}/edit`);
+
+            } catch (error: any) {
+               console.error("Backend parsing failed:", error);
+               if (error.response?.status === 403) {
+                  alert("Free limit reached (2 resumes). Please upgrade to Pro.");
+               } else {
+                  alert("Failed to analyze resume. Please try again.");
+               }
+            } finally {
+               setIsLoading(false);
+            }
+         };
+
+         reader.onerror = () => {
+            console.error("File reading failed");
+            alert("Failed to read file.");
+            setIsLoading(false);
+         };
+
+      } catch (error) {
+         console.error("Error uploading/importing resume:", error);
+         alert("Failed to upload file.");
+         setIsLoading(false);
+      }
+   };
+
    const handleCreateNew = () => {
       navigate('/dashboard/resumes/new');
    };
 
    const handleTemplateSelect = async (templateId: string) => {
-      // Initialize a fresh resume with the selected template
       const newResume: Resume = {
          id: Date.now().toString(),
          templateId,
@@ -104,14 +176,17 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
          userId: 'temp-user'
       };
 
-      // Save immediately to create the record
       try {
          await api.post('/resumes', newResume);
          await fetchResumes();
          navigate(`/dashboard/resumes/${newResume.id}/edit`);
-      } catch (e) {
+      } catch (e: any) {
          console.error("Failed to create resume", e);
-         alert("Failed to create resume. Please try again.");
+         if (e.response?.status === 403) {
+            alert("Free limit reached (2 resumes). Please upgrade to Pro.");
+         } else {
+            alert("Failed to create resume. Please try again.");
+         }
       }
    };
 
@@ -125,20 +200,22 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
 
       setIsLoading(true);
       try {
+         // Upload to Firebase Storage
+         const storageRef = ref(storage, `ats_scans/${user.uid}/${Date.now()}_${file.name}`);
+         await uploadBytes(storageRef, file);
+         const downloadURL = await getDownloadURL(storageRef);
+
          const reader = new FileReader();
          reader.readAsDataURL(file);
          reader.onload = async () => {
             const base64String = reader.result as string;
-            // remove "data:application/pdf;base64," prefix for cleaner backend handling if needed
-            // but our backend logic handles both.
-
-            // FIX: Navigate to ATS Scanner instead of Resume Builder
             navigate('/dashboard/ats', {
                state: {
                   file: {
                      base64: base64String,
                      name: file.name,
-                     type: file.type
+                     type: file.type,
+                     url: downloadURL
                   }
                }
             });
@@ -185,8 +262,13 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
          await api.post('/resumes', resume);
          await fetchResumes();
          navigate(`/dashboard/resumes/${resume.id}/edit`);
-      } catch (e) {
+      } catch (e: any) {
          console.error("Failed to create resume", e);
+         if (e.response?.status === 403) {
+            alert("Free limit reached (2 resumes). Please upgrade to Pro.");
+         } else {
+            alert("Failed to create resume. Please try again.");
+         }
       }
    };
 
@@ -201,9 +283,8 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
       }
    };
 
-
    return (
-      <div className="flex h-screen bg-[#f8fafc] font-sans relative overflow-hidden">
+      <div className="flex h-screen bg-[#f8fafc] dark:bg-black font-sans relative overflow-hidden transition-colors duration-300">
          <Particles
             className="absolute inset-0 z-0 pointer-events-none"
             quantity={100}
@@ -215,54 +296,66 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
 
          {/* SIDEBAR - JobEasy Style (Hidden in Builder Mode) */}
          {!location.pathname.includes('/edit') && (
-            <aside className="w-64 bg-white/80 backdrop-blur-xl border-r border-gray-200/60 flex flex-col z-20 transition-all duration-300">
-               <div className="h-16 flex items-center px-6 border-b border-gray-100/50">
-                  <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-emerald-200">
+            <aside className="w-64 bg-white/90 dark:bg-black/95 backdrop-blur-xl border-r border-gray-200/60 dark:border-dark-gray flex flex-col z-20 transition-all duration-300">
+               <div className="h-16 flex items-center px-6 border-b border-gray-100/50 dark:border-dark-gray">
+                  <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-emerald-200 dark:shadow-none">
                      <Briefcase className="text-white" size={18} />
                   </div>
-                  <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">JobEasy</span>
+                  <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">JobEasy</span>
                </div>
 
                <div className="p-4">
-                  <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-100/50 mb-6">
-                     <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
-                        JD
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-dark-gray dark:to-dark-gray rounded-xl border border-emerald-100/50 dark:border-dark-gray mb-6">
+                     <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold border-2 border-white dark:border-dark-gray shadow-sm">
+                        {userInitials}
                      </div>
                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-gray-900 truncate">John Doe</div>
-                        <div className="text-xs text-emerald-600 font-medium truncate">Free Plan</div>
+                        <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{userName}</div>
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium truncate">{planName}</div>
                      </div>
-                     <SettingsIcon size={16} className="text-gray-400 hover:text-emerald-600 cursor-pointer transition-colors" onClick={() => navigate('/dashboard/settings')} />
+                     <Gear size={16} className="text-gray-400 dark:text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer transition-colors" onClick={() => navigate('/dashboard/settings')} />
                   </div>
                </div>
 
                <nav className="flex-1 overflow-y-auto px-4 space-y-1">
-                  <SidebarItem icon={<LayoutDashboard size={18} />} label="Dashboard" active={location.pathname === '/dashboard'} onClick={() => navigate('/dashboard')} />
-                  <SidebarItem icon={<ScanSearch size={18} />} label="ATS Scanner" active={location.pathname === '/dashboard/ats'} onClick={() => navigate('/dashboard/ats')} />
+                  <SidebarItem icon={<SquaresFour size={18} />} label="Dashboard" active={location.pathname === '/dashboard'} onClick={() => navigate('/dashboard')} />
+                  <SidebarItem icon={<Scan size={18} />} label="ATS Scanner" active={location.pathname === '/dashboard/ats'} onClick={() => navigate('/dashboard/ats')} />
                   <SidebarItem icon={<FileText size={18} />} label="My Resumes" active={location.pathname === '/dashboard/resumes'} onClick={() => navigate('/dashboard/resumes')} Badge={<span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{resumes.length}</span>} />
                   <SidebarItem icon={<Briefcase size={18} />} label="Career Desk" active={location.pathname === '/dashboard/desk'} onClick={() => navigate('/dashboard/desk')} Badge={<span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">New</span>} />
 
-                  <div className="pt-4 mt-4 border-t border-gray-100">
+                  <div className="pt-4 mt-4 border-t border-gray-100 dark:border-dark-gray">
                      <div className="px-3 mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Tools</div>
-                     <SidebarItem icon={<UploadCloud size={18} />} label="Job Tracker" active={location.pathname === '/dashboard/tracker'} onClick={() => navigate('/dashboard/tracker')} />
-                     <SidebarItem icon={<MessageSquare size={18} />} label="AI Assistant" active={location.pathname === '/dashboard/assistant'} onClick={() => navigate('/dashboard/assistant')} />
+                     <SidebarItem icon={<CloudArrowUp size={18} />} label="Job Tracker" active={location.pathname === '/dashboard/tracker'} onClick={() => navigate('/dashboard/tracker')} />
+                     <SidebarItem icon={<ChatCircle size={18} />} label="AI Assistant" active={location.pathname === '/dashboard/assistant'} onClick={() => navigate('/dashboard/assistant')} />
                   </div>
 
                   <div className="pt-4 mt-4 border-t border-gray-100">
                      <SidebarItem
-                        icon={<LogOut size={18} />}
+                        icon={<SignOut size={18} />}
                         label="Sign Out"
                         onClick={onLogout}
                         active={false}
                      />
+
+                     <button
+                        onClick={toggleTheme}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-gray hover:text-gray-900 dark:hover:text-white transition-all duration-200 group mt-1"
+                     >
+                        <div className="flex items-center gap-3">
+                           <span className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
+                              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                           </span>
+                           <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                        </div>
+                     </button>
                   </div>
                </nav>
 
                <div className="p-4 mt-auto">
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl shadow-gray-200">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-dark-gray dark:to-black text-white shadow-xl shadow-gray-200 dark:shadow-none border border-transparent dark:border-dark-gray">
                      <div className="flex justify-between items-start mb-3">
                         <div className="p-2 bg-white/10 rounded-lg">
-                           <Zap size={16} className="text-yellow-400" />
+                           <Lightning size={16} className="text-yellow-400" weight="fill" />
                         </div>
                         <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">PRO</span>
                      </div>
@@ -287,27 +380,27 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                         {/* Welcome Header */}
                         <div className="flex justify-between items-end">
                            <div>
-                              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
+                              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">
                                  Welcome back, John! 👋
                               </h1>
-                              <p className="text-gray-500 font-medium">You have 2 pending applications and 1 resume draft. What's the goal for today?</p>
+                              <p className="text-gray-500 dark:text-gray-400 font-medium">You have 2 pending applications and 1 resume draft. What's the goal for today?</p>
                            </div>
                         </div>
 
                         {/* Hero / Action Center - Bento Grid Style */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                            {/* Main Action: ATS Scan */}
-                           <div className="md:col-span-2 bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 relative overflow-hidden group hover:border-emerald-200 transition-all">
-                              <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                           <div className="md:col-span-2 bg-white dark:bg-dark-gray rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-dark-gray relative overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-900 transition-all">
+                              <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 dark:bg-emerald-900/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:opacity-100 transition-opacity"></div>
                               <div className="relative z-10">
-                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold mb-4">
-                                    <ScanSearch size={14} /> Only 2 scans left today
+                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-4">
+                                    <Scan size={14} /> Only 2 scans left today
                                  </div>
-                                 <h2 className="text-2xl font-bold text-gray-900 mb-3">Optimize your Resume</h2>
-                                 <p className="text-gray-500 mb-8 max-w-md">Get an ATS score and tailored keywords for any job application. Our AI ensures you match the job description perfectly.</p>
+                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">ATS Scanner</h2>
+                                 <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md">Get an ATS score and tailored keywords for any job application. Our AI ensures you match the job description perfectly.</p>
                                  <div className="flex gap-4">
                                     <button onClick={handleUploadClick} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all">
-                                       <UploadCloud size={18} /> Upload Resume
+                                       <Scan size={18} /> Scan for ATS
                                     </button>
                                     <input
                                        type="file"
@@ -316,31 +409,53 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                                        accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                        onChange={handleFileUpload}
                                     />
-                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors">
-                                       <Linkedin size={18} className="text-blue-600" /> Import Profile
+                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-black text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-dark-gray rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-dark-gray transition-colors">
+                                       <LinkedinLogo size={18} className="text-blue-600" /> Import Profile
                                     </button>
                                  </div>
                               </div>
                            </div>
 
                            {/* Secondary Action: Resume Builder */}
-                           <div onClick={handleCreateNew} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white shadow-xl shadow-gray-200 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform">
-                              <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mb-10"></div>
-                              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
-                                 <PlusCircle size={24} className="text-emerald-400" />
+                           <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-dark-gray dark:to-black rounded-3xl p-8 text-white shadow-xl shadow-gray-200 dark:shadow-none border border-transparent dark:border-dark-gray relative overflow-hidden group flex flex-col justify-between">
+                              <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none"></div>
+
+                              <div>
+                                 <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
+                                    <PlusCircle size={24} className="text-emerald-400" />
+                                 </div>
+                                 <h3 className="text-xl font-bold mb-2">Create New</h3>
+                                 <p className="text-gray-400 text-sm mb-6">Build a professional resume from scratch or import existing.</p>
                               </div>
-                              <h3 className="text-xl font-bold mb-2">Create New</h3>
-                              <p className="text-gray-400 text-sm mb-4">Build a professional resume from scratch with AI.</p>
-                              <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center absolute bottom-8 right-8 group-hover:bg-emerald-400 transition-colors">
-                                 <ChevronRight size={18} className="text-white" />
+
+                              <div className="flex gap-3 relative z-10">
+                                 <button
+                                    onClick={handleCreateNew}
+                                    className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm font-bold transition-colors"
+                                 >
+                                    From Scratch
+                                 </button>
+                                 <button
+                                    onClick={handleImportClick}
+                                    className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                                 >
+                                    <CloudArrowUp size={14} /> Import
+                                 </button>
+                                 <input
+                                    type="file"
+                                    ref={importInputRef}
+                                    className="hidden"
+                                    accept=".pdf,.docx,.doc"
+                                    onChange={handleImportFile}
+                                 />
                               </div>
                            </div>
-                        </div>
+                        </div >
 
                         {/* Feature Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        < div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" >
                            <FeatureCard
-                              icon={<LayoutDashboard className="text-purple-600" />}
+                              icon={<SquaresFour className="text-purple-600" size={24} />}
                               title="My Resumes"
                               description="Manage your versions."
                               onClick={() => navigate('/dashboard/resumes')}
@@ -352,31 +467,31 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                               onClick={() => navigate('/dashboard/desk')}
                            />
                            <FeatureCard
-                              icon={<MessageSquare className="text-emerald-600" />}
+                              icon={<ChatCircle className="text-emerald-600" size={24} />}
                               title="AI Career Assistant"
                               description="Chat with AI."
                               onClick={() => navigate('/dashboard/assistant')}
                            />
                            <FeatureCard
-                              icon={<UploadCloud className="text-orange-500" />}
+                              icon={<CloudArrowUp className="text-orange-500" size={24} />}
                               title="Job Application Tracker"
                               description="Organize your job search."
                               onClick={() => navigate('/dashboard/tracker')}
                            />
-                        </div>
+                        </div >
 
                         {/* My Documents Section */}
-                        <div>
+                        < div >
                            <div className="flex items-center justify-between mb-6">
                               <div>
-                                 <h2 className="text-2xl font-bold text-gray-900">My Documents</h2>
+                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Documents</h2>
                               </div>
                            </div>
 
                            <div className="grid md:grid-cols-3 gap-6">
                               {resumes.map(resume => (
-                                 <div key={resume.id} onClick={() => handleEditResume(resume.id!)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-emerald-200 transition-all group overflow-hidden flex flex-col cursor-pointer">
-                                    <div className="h-48 bg-gray-100 relative overflow-hidden group-hover:bg-emerald-50/10 transition-colors">
+                                 <div key={resume.id} onClick={() => handleEditResume(resume.id!)} className="bg-white dark:bg-dark-gray rounded-2xl border border-gray-100 dark:border-dark-gray shadow-sm hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-900 transition-all group overflow-hidden flex flex-col cursor-pointer">
+                                    <div className="h-48 bg-gray-100 dark:bg-black relative overflow-hidden group-hover:bg-emerald-50/10 dark:group-hover:bg-emerald-900/10 transition-colors">
                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[210mm] transform scale-[0.45] origin-top shadow-sm select-none pointer-events-none bg-white min-h-[297mm]">
                                           <ResumePreview resume={resume} />
                                        </div>
@@ -386,16 +501,16 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                                        </div>
                                     </div>
 
-                                    <div className="p-5 flex-1 flex flex-col bg-white relative">
-                                       <h3 className="font-bold text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors">{resume.title}</h3>
-                                       <p className="text-xs text-gray-500 mb-4">{new Date(resume.lastModified).toLocaleDateString()}</p>
+                                    <div className="p-5 flex-1 flex flex-col bg-white dark:bg-dark-gray relative">
+                                       <h3 className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{resume.title}</h3>
+                                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{new Date(resume.lastModified).toLocaleDateString()}</p>
 
                                        <div className="mt-auto flex items-center justify-between">
-                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
                                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                                              Edit
                                           </span>
-                                          <SettingsIcon size={16} className="text-gray-300 group-hover:text-gray-500" />
+                                          <Gear size={16} className="text-gray-300 group-hover:text-gray-500" />
                                        </div>
                                     </div>
                                  </div>
@@ -403,40 +518,40 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
 
                               <button
                                  onClick={handleCreateNew}
-                                 className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all min-h-[250px]"
+                                 className="border-2 border-dashed border-gray-200 dark:border-dark-gray rounded-2xl flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:border-emerald-400 dark:hover:border-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all min-h-[250px]"
                               >
-                                 <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-3 shadow-sm">
+                                 <div className="w-12 h-12 rounded-full bg-white dark:bg-dark-gray border border-gray-200 dark:border-dark-gray flex items-center justify-center mb-3 shadow-sm">
                                     <PlusCircle size={24} />
                                  </div>
                                  <span className="font-semibold text-sm">Create New Document</span>
                               </button>
                            </div>
-                        </div>
-                     </div>
-                  </div>
+                        </div >
+                     </div >
+                  </div >
                } />
 
-               <Route path="resumes/new" element={
-                  <TemplateSelector onSelect={handleTemplateSelect} onCancel={() => navigate('/dashboard')} />
+               < Route path="resumes/new" element={
+                  < TemplateSelector onSelect={handleTemplateSelect} onCancel={() => navigate('/dashboard')} />
                } />
 
-               <Route path="ats" element={
-                  <div className="p-8 max-w-7xl mx-auto">
+               < Route path="ats" element={
+                  < div className="p-8 max-w-7xl mx-auto" >
                      <button onClick={() => navigate('/dashboard')} className="mb-6 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
-                        <ChevronRight size={16} className="rotate-180" /> Back to Dashboard
+                        <CaretRight size={16} className="rotate-180" /> Back to Dashboard
                      </button>
-                     <ATSView isPro={isPro} />
-                  </div>
+                     <ATSView isPro={isPro} user={user} />
+                  </div >
                } />
 
-               <Route path="resumes/:id/edit" element={
-                  <EditorWrapper resumes={resumes} saveResume={saveResume} onBack={() => navigate('/dashboard')} />
+               < Route path="resumes/:id/edit" element={
+                  < EditorWrapper resumes={resumes} saveResume={saveResume} onBack={() => navigate('/dashboard')} />
                } />
 
-               <Route path="resumes" element={
-                  <div className="p-8 max-w-6xl mx-auto">
+               < Route path="resumes" element={
+                  < div className="p-8 max-w-6xl mx-auto" >
                      <button onClick={() => navigate('/dashboard')} className="mb-6 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
-                        <ChevronRight size={16} className="rotate-180" /> Back to Dashboard
+                        <CaretRight size={16} className="rotate-180" /> Back to Dashboard
                      </button>
                      <h2 className="text-2xl font-bold text-gray-900 mb-6">My Resumes</h2>
                      <div className="grid md:grid-cols-3 gap-6">
@@ -459,59 +574,55 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout }) => {
                            <span className="font-semibold text-sm">Create New</span>
                         </button>
                      </div>
-                  </div>
+                  </div >
                } />
 
-               <Route path="tracker" element={
-                  <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400">
+               < Route path="tracker" element={
+                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400" >
                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                         <Briefcase size={32} className="opacity-50" />
                      </div>
                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Job Tracker</h3>
                      <p className="max-w-md text-center text-gray-500">Track all your applications, interview stages, and offers in one place. Coming soon.</p>
                      <button onClick={() => navigate('/dashboard')} className="mt-8 text-emerald-600 font-semibold hover:underline">Return to Dashboard</button>
-                  </div>
+                  </div >
                } />
 
-               <Route path="assistant" element={
-                  <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400">
+               < Route path="assistant" element={
+                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400" >
                      <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
-                        <MessageSquare size={32} className="text-emerald-500" />
+                        <ChatCircle size={32} className="text-emerald-500" />
                      </div>
                      <h3 className="text-2xl font-bold text-gray-900 mb-2">AI Career Assistant</h3>
                      <p className="max-w-md text-center text-gray-500">Your personal career coach. Chat with AI to get interview tips, negotiation advice, and more. Coming in V2.</p>
                      <button onClick={() => navigate('/dashboard')} className="mt-8 text-emerald-600 font-semibold hover:underline">Return to Dashboard</button>
-                  </div>
+                  </div >
                } />
 
-               <Route path="desk" element={
-                  <div className="p-8 max-w-7xl mx-auto">
+               < Route path="desk" element={
+                  < div className="p-8 max-w-7xl mx-auto" >
                      <button onClick={() => navigate('/dashboard')} className="mb-6 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
-                        <ChevronRight size={16} className="rotate-180" /> Back to Dashboard
+                        <CaretRight size={16} className="rotate-180" /> Back to Dashboard
                      </button>
-                     <CareerDesk />
-                  </div>
+                     <CareerDesk user={user} />
+                  </div >
                } />
 
-               <Route path="desk" element={
-                  <CareerDesk />
-               } />
-
-               <Route path="cover-letters" element={
-                  <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400">
+               < Route path="cover-letters" element={
+                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400" >
                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                        <Mail size={32} className="opacity-50" />
+                        <Envelope size={32} className="opacity-50" />
                      </div>
                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Cover Letter Generator</h3>
                      <p className="max-w-md text-center text-gray-500">AI-generated cover letters tailored to your resume and the job description. Coming soon.</p>
                      <button onClick={() => navigate('/dashboard')} className="mt-8 text-emerald-600 font-semibold hover:underline">Return to Dashboard</button>
-                  </div>
+                  </div >
                } />
 
-               <Route path="settings" element={<Settings />} />
-               <Route path="plans" element={<Plans />} />
-            </Routes>
-         </main>
+               < Route path="settings" element={< Settings user={user} />} />
+               < Route path="plans" element={< Plans isPro={isPro} onUpgradeSuccess={requestRefresh} />} />
+            </Routes >
+         </main >
 
       </div >
    );
@@ -543,27 +654,27 @@ const SidebarItem = ({ icon, label, active, onClick, isExternal }: any) => (
       onClick={onClick}
       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group mb-1
       ${active
-            ? 'bg-emerald-50 text-emerald-700 shadow-sm'
-            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm'
+            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-gray hover:text-gray-900 dark:hover:text-white'}
     `}
    >
       <div className="flex items-center gap-3">
-         <span className={active ? 'text-emerald-600' : 'text-gray-400 group-hover:text-gray-600'}>{icon}</span>
+         <span className={active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300'}>{icon}</span>
          <span>{label}</span>
       </div>
-      {isExternal && <ExternalLink size={14} className="text-gray-400" />}
+      {isExternal && <ArrowSquareOut size={14} className="text-gray-400" />}
    </button>
 );
 
 const FeatureCard = ({ icon, title, description, onClick, color }: any) => (
    <div
       onClick={onClick}
-      className={`p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group flex flex-col items-start hover:border-emerald-100`}
+      className={`p-6 bg-white dark:bg-dark-gray rounded-2xl border border-gray-100 dark:border-dark-gray shadow-sm hover:shadow-lg transition-all cursor-pointer group flex flex-col items-start hover:border-emerald-100 dark:hover:border-emerald-900`}
    >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color} group-hover:scale-110 transition-transform`}>
          {icon}
       </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">{title}</h3>
-      <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{title}</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{description}</p>
    </div>
 );

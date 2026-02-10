@@ -1,10 +1,31 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900;
+  }
+
+  .dark body {
+    @apply bg-black text-white;
+  }
+}
+
+@layer utilities {
+  .bg-true-black {
+    background-color: #000000;
+  }
+
+  .bg-almost-black {
+    background-color: #050505;
+  }
+
+  .bg-dark-gray {
+    background-color: #0a0a0a;
+  }
+
+  .border-dark-gray {
+    border-color: #1a1a1a;
   }
 }
 
@@ -13,9 +34,11 @@
   width: 6px;
   height: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-gray-200 rounded-full hover:bg-gray-300;
 }
@@ -24,6 +47,7 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -31,9 +55,65 @@
 
 /* Animation Utilities */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
+}
+
+
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-expand-in {
+  animation: expandIn 0.5s ease-out both;
+}
+
+/* Print Styles for Resume PDF Export */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure sections don't split across pages */
+  .print\:break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Allow page breaks between sections */
+  .print\:break-before-auto {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  /* Force page break before element */
+  .print\:break-before-page {
+    break-before: page;
+    page-break-before: always;
+  }
 }
