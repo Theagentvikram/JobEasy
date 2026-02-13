@@ -73,6 +73,19 @@ class Resume(BaseModel):
     custom: List[CustomSection] = []
     userId: Optional[str] = None # Added for ownership
 
+class ATSScan(BaseModel):
+    id: Optional[str] = None
+    userId: Optional[str] = None
+    createdAt: Optional[str] = None
+    score: int
+    summary: str
+    missingKeywords: List[str] = []
+    hardSkills: List[str] = []
+    softSkills: List[str] = []
+    improvements: List[str] = []
+    resumeId: Optional[str] = None
+    jobDescription: Optional[str] = ""
+
 # --- AI Analysis Models ---
 
 class AnalysisRequest(BaseModel):
