@@ -35,6 +35,7 @@ import { Particles } from './ui/particles';
 import { CareerDesk } from './CareerDesk';
 import { Settings } from './Settings';
 import { Plans } from './Plans';
+import { ChatAssistant } from './ChatAssistant';
 import { Resume } from '../types';
 import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 
@@ -594,14 +595,11 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                } />
 
                < Route path="assistant" element={
-                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px]" >
-                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 dark:from-purple-500/30 dark:to-pink-500/30 border border-purple-200/50 dark:border-purple-500/20 flex items-center justify-center mb-8 shadow-lg shadow-purple-500/10 dark:shadow-purple-500/5">
-                        <ChatCircle size={40} className="text-purple-500 dark:text-purple-400" weight="duotone" />
-                     </div>
-                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800 mb-4">Coming in V2</span>
-                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">AI Career Assistant</h3>
-                     <p className="max-w-md text-center text-gray-500 dark:text-gray-400 leading-relaxed">Your personal AI career coach. Get interview tips, salary negotiation advice, and personalized career guidance.</p>
-                     <button onClick={() => navigate('/dashboard')} className="mt-8 px-6 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-emerald-500/10 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:border-purple-300 dark:hover:border-purple-700 hover:text-purple-600 dark:hover:text-purple-400 transition-all shadow-sm">Return to Dashboard</button>
+                  < div className="p-8 max-w-7xl mx-auto h-[calc(100vh-2rem)]" >
+                     <button onClick={() => navigate('/dashboard')} className="mb-4 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
+                        <CaretRight size={16} className="rotate-180" /> Back to Dashboard
+                     </button>
+                     <ChatAssistant />
                   </div >
                } />
                < Route path="desk" element={

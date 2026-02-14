@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Briefcase, Code, Award, Edit2, Plus, Save, X, ExternalLink, Trash2, MapPin, Mail, Phone } from 'lucide-react';
+import { User, Briefcase, Code, Edit2, Plus, X, ExternalLink, Trash2, MapPin, Mail, Phone, Lock } from 'lucide-react';
+import api from '../services/api';
 
 // --- Types ---
 interface Profile {
@@ -28,45 +29,60 @@ interface Project {
 
 // --- Main Component ---
 export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
-    // --- State with Persistence ---
-    const [profile, setProfile] = useState<Profile>(() => {
-        const saved = localStorage.getItem('desk_profile');
-        if (saved) return JSON.parse(saved);
+    const [loading, setLoading] = useState(true);
 
-        return {
-            name: user?.displayName || "User Name",
-            role: "Job Seeker",
-            email: user?.email || "",
-            phone: "",
-            location: ""
+    // --- State ---
+    const [profile, setProfile] = useState<Profile>({
+        name: user?.displayName || "User Name",
+        role: "Job Seeker",
+        email: user?.email || "",
+        phone: "",
+        location: ""
+    });
+
+    const [skills, setSkills] = useState<string[]>([]);
+    const [experiences, setExperiences] = useState<Experience[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+
+    // --- Fetch Data ---
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const response = await api.get('/user/desk');
+                const data = response.data;
+
+                if (data.profile) setProfile(data.profile);
+                else {
+                    // Initialize with user auth data if profile is empty
+                    setProfile(prev => ({
+                        ...prev,
+                        name: user?.displayName || prev.name,
+                        email: user?.email || prev.email
+                    }));
+                }
+
+                if (data.skills) setSkills(data.skills);
+                if (data.experiences) setExperiences(data.experiences);
+                if (data.projects) setProjects(data.projects);
+
+            } catch (error) {
+                console.error("Failed to fetch Career Desk data:", error);
+            } finally {
+                setLoading(false);
+            }
         };
-    });
+        fetchData();
+    }, [user]); // Re-fetch if user changes, though unlikely in session
 
-    const [skills, setSkills] = useState<string[]>(() => {
-        const saved = localStorage.getItem('desk_skills');
-        return saved ? JSON.parse(saved) : ["React", "TypeScript", "Python", "Node.js", "AWS", "Docker"];
-    });
-
-    const [experiences, setExperiences] = useState<Experience[]>(() => {
-        const saved = localStorage.getItem('desk_experiences');
-        return saved ? JSON.parse(saved) : [
-            { id: 1, role: "Senior Developer", company: "TechCorp", year: "2022 - Present", description: "Leading frontend architecture." },
-            { id: 2, role: "Software Engineer", company: "StartupInc", year: "2020 - 2022", description: "Built MVP from scratch." }
-        ];
-    });
-
-    const [projects, setProjects] = useState<Project[]>(() => {
-        const saved = localStorage.getItem('desk_projects');
-        return saved ? JSON.parse(saved) : [
-            { id: 1, name: "Project Alpha", tech: "Next.js • Tailwind", description: "E-commerce dashboard.", link: "#" }
-        ];
-    });
-
-    // --- Persistence Effects ---
-    useEffect(() => { localStorage.setItem('desk_profile', JSON.stringify(profile)); }, [profile]);
-    useEffect(() => { localStorage.setItem('desk_skills', JSON.stringify(skills)); }, [skills]);
-    useEffect(() => { localStorage.setItem('desk_experiences', JSON.stringify(experiences)); }, [experiences]);
-    useEffect(() => { localStorage.setItem('desk_projects', JSON.stringify(projects)); }, [projects]);
+    // --- Persistence Helper ---
+    const saveData = async (updates: any) => {
+        try {
+            await api.put('/user/desk', updates);
+        } catch (error) {
+            console.error("Failed to save Career Desk data:", error);
+        }
+    };
 
     const [newSkill, setNewSkill] = useState("");
 
@@ -84,26 +100,31 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
     // --- Handlers ---
 
     // Profile
-    const handleSaveProfile = () => {
+    const handleSaveProfile = async () => {
         setProfile(tempProfile);
+        await saveData({ profile: tempProfile });
         setIsEditingProfile(false);
     };
 
     // Skills
-    const handleAddSkill = (e: React.FormEvent) => {
+    const handleAddSkill = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newSkill.trim()) {
-            setSkills([...skills, newSkill.trim()]);
+            const updatedSkills = [...skills, newSkill.trim()];
+            setSkills(updatedSkills);
+            await saveData({ skills: updatedSkills });
             setNewSkill("");
         }
     };
 
-    const removeSkill = (skillToRemove: string) => {
-        setSkills(skills.filter(s => s !== skillToRemove));
+    const removeSkill = async (skillToRemove: string) => {
+        const updatedSkills = skills.filter(s => s !== skillToRemove);
+        setSkills(updatedSkills);
+        await saveData({ skills: updatedSkills });
     };
 
     // Experience
-    const handleSaveExperience = () => {
+    const handleSaveExperience = async () => {
         if (tempExp.role && tempExp.company) {
             const newExp = {
                 id: Date.now(),
@@ -112,18 +133,22 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                 year: tempExp.year || "",
                 description: tempExp.description || ""
             } as Experience;
-            setExperiences([newExp, ...experiences]); // Add to top
+            const updatedExperiences = [newExp, ...experiences];
+            setExperiences(updatedExperiences);
+            await saveData({ experiences: updatedExperiences });
             setIsAddingExp(false);
             setTempExp({});
         }
     };
 
-    const deleteExperience = (id: number) => {
-        setExperiences(experiences.filter(e => e.id !== id));
+    const deleteExperience = async (id: number) => {
+        const updatedExperiences = experiences.filter(e => e.id !== id);
+        setExperiences(updatedExperiences);
+        await saveData({ experiences: updatedExperiences });
     };
 
     // Projects
-    const handleSaveProject = () => {
+    const handleSaveProject = async () => {
         if (tempProject.name) {
             const newProj = {
                 id: Date.now(),
@@ -132,12 +157,24 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                 description: tempProject.description || "",
                 link: tempProject.link || ""
             } as Project;
-            setProjects([...projects, newProj]);
+            const updatedProjects = [...projects, newProj];
+            setProjects(updatedProjects);
+            await saveData({ projects: updatedProjects });
             setIsAddingProject(false);
             setTempProject({});
         }
     };
 
+    const deleteProject = async (id: number) => {
+        const updatedProjects = projects.filter(p => p.id !== id);
+        setProjects(updatedProjects);
+        await saveData({ projects: updatedProjects });
+    };
+
+
+    if (loading) {
+        return <div className="min-h-screen flex items-center justify-center text-emerald-600">Loading Career Desk...</div>;
+    }
 
     return (
         <div className="min-h-screen bg-[#e2e8f0] dark:bg-[#020c07] p-8 font-sans overflow-hidden relative selection:bg-emerald-200 dark:selection:bg-emerald-900 transition-colors duration-300">
@@ -149,7 +186,9 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                 <div className="md:col-span-12 flex justify-between items-end mb-4">
                     <div>
                         <h1 className="text-4xl font-extrabold text-slate-800 dark:text-white tracking-tight">My Career Desk</h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium ml-1">Master Profile & Assets</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium ml-1 flex items-center gap-1">
+                            <Lock size={14} className="text-emerald-500" /> Secure Cloud Storage
+                        </p>
                     </div>
                 </div>
 
@@ -246,7 +285,7 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {projects.map((proj) => (
                                     <div key={proj.id} className="bg-slate-700/50 p-4 rounded-xl border border-slate-600 hover:border-cyan-500/50 hover:bg-slate-700 transition-all cursor-pointer group relative">
-                                        <button className="absolute top-2 right-2 p-1 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => deleteProject(proj.id)} className="absolute top-2 right-2 p-1 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Trash2 size={14} />
                                         </button>
                                         <div className="h-24 bg-slate-900/50 rounded-lg mb-3 flex items-center justify-center text-slate-600 group-hover:text-cyan-400 transition-colors">
@@ -404,3 +443,4 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
         </div>
     );
 };
+

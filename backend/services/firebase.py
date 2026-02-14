@@ -10,12 +10,21 @@ load_dotenv()
 cred_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "serviceAccountKey.json")
 
 if os.path.exists(cred_path):
+    print(f"Loading Firebase credentials from file: {cred_path}")
     cred = credentials.Certificate(cred_path)
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
+elif os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON"):
+    print("Loading Firebase credentials from FIREBASE_SERVICE_ACCOUNT_JSON env var")
+    import json
+    cred_dict = json.loads(os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON"))
+    cred = credentials.Certificate(cred_dict)
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(cred)
 else:
-    # Fallback/Placeholder: In production, might use env vars or distinct logic
-    print("WARNING: serviceAccountKey.json not found. Firebase features may fail.")
+    # Fallback/Placeholder
+    print("WARNING: serviceAccountKey.json not found AND FIREBASE_SERVICE_ACCOUNT_JSON not set.")
+    print("Firebase features will fall back to local mock DB (data will be lost on restart).")
 
 def verify_token(token: str):
     # DEVELOPMENT BACKDOOR: If no service account, bypass verification
@@ -58,6 +67,20 @@ class LocalQuery:
     def get(self):
         # Firestore queries also have .get() which returns the list
         return self._results
+
+    def order_by(self, field, direction='ASCENDING'):
+        # Basic sort implementation for local mock
+        reverse = direction == 'DESCENDING'
+        # sort only if field exists in dict
+        try:
+            self._results.sort(key=lambda x: x.to_dict().get(field, 0), reverse=reverse)
+        except:
+            pass
+        return self
+
+    def limit(self, count):
+        self._results = self._results[:count]
+        return self
 
 class LocalCollection:
     def __init__(self, name):
@@ -150,14 +173,21 @@ def get_db():
             # Connectivity Check: Try a minimal operation to verify permissions/API status
             try:
                 # Attempt to stream 1 document with a short timeout to fail fast
-                # This catches 'API not enabled' (403) or 'Service Unavailable' errors
-                list(db.collection('resumes').limit(1).stream(timeout=5))
+                # Increased timeout to 10s to account for slow connections
+                list(db.collection('resumes').limit(1).stream(timeout=10))
                 print("Firestore Connection Verified.")
                 _db_instance = db
                 return _db_instance
                 
             except Exception as e:
-                print(f"Firestore Verification Failed (falling back to Local DB): {e}")
+                print(f"Firestore Verification Failed: {e}")
+                # We still fall back to local DB to keep the app running, 
+                # but we log the error clearly.
+                # If the user wants to debug, they should check these logs.
+                import traceback
+                traceback.print_exc()
+                
+                print("FALLING BACK TO LOCAL JSON DB due to connection error.")
                 _is_local = True
                 _db_instance = LocalFirestore()
                 return _db_instance

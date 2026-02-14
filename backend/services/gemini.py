@@ -264,3 +264,30 @@ async def parse_resume_to_json(file_content: str) -> str:
     # Clean up markdown if present
     clean_json = response.replace("```json", "").replace("```", "").strip()
     return clean_json
+
+async def chat_with_context(message: str, history: List[Dict[str, str]], system_instruction: str = "") -> str:
+    if not API_KEY:
+        raise Exception("Groq API Key not configured")
+        
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+        
+    # Add history
+    for msg in history:
+        messages.append(msg)
+        
+    # Add current message
+    messages.append({"role": "user", "content": message})
+    
+    try:
+        completion = client.chat.completions.create(
+          model=MODEL_NAME,
+          messages=messages
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        print(f"Chat generation error: {e}")
+        traceback.print_exc()
+        raise e
+
