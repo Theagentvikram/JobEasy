@@ -107,3 +107,44 @@ export interface CustomSection {
   name: string;
   items: GenericItem[];
 }
+
+export enum JobStatus {
+  WAITING_REFERRAL = "waiting_referral",
+  REFERRAL_RECEIVED = "referral_received",
+  APPLY_TODAY = "apply_today",
+  APPLIED = "applied",
+  CLOSED = "closed",
+}
+
+export enum OutreachStatus {
+  PENDING = "pending",
+  ACCEPTED = "accepted",
+  NO_RESPONSE = "no_response",
+  REJECTED = "rejected",
+}
+
+export interface Outreach {
+  id: string;
+  jobId: string;
+  contactName: string;
+  platform: string;
+  status: OutreachStatus;
+  notes?: string;
+  dateConnnected: string;
+}
+
+export interface Job {
+  id: string;
+  userId: string;
+  title: string;
+  company: string;
+  source: string;
+  link?: string;
+  dateDiscovered: string;
+  waitingPeriod: number;
+  outreachCount: number;
+  status: JobStatus;
+  notes?: string;
+  outreach: Outreach[];
+  autoMoveDate?: string;
+}

@@ -123,3 +123,42 @@ class BulletPointRequest(BaseModel):
 class SummaryRequest(BaseModel):
     role: str
     skills: List[str]
+
+# --- Referral Flow Models ---
+
+class JobStatus(str):
+    WAITING_REFERRAL = "waiting_referral"
+    REFERRAL_RECEIVED = "referral_received"
+    APPLY_TODAY = "apply_today"
+    APPLIED = "applied"
+    CLOSED = "closed"
+
+class OutreachStatus(str):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    NO_RESPONSE = "no_response"
+    REJECTED = "rejected"
+
+class Outreach(BaseModel):
+    id: str
+    jobId: str
+    contactName: str
+    platform: str = "LinkedIn" # LinkedIn, Email, Twitter, etc.
+    status: str = OutreachStatus.PENDING
+    notes: Optional[str] = ""
+    dateConnnected: str # ISO date string
+
+class Job(BaseModel):
+    id: str
+    userId: str
+    title: str
+    company: str
+    source: str = "LinkedIn"
+    link: Optional[str] = ""
+    dateDiscovered: str # ISO date string
+    waitingPeriod: int = 2 # Days to wait before applying
+    outreachCount: int = 0
+    status: str = JobStatus.WAITING_REFERRAL
+    notes: Optional[str] = ""
+    outreach: List[Outreach] = []
+    autoMoveDate: Optional[str] = None # Calculated date when it moves to Apply Today

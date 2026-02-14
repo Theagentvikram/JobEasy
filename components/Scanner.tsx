@@ -36,6 +36,7 @@ import { CareerDesk } from './CareerDesk';
 import { Settings } from './Settings';
 import { Plans } from './Plans';
 import { ChatAssistant } from './ChatAssistant';
+import { ReferralFlow } from './ReferralFlow/ReferralFlow';
 import { Resume } from '../types';
 import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 
@@ -289,10 +290,10 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
    };
 
    return (
-      <div className="flex h-screen bg-[#f8fafc] dark:bg-[#020c07] font-sans relative overflow-hidden transition-colors duration-300">
+      <div className="flex h-screen bg-emerald-50/30 dark:bg-[#020c07] font-sans relative overflow-hidden transition-colors duration-300">
          <Particles
             className="absolute inset-0 z-0 pointer-events-none"
-            quantity={100}
+            quantity={200}
             staticity={50}
             ease={50}
             color="#10b981" // emerald-500
@@ -330,6 +331,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
                   <div className="pt-4 mt-4 border-t border-gray-100 dark:border-emerald-500/10">
                      <div className="px-3 mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Tools</div>
+                     <SidebarItem icon={<ArrowSquareOut size={18} />} label="Referral Flow" active={location.pathname === '/dashboard/referral'} onClick={() => navigate('/dashboard/referral')} Badge={<span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">New</span>} />
                      <SidebarItem icon={<CloudArrowUp size={18} />} label="Job Tracker" active={location.pathname === '/dashboard/tracker'} onClick={() => navigate('/dashboard/tracker')} />
                      <SidebarItem icon={<ChatCircle size={18} />} label="AI Assistant" active={location.pathname === '/dashboard/assistant'} onClick={() => navigate('/dashboard/assistant')} />
                   </div>
@@ -609,6 +611,15 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                      </button>
                      <CareerDesk user={user} />
                   </div >
+               } />
+
+               < Route path="referral" element={
+                  <div className="p-8 max-w-7xl mx-auto h-[calc(100vh-2rem)]">
+                     <button onClick={() => navigate('/dashboard')} className="mb-4 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
+                        <CaretRight size={16} className="rotate-180" /> Back to Dashboard
+                     </button>
+                     <ReferralFlow />
+                  </div>
                } />
 
                < Route path="cover-letters" element={
