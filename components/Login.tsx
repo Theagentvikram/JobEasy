@@ -86,7 +86,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white dark:bg-black flex overflow-hidden lg:static lg:h-auto lg:min-h-screen lg:bg-transparent">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-[#020c07] flex overflow-hidden lg:static lg:h-auto lg:min-h-screen lg:bg-transparent">
 
       {/* LEFT SIDE - Hero/Informational */}
       <div className="hidden lg:flex w-[40%] bg-[#0B1120] relative flex-col justify-between p-8 lg:p-10 overflow-hidden text-white">
@@ -149,8 +149,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </div>
 
       {/* RIGHT SIDE - Form */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative bg-white dark:bg-black lg:bg-gray-50/50 dark:lg:bg-black/50">
-        <div className="w-full max-w-md bg-white dark:bg-dark-gray rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-dark-gray p-6 sm:p-8 relative overflow-hidden animate-fade-in-up">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 relative bg-white dark:bg-[#020c07] lg:bg-gray-50/50 dark:lg:bg-[#020c07]/50">
+        <div className="w-full max-w-md bg-white dark:bg-emerald-950/80 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-emerald-500/10 p-6 sm:p-8 relative overflow-hidden animate-fade-in-up">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
               {isForgotPassword ? 'Reset Password' : (isSignUp ? 'Create your account' : 'Welcome back')}
@@ -163,14 +163,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg flex items-start gap-2">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-lg flex items-start gap-2">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs rounded-lg flex items-start gap-2">
+            <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 text-xs rounded-lg flex items-start gap-2">
               <CheckCircle size={16} className="mt-0.5 shrink-0" />
               <span>{successMessage}</span>
             </div>
@@ -182,16 +182,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-white rounded-lg font-bold hover:bg-gray-50 dark:hover:bg-gray-900 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
+                  className="w-full py-2.5 bg-white dark:bg-emerald-950/40 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-white rounded-lg font-bold hover:bg-gray-50 dark:hover:bg-gray-900 hover:border-gray-300 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95 duration-200"
                 >
                   <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="Google" />
                   {loading ? 'Connecting...' : 'Continue with Google'}
                 </button>
 
                 <div className="relative flex items-center py-1">
-                  <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] uppercase font-bold tracking-wider">Or with email</span>
-                  <div className="flex-grow border-t border-gray-200"></div>
+                  <div className="flex-grow border-t border-gray-200 dark:border-emerald-500/10"></div>
+                  <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider">Or with email</span>
+                  <div className="flex-grow border-t border-gray-200 dark:border-emerald-500/10"></div>
                 </div>
               </>
             )}
@@ -206,7 +206,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-900"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-900"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -231,7 +231,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-900"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-900"
                       placeholder="••••••••"
                       minLength={6}
                     />
@@ -242,7 +242,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-bold shadow-lg shadow-gray-200 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-sm"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-lg font-bold shadow-lg shadow-emerald-200 dark:shadow-none flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-sm"
               >
                 {loading ? 'Processing...' : (isForgotPassword ? 'Send Reset Link' : (isSignUp ? 'Create Account' : 'Sign In'))}
                 {!loading && !isForgotPassword && <ArrowRight size={16} />}
@@ -252,7 +252,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button
                   type="button"
                   onClick={() => setIsForgotPassword(false)}
-                  className="w-full py-2 text-gray-500 hover:text-gray-900 font-bold text-xs flex items-center justify-center gap-1"
+                  className="w-full py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-bold text-xs flex items-center justify-center gap-1"
                 >
                   <ArrowLeft size={14} /> Back to Log In
                 </button>

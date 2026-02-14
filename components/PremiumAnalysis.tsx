@@ -14,7 +14,7 @@ export const PremiumAnalysis: React.FC<PremiumAnalysisProps> = ({ result, isPrem
     // If not premium, show the locked state
     if (!isPremium) {
         return (
-            <div className="mt-8 relative overflow-hidden rounded-3xl border border-purple-100 dark:border-purple-900/30 bg-white dark:bg-dark-gray shadow-sm p-8">
+            <div className="mt-8 relative overflow-hidden rounded-3xl border border-purple-100 dark:border-purple-900/30 bg-white dark:bg-neutral-900 shadow-sm p-8">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500"></div>
                 <div className="flex flex-col items-center justify-center text-center space-y-4 py-8 relative z-10">
                     <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center mb-2 shadow-sm border border-purple-100 dark:border-purple-800">
@@ -101,7 +101,7 @@ export const PremiumAnalysis: React.FC<PremiumAnalysisProps> = ({ result, isPrem
                     <button
                         key={i}
                         onClick={() => setActiveView(stat.id as any)}
-                        className="group bg-white dark:bg-dark-gray p-5 rounded-2xl border border-gray-100 dark:border-dark-gray shadow-sm flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all text-left relative overflow-hidden"
+                        className="group bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-gray-100 dark:border-emerald-500/10 shadow-sm flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all text-left relative overflow-hidden"
                     >
                         <div className="flex justify-between items-start mb-4 relative z-10 w-full">
                             <span className="text-gray-500 text-xs font-bold uppercase tracking-wide flex items-center gap-2">
@@ -128,7 +128,7 @@ export const PremiumAnalysis: React.FC<PremiumAnalysisProps> = ({ result, isPrem
             <div className="grid md:grid-cols-2 gap-6">
 
                 {/* 2. Keyword Analysis */}
-                <div className="bg-white dark:bg-dark-gray p-6 rounded-3xl border border-gray-100 dark:border-dark-gray shadow-sm relative overflow-hidden group hover:border-red-100 dark:hover:border-red-900/30 transition-colors">
+                <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-gray-100 dark:border-emerald-500/10 shadow-sm relative overflow-hidden group hover:border-red-100 dark:hover:border-red-900/30 transition-colors">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <Warning size={100} className="text-red-500" />
                     </div>
@@ -155,7 +155,7 @@ export const PremiumAnalysis: React.FC<PremiumAnalysisProps> = ({ result, isPrem
                                     </span>
                                 ))}
                             </div>
-                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-black rounded-xl border border-gray-100 dark:border-dark-gray">
+                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-black rounded-xl border border-gray-100 dark:border-emerald-500/10">
                                 <BookOpen size={16} className="text-gray-400 mt-0.5" />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                                     Tip: Weave these into your "Work Experience" section rather than just listing them in "Skills" for better context scoring.
@@ -166,7 +166,7 @@ export const PremiumAnalysis: React.FC<PremiumAnalysisProps> = ({ result, isPrem
                 </div>
 
                 {/* 3. Formatting Checks */}
-                <div className="bg-white dark:bg-dark-gray p-6 rounded-3xl border border-gray-100 dark:border-dark-gray shadow-sm hover:border-blue-100 dark:hover:border-blue-900/30 transition-colors">
+                <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-gray-100 dark:border-emerald-500/10 shadow-sm hover:border-blue-100 dark:hover:border-blue-900/30 transition-colors">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
                             <Stack size={18} />

@@ -140,7 +140,7 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
 
 
     return (
-        <div className="min-h-screen bg-[#e2e8f0] dark:bg-black p-8 font-sans overflow-hidden relative selection:bg-emerald-200 dark:selection:bg-emerald-900 transition-colors duration-300">
+        <div className="min-h-screen bg-[#e2e8f0] dark:bg-[#020c07] p-8 font-sans overflow-hidden relative selection:bg-emerald-200 dark:selection:bg-emerald-900 transition-colors duration-300">
             <div className="absolute inset-0 z-0 bg-repeat opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
             <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 h-full">
@@ -157,7 +157,7 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                 <div className="md:col-span-4 space-y-8">
 
                     {/* ID Card */}
-                    <div className="bg-white dark:bg-dark-gray rounded-2xl shadow-xl shadow-slate-300/50 dark:shadow-none p-6 border border-slate-200 dark:border-dark-gray relative transform hover:rotate-1 transition-transform duration-300 w-full max-w-sm mx-auto md:mx-0 group">
+                    <div className="bg-white dark:bg-emerald-950/80 rounded-2xl shadow-xl shadow-slate-300/50 dark:shadow-none p-6 border border-slate-200 dark:border-emerald-500/10 relative transform hover:rotate-1 transition-transform duration-300 w-full max-w-sm mx-auto md:mx-0 group">
                         {/* Lanyard Hole */}
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-800 rounded-full z-10"></div>
 
@@ -175,7 +175,7 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white">{profile.name}</h2>
                             <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-4">{profile.role}</p>
 
-                            <div className="w-full text-left space-y-3 text-sm text-gray-600 dark:text-gray-300 bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-slate-100 dark:border-dark-gray">
+                            <div className="w-full text-left space-y-3 text-sm text-gray-600 dark:text-gray-300 bg-slate-50 dark:bg-[#030d08]/30 p-4 rounded-xl border border-slate-100 dark:border-emerald-500/10">
                                 <div className="flex items-center gap-2 overflow-hidden text-ellipsis">
                                     <Mail size={14} className="text-slate-400" /> {profile.email}
                                 </div>
@@ -229,7 +229,7 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                 <div className="md:col-span-8 space-y-8">
 
                     {/* Projects Screen */}
-                    <div className="bg-slate-900 dark:bg-dark-gray rounded-3xl p-1 shadow-2xl shadow-slate-900/20 dark:shadow-emerald-900/10">
+                    <div className="bg-slate-900 dark:bg-emerald-950/80 rounded-3xl p-1 shadow-2xl shadow-slate-900/20 dark:shadow-emerald-900/10">
                         <div className="bg-slate-800 rounded-[20px] p-6 h-full flex flex-col">
                             <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
                                 <h3 className="text-slate-100 font-bold flex items-center gap-2">
@@ -274,7 +274,7 @@ export const CareerDesk: React.FC<{ user?: any }> = ({ user }) => {
                             Experience
                         </div>
 
-                        <div className="bg-[#fdfbf6] dark:bg-dark-gray rounded-b-xl rounded-tr-xl shadow-xl border border-l-4 border-amber-100 dark:border-dark-gray border-l-amber-300 dark:border-l-amber-600 p-8 relative z-10 min-h-[400px]">
+                        <div className="bg-[#fdfbf6] dark:bg-emerald-950/80 rounded-b-xl rounded-tr-xl shadow-xl border border-l-4 border-amber-100 dark:border-emerald-500/10 border-l-amber-300 dark:border-l-amber-600 p-8 relative z-10 min-h-[400px]">
                             <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '100% 32px', marginTop: '32px' }}></div>
                             <div className="absolute left-16 top-0 bottom-0 w-0.5 bg-red-300/30 z-0"></div>
 

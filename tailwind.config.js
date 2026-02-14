@@ -10,7 +10,14 @@ export default {
     ],
     darkMode: 'class',
     theme: {
-        extend: {},
+        extend: {
+            colors: {
+                'dark-gray': '#0a0a0a',
+            },
+            borderColor: {
+                'dark-gray': '#1a1a1a',
+            }
+        },
     },
     plugins: [],
 }

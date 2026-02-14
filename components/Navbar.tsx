@@ -1,6 +1,7 @@
 import React from 'react';
-import { Briefcase, LogIn, LogOut } from 'lucide-react';
+import { Briefcase, LogIn, LogOut, Sun, Moon } from 'lucide-react';
 import { AppState } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -13,6 +14,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   const scrollToSection = (id: string) => {
     if (location.pathname !== '/') {
@@ -33,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-6">
-      <div className="max-w-6xl mx-auto glass-panel dark:bg-black/80 dark:border-dark-gray shadow-sm rounded-2xl px-6 py-4 flex items-center justify-between transition-all duration-300 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto glass-panel dark:bg-[#020c07]/90 dark:border-emerald-500/10 shadow-sm rounded-2xl px-6 py-4 flex items-center justify-between transition-all duration-300 backdrop-blur-md">
 
         {/* Logo */}
         <div
@@ -56,22 +58,30 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
 
         {/* Auth / CTA */}
         <div className="flex items-center gap-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-dark-gray px-3 py-1.5 rounded-full border border-gray-100 dark:border-dark-gray">
+              <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-neutral-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-emerald-500/10">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 {userEmail}
               </div>
               <button
                 onClick={onLogout}
-                className="text-gray-500 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full"
+                className="text-gray-500 hover:text-red-500 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
                 title="Sign Out"
               >
                 <LogOut size={18} />
               </button>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-300 shadow-lg shadow-emerald-200"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-300 shadow-lg shadow-emerald-200 dark:shadow-none"
               >
                 Dashboard
               </button>
@@ -86,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
               </button>
               <button
                 onClick={() => navigate('/login')}
-                className="group flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="group flex items-center gap-2 bg-gray-900 dark:bg-emerald-600 hover:bg-gray-800 dark:hover:bg-emerald-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl dark:shadow-none"
               >
                 Get Started
                 <LogIn size={16} className="group-hover:translate-x-0.5 transition-transform" />

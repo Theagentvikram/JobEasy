@@ -12,13 +12,13 @@ export const Settings: React.FC<{ user?: any }> = ({ user }) => {
     const initials = (firstName.substring(0, 1) + (lastName.substring(0, 1) || firstName.substring(1, 2))).toUpperCase().substring(0, 2) || 'U';
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-black p-8 transition-colors duration-300">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#020c07] p-8 transition-colors duration-300">
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Settings</h1>
 
-                <div className="bg-white dark:bg-dark-gray rounded-2xl shadow-sm border border-gray-200 dark:border-dark-gray overflow-hidden flex flex-col md:flex-row min-h-[500px]">
+                <div className="bg-white dark:bg-emerald-950/80 rounded-2xl shadow-sm border border-gray-200 dark:border-emerald-500/10 overflow-hidden flex flex-col md:flex-row min-h-[500px]">
                     {/* Sidebar */}
-                    <div className="w-full md:w-64 border-r border-gray-100 dark:border-dark-gray bg-gray-50/50 dark:bg-black/20 p-4 space-y-2">
+                    <div className="w-full md:w-64 border-r border-gray-100 dark:border-emerald-500/10 bg-gray-50/50 dark:bg-[#030d08]/30 p-4 space-y-2">
                         <button
                             onClick={() => setActiveTab('profile')}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-slate-800'}`}

@@ -19,7 +19,11 @@ import {
    SignOut,
    Moon,
    Sun,
-   Trash
+   Trash,
+   FolderSimple,
+   UserCircle,
+   Robot,
+   MapTrifold
 } from '@phosphor-icons/react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase/config';
@@ -284,7 +288,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
    };
 
    return (
-      <div className="flex h-screen bg-[#f8fafc] dark:bg-black font-sans relative overflow-hidden transition-colors duration-300">
+      <div className="flex h-screen bg-[#f8fafc] dark:bg-[#020c07] font-sans relative overflow-hidden transition-colors duration-300">
          <Particles
             className="absolute inset-0 z-0 pointer-events-none"
             quantity={100}
@@ -296,8 +300,8 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
          {/* SIDEBAR - JobEasy Style (Hidden in Builder Mode) */}
          {!location.pathname.includes('/edit') && (
-            <aside className="w-64 bg-white/90 dark:bg-black/95 backdrop-blur-xl border-r border-gray-200/60 dark:border-dark-gray flex flex-col z-20 transition-all duration-300">
-               <div className="h-16 flex items-center px-6 border-b border-gray-100/50 dark:border-dark-gray">
+            <aside className="w-64 bg-white/90 dark:bg-[#020c07]/95 backdrop-blur-xl border-r border-gray-200/60 dark:border-emerald-500/10 flex flex-col z-20 transition-all duration-300">
+               <div className="h-16 flex items-center px-6 border-b border-gray-100/50 dark:border-emerald-500/10">
                   <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-emerald-200 dark:shadow-none">
                      <Briefcase className="text-white" size={18} />
                   </div>
@@ -305,8 +309,8 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                </div>
 
                <div className="p-4">
-                  <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-dark-gray dark:to-dark-gray rounded-xl border border-emerald-100/50 dark:border-dark-gray mb-6">
-                     <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold border-2 border-white dark:border-dark-gray shadow-sm">
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-[#051510] dark:to-[#030d08] rounded-xl border border-emerald-100/50 dark:border-emerald-500/10 mb-6">
+                     <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold border-2 border-white dark:border-emerald-500/10 shadow-sm">
                         {userInitials}
                      </div>
                      <div className="flex-1 min-w-0">
@@ -320,16 +324,16 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                <nav className="flex-1 overflow-y-auto px-4 space-y-1">
                   <SidebarItem icon={<SquaresFour size={18} />} label="Dashboard" active={location.pathname === '/dashboard'} onClick={() => navigate('/dashboard')} />
                   <SidebarItem icon={<Scan size={18} />} label="ATS Scanner" active={location.pathname === '/dashboard/ats'} onClick={() => navigate('/dashboard/ats')} />
-                  <SidebarItem icon={<FileText size={18} />} label="My Resumes" active={location.pathname === '/dashboard/resumes'} onClick={() => navigate('/dashboard/resumes')} Badge={<span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{resumes.length}</span>} />
-                  <SidebarItem icon={<Briefcase size={18} />} label="Career Desk" active={location.pathname === '/dashboard/desk'} onClick={() => navigate('/dashboard/desk')} Badge={<span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">New</span>} />
+                  <SidebarItem icon={<FileText size={18} />} label="My Resumes" active={location.pathname === '/dashboard/resumes'} onClick={() => navigate('/dashboard/resumes')} Badge={<span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{resumes.length}</span>} />
+                  <SidebarItem icon={<Briefcase size={18} />} label="Career Desk" active={location.pathname === '/dashboard/desk'} onClick={() => navigate('/dashboard/desk')} Badge={<span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">New</span>} />
 
-                  <div className="pt-4 mt-4 border-t border-gray-100 dark:border-dark-gray">
+                  <div className="pt-4 mt-4 border-t border-gray-100 dark:border-emerald-500/10">
                      <div className="px-3 mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Tools</div>
                      <SidebarItem icon={<CloudArrowUp size={18} />} label="Job Tracker" active={location.pathname === '/dashboard/tracker'} onClick={() => navigate('/dashboard/tracker')} />
                      <SidebarItem icon={<ChatCircle size={18} />} label="AI Assistant" active={location.pathname === '/dashboard/assistant'} onClick={() => navigate('/dashboard/assistant')} />
                   </div>
 
-                  <div className="pt-4 mt-4 border-t border-gray-100">
+                  <div className="pt-4 mt-4 border-t border-gray-100 dark:border-emerald-500/10">
                      <SidebarItem
                         icon={<SignOut size={18} />}
                         label="Sign Out"
@@ -339,7 +343,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
                      <button
                         onClick={toggleTheme}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-gray hover:text-gray-900 dark:hover:text-white transition-all duration-200 group mt-1"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group mt-1"
                      >
                         <div className="flex items-center gap-3">
                            <span className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
@@ -352,7 +356,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                </nav>
 
                <div className="p-4 mt-auto">
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-dark-gray dark:to-black text-white shadow-xl shadow-gray-200 dark:shadow-none border border-transparent dark:border-dark-gray">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-[#051510] dark:to-black text-white shadow-xl shadow-gray-200 dark:shadow-none border border-transparent dark:border-emerald-500/10">
                      <div className="flex justify-between items-start mb-3">
                         <div className="p-2 bg-white/10 rounded-lg">
                            <Lightning size={16} className="text-yellow-400" weight="fill" />
@@ -390,7 +394,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                         {/* Hero / Action Center - Bento Grid Style */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                            {/* Main Action: ATS Scan */}
-                           <div className="md:col-span-2 bg-white dark:bg-dark-gray rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-dark-gray relative overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-900 transition-all">
+                           <div className="md:col-span-2 bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-white/30 dark:border-emerald-500/[0.08] relative overflow-hidden group hover:border-emerald-200/60 dark:hover:border-emerald-500/20 transition-all">
                               <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 dark:bg-emerald-900/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:opacity-100 transition-opacity"></div>
                               <div className="relative z-10">
                                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-4">
@@ -399,7 +403,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">ATS Scanner</h2>
                                  <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md">Get an ATS score and tailored keywords for any job application. Our AI ensures you match the job description perfectly.</p>
                                  <div className="flex gap-4">
-                                    <button onClick={handleUploadClick} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all">
+                                    <button onClick={handleUploadClick} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all">
                                        <Scan size={18} /> Scan for ATS
                                     </button>
                                     <input
@@ -409,7 +413,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                        accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                        onChange={handleFileUpload}
                                     />
-                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-black text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-dark-gray rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-dark-gray transition-colors">
+                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-emerald-950/40 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-emerald-500/10 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
                                        <LinkedinLogo size={18} className="text-blue-600" /> Import Profile
                                     </button>
                                  </div>
@@ -417,11 +421,11 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                            </div>
 
                            {/* Secondary Action: Resume Builder */}
-                           <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-dark-gray dark:to-black rounded-3xl p-8 text-white shadow-xl shadow-gray-200 dark:shadow-none border border-transparent dark:border-dark-gray relative overflow-hidden group flex flex-col justify-between">
+                           <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-[#051510] dark:to-[#020c07] rounded-2xl p-8 text-white shadow-xl shadow-gray-200 dark:shadow-none border border-transparent dark:border-emerald-500/10 relative overflow-hidden group flex flex-col justify-between">
                               <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none"></div>
 
                               <div>
-                                 <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
+                                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
                                     <PlusCircle size={24} className="text-emerald-400" />
                                  </div>
                                  <h3 className="text-xl font-bold mb-2">Create New</h3>
@@ -455,25 +459,25 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                         {/* Feature Cards */}
                         < div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" >
                            <FeatureCard
-                              icon={<SquaresFour className="text-purple-600" size={24} />}
+                              icon={<FolderSimple className="text-purple-500" size={24} weight="duotone" />}
                               title="My Resumes"
                               description="Manage your versions."
                               onClick={() => navigate('/dashboard/resumes')}
                            />
                            <FeatureCard
-                              icon={<Briefcase className="text-blue-600" />}
+                              icon={<UserCircle className="text-blue-500" size={24} weight="duotone" />}
                               title="Career Desk"
                               description="Your master profile."
                               onClick={() => navigate('/dashboard/desk')}
                            />
                            <FeatureCard
-                              icon={<ChatCircle className="text-emerald-600" size={24} />}
+                              icon={<Robot className="text-emerald-500" size={24} weight="duotone" />}
                               title="AI Career Assistant"
                               description="Chat with AI."
                               onClick={() => navigate('/dashboard/assistant')}
                            />
                            <FeatureCard
-                              icon={<CloudArrowUp className="text-orange-500" size={24} />}
+                              icon={<MapTrifold className="text-amber-500" size={24} weight="duotone" />}
                               title="Job Application Tracker"
                               description="Organize your job search."
                               onClick={() => navigate('/dashboard/tracker')}
@@ -490,8 +494,8 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
                            <div className="grid md:grid-cols-3 gap-6">
                               {resumes.map(resume => (
-                                 <div key={resume.id} onClick={() => handleEditResume(resume.id!)} className="bg-white dark:bg-dark-gray rounded-2xl border border-gray-100 dark:border-dark-gray shadow-sm hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-900 transition-all group overflow-hidden flex flex-col cursor-pointer">
-                                    <div className="h-48 bg-gray-100 dark:bg-black relative overflow-hidden group-hover:bg-emerald-50/10 dark:group-hover:bg-emerald-900/10 transition-colors">
+                                 <div key={resume.id} onClick={() => handleEditResume(resume.id!)} className="bg-white dark:bg-emerald-950/80 rounded-2xl border border-gray-100 dark:border-emerald-500/10 shadow-sm hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-900 transition-all group overflow-hidden flex flex-col cursor-pointer">
+                                    <div className="h-48 bg-gray-100 dark:bg-[#030d08] relative overflow-hidden group-hover:bg-emerald-50/10 dark:group-hover:bg-emerald-900/10 transition-colors">
                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[210mm] transform scale-[0.45] origin-top shadow-sm select-none pointer-events-none bg-white min-h-[297mm]">
                                           <ResumePreview resume={resume} />
                                        </div>
@@ -501,7 +505,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                        </div>
                                     </div>
 
-                                    <div className="p-5 flex-1 flex flex-col bg-white dark:bg-dark-gray relative">
+                                    <div className="p-5 flex-1 flex flex-col bg-white dark:bg-neutral-900 relative">
                                        <h3 className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{resume.title}</h3>
                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{new Date(resume.lastModified).toLocaleDateString()}</p>
 
@@ -518,9 +522,9 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
                               <button
                                  onClick={handleCreateNew}
-                                 className="border-2 border-dashed border-gray-200 dark:border-dark-gray rounded-2xl flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:border-emerald-400 dark:hover:border-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all min-h-[250px]"
+                                 className="border-2 border-dashed border-gray-200 dark:border-emerald-500/10 rounded-2xl flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:border-emerald-400 dark:hover:border-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all min-h-[250px]"
                               >
-                                 <div className="w-12 h-12 rounded-full bg-white dark:bg-dark-gray border border-gray-200 dark:border-dark-gray flex items-center justify-center mb-3 shadow-sm">
+                                 <div className="w-12 h-12 rounded-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-emerald-500/10 flex items-center justify-center mb-3 shadow-sm">
                                     <PlusCircle size={24} />
                                  </div>
                                  <span className="font-semibold text-sm">Create New Document</span>
@@ -553,23 +557,23 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                      <button onClick={() => navigate('/dashboard')} className="mb-6 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
                         <CaretRight size={16} className="rotate-180" /> Back to Dashboard
                      </button>
-                     <h2 className="text-2xl font-bold text-gray-900 mb-6">My Resumes</h2>
+                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">My Resumes</h2>
                      <div className="grid md:grid-cols-3 gap-6">
                         {resumes.map(resume => (
-                           <div key={resume.id} onClick={() => handleEditResume(resume.id!)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-emerald-200 transition-all group overflow-hidden flex flex-col cursor-pointer">
-                              <div className="h-48 bg-gray-100 relative overflow-hidden group-hover:bg-emerald-50/10 transition-colors">
+                           <div key={resume.id} onClick={() => handleEditResume(resume.id!)} className="bg-white dark:bg-emerald-950/80 rounded-2xl border border-gray-100 dark:border-emerald-500/10 shadow-sm hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-900 transition-all group overflow-hidden flex flex-col cursor-pointer">
+                              <div className="h-48 bg-gray-100 dark:bg-[#030d08] relative overflow-hidden group-hover:bg-emerald-50/10 dark:group-hover:bg-emerald-900/10 transition-colors">
                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[210mm] transform scale-[0.45] origin-top shadow-sm select-none pointer-events-none bg-white min-h-[297mm]">
                                     <ResumePreview resume={resume} />
                                  </div>
                                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 to-transparent pointer-events-none"></div>
                               </div>
-                              <div className="p-5 flex-1 flex flex-col bg-white relative">
-                                 <h3 className="font-bold text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors">{resume.title}</h3>
-                                 <p className="text-xs text-gray-500 mb-4">{new Date(resume.lastModified).toLocaleDateString()}</p>
+                              <div className="p-5 flex-1 flex flex-col bg-white dark:bg-neutral-900 relative">
+                                 <h3 className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{resume.title}</h3>
+                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{new Date(resume.lastModified).toLocaleDateString()}</p>
                               </div>
                            </div>
                         ))}
-                        <button onClick={handleCreateNew} className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all min-h-[250px]">
+                        <button onClick={handleCreateNew} className="border-2 border-dashed border-gray-200 dark:border-emerald-500/10 rounded-2xl flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:border-emerald-400 dark:hover:border-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all min-h-[250px]">
                            <PlusCircle size={24} className="mb-2" />
                            <span className="font-semibold text-sm">Create New</span>
                         </button>
@@ -578,27 +582,28 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                } />
 
                < Route path="tracker" element={
-                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400" >
-                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                        <Briefcase size={32} className="opacity-50" />
+                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px]" >
+                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-200/50 dark:border-blue-500/20 flex items-center justify-center mb-8 shadow-lg shadow-blue-500/10 dark:shadow-blue-500/5">
+                        <Briefcase size={40} className="text-blue-500 dark:text-blue-400" weight="duotone" />
                      </div>
-                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Job Tracker</h3>
-                     <p className="max-w-md text-center text-gray-500">Track all your applications, interview stages, and offers in one place. Coming soon.</p>
-                     <button onClick={() => navigate('/dashboard')} className="mt-8 text-emerald-600 font-semibold hover:underline">Return to Dashboard</button>
+                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 mb-4">Coming Soon</span>
+                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Job Tracker</h3>
+                     <p className="max-w-md text-center text-gray-500 dark:text-gray-400 leading-relaxed">Track all your applications, interview stages, and offers in one beautifully organized workspace.</p>
+                     <button onClick={() => navigate('/dashboard')} className="mt-8 px-6 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-emerald-500/10 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm">Return to Dashboard</button>
                   </div >
                } />
 
                < Route path="assistant" element={
-                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400" >
-                     <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
-                        <ChatCircle size={32} className="text-emerald-500" />
+                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px]" >
+                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 dark:from-purple-500/30 dark:to-pink-500/30 border border-purple-200/50 dark:border-purple-500/20 flex items-center justify-center mb-8 shadow-lg shadow-purple-500/10 dark:shadow-purple-500/5">
+                        <ChatCircle size={40} className="text-purple-500 dark:text-purple-400" weight="duotone" />
                      </div>
-                     <h3 className="text-2xl font-bold text-gray-900 mb-2">AI Career Assistant</h3>
-                     <p className="max-w-md text-center text-gray-500">Your personal career coach. Chat with AI to get interview tips, negotiation advice, and more. Coming in V2.</p>
-                     <button onClick={() => navigate('/dashboard')} className="mt-8 text-emerald-600 font-semibold hover:underline">Return to Dashboard</button>
+                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800 mb-4">Coming in V2</span>
+                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">AI Career Assistant</h3>
+                     <p className="max-w-md text-center text-gray-500 dark:text-gray-400 leading-relaxed">Your personal AI career coach. Get interview tips, salary negotiation advice, and personalized career guidance.</p>
+                     <button onClick={() => navigate('/dashboard')} className="mt-8 px-6 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-emerald-500/10 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:border-purple-300 dark:hover:border-purple-700 hover:text-purple-600 dark:hover:text-purple-400 transition-all shadow-sm">Return to Dashboard</button>
                   </div >
                } />
-
                < Route path="desk" element={
                   < div className="p-8 max-w-7xl mx-auto" >
                      <button onClick={() => navigate('/dashboard')} className="mb-6 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
@@ -609,16 +614,16 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                } />
 
                < Route path="cover-letters" element={
-                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px] text-gray-400" >
-                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                        <Envelope size={32} className="opacity-50" />
+                  < div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center h-[600px]" >
+                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 dark:from-amber-500/30 dark:to-orange-500/30 border border-amber-200/50 dark:border-amber-500/20 flex items-center justify-center mb-8 shadow-lg shadow-amber-500/10 dark:shadow-amber-500/5">
+                        <Envelope size={40} className="text-amber-500 dark:text-amber-400" weight="duotone" />
                      </div>
-                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Cover Letter Generator</h3>
-                     <p className="max-w-md text-center text-gray-500">AI-generated cover letters tailored to your resume and the job description. Coming soon.</p>
-                     <button onClick={() => navigate('/dashboard')} className="mt-8 text-emerald-600 font-semibold hover:underline">Return to Dashboard</button>
+                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800 mb-4">Coming Soon</span>
+                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Cover Letter Generator</h3>
+                     <p className="max-w-md text-center text-gray-500 dark:text-gray-400 leading-relaxed">AI-generated cover letters tailored to your resume and the specific job description. Stand out from the crowd.</p>
+                     <button onClick={() => navigate('/dashboard')} className="mt-8 px-6 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-emerald-500/10 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:border-amber-300 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400 transition-all shadow-sm">Return to Dashboard</button>
                   </div >
                } />
-
                < Route path="settings" element={< Settings user={user} />} />
                < Route path="plans" element={< Plans isPro={isPro} onUpgradeSuccess={requestRefresh} />} />
             </Routes >
@@ -649,32 +654,44 @@ const EditorWrapper = ({ resumes, saveResume, onBack }: { resumes: Resume[], sav
    );
 };
 
-const SidebarItem = ({ icon, label, active, onClick, isExternal }: any) => (
+const SidebarItem = ({ icon, label, active, onClick, isExternal, Badge }: any) => (
    <button
       onClick={onClick}
       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group mb-1
       ${active
             ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-gray hover:text-gray-900 dark:hover:text-white'}
+            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white'}
     `}
    >
       <div className="flex items-center gap-3">
          <span className={active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300'}>{icon}</span>
          <span>{label}</span>
       </div>
+      {Badge}
       {isExternal && <ArrowSquareOut size={14} className="text-gray-400" />}
    </button>
 );
 
-const FeatureCard = ({ icon, title, description, onClick, color }: any) => (
+const FeatureCard = ({ icon, title, description, onClick, color, hoverColor }: any) => (
    <div
       onClick={onClick}
-      className={`p-6 bg-white dark:bg-dark-gray rounded-2xl border border-gray-100 dark:border-dark-gray shadow-sm hover:shadow-lg transition-all cursor-pointer group flex flex-col items-start hover:border-emerald-100 dark:hover:border-emerald-900`}
+      className={`relative p-6 rounded-2xl border border-gray-200 dark:border-emerald-500/[0.08] cursor-pointer group flex flex-col items-start overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/10 bg-white dark:bg-white/[0.04] shadow-sm dark:shadow-none dark:backdrop-blur-xl hover:border-emerald-200 dark:hover:border-emerald-500/20`}
    >
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color} group-hover:scale-110 transition-transform`}>
+      {/* Glass shine on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-white/0 group-hover:from-white/10 group-hover:via-transparent group-hover:to-transparent transition-all duration-500 pointer-events-none" />
+      {/* Glow blob */}
+      <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-500 ${hoverColor || 'bg-emerald-400'}`} />
+
+      <div className={`relative z-10 w-11 h-11 rounded-xl flex items-center justify-center mb-5 ${color} ring-1 ring-white/10 group-hover:ring-emerald-500/20 transition-all duration-300 group-hover:shadow-lg`}>
          {icon}
       </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{title}</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{description}</p>
+      <h3 className="relative z-10 text-[15px] font-bold text-gray-900 dark:text-white mb-1.5 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">{title}</h3>
+      <p className="relative z-10 text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">{description}</p>
+
+      {/* Subtle arrow indicator */}
+      <div className="relative z-10 mt-auto pt-4 flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-gray-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-all duration-300">
+         <span className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">Open</span>
+         <CaretRight size={12} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300 delay-75" />
+      </div>
    </div>
 );

@@ -38,7 +38,7 @@ export const ResumeAudit: React.FC<ResumeAuditProps> = ({ auditResult, aiAudit, 
         const suggestions = data.suggestions || [];
 
         return (
-            <div className="bg-white dark:bg-dark-gray p-5 rounded-xl border border-gray-200 dark:border-dark-gray shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="bg-white dark:bg-neutral-900 p-5 rounded-xl border border-gray-200 dark:border-emerald-500/10 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${score >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : score >= 60 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'}`}>
@@ -121,7 +121,7 @@ export const ResumeAudit: React.FC<ResumeAuditProps> = ({ auditResult, aiAudit, 
             {/* AI Insights Grid */}
             {aiAudit && aiAudit.audit && (
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 dark:border-dark-gray pb-2">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 dark:border-emerald-500/10 pb-2">
                         <Zap size={16} className="text-amber-500" /> Content Impact Analysis
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
@@ -154,8 +154,8 @@ export const ResumeAudit: React.FC<ResumeAuditProps> = ({ auditResult, aiAudit, 
             )}
 
             {/* Structural Issues */}
-            <div className="bg-white dark:bg-dark-gray rounded-2xl border border-gray-200 dark:border-dark-gray shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100 dark:border-dark-gray bg-gray-50/50 dark:bg-black/20">
+            <div className="bg-white dark:bg-emerald-950/80 rounded-2xl border border-gray-200 dark:border-emerald-500/10 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 dark:border-emerald-500/10 bg-gray-50/50 dark:bg-[#030d08]/30">
                     <h3 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                         <Info size={16} className="text-blue-500" /> ATS Structure Audit
                     </h3>
@@ -164,7 +164,7 @@ export const ResumeAudit: React.FC<ResumeAuditProps> = ({ auditResult, aiAudit, 
                 <div className="p-4">
                     {auditResult.issues.length === 0 ? (
                         <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl flex items-center gap-3 border border-emerald-100 dark:border-emerald-900/30">
-                            <div className="p-2 bg-white dark:bg-black rounded-full"><CheckCircle size={20} className="text-emerald-500" /></div>
+                            <div className="p-2 bg-white dark:bg-emerald-950/40 rounded-full"><CheckCircle size={20} className="text-emerald-500" /></div>
                             <div>
                                 <div className="font-bold text-sm">Structure looks perfect!</div>
                                 <div className="text-xs opacity-80">Your resume follows all standard ATS formatting rules.</div>

@@ -14,6 +14,7 @@ import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { BlogDetail } from './components/BlogDetail'; // Import BlogDetail
 import { ThemeProvider } from './context/ThemeContext';
+import { CursorGlow } from './components/ui/cursor-glow';
 
 // DEV MODE: Set to false to enable actual Authentication (Firebase + Mock)
 const DEV_MODE = false;
@@ -116,7 +117,7 @@ export default function App() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] text-emerald-600">Loading JobEasy...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#020c07] text-emerald-600">Loading JobEasy...</div>;
   }
 
   // Helper for Landing Page content
@@ -137,11 +138,14 @@ export default function App() {
       <div className="min-h-screen font-sans selection:bg-emerald-100 selection:text-emerald-900 relative text-gray-900 dark:text-gray-100 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 transition-colors duration-300">
 
         {/* Global Background - VaultFlow Style Grid */}
-        <div className="fixed inset-0 z-[-1] bg-white dark:bg-black transition-colors duration-300"></div>
+        <div className="fixed inset-0 z-[-1] bg-white dark:bg-[#020c07] transition-colors duration-300"></div>
         <div className="fixed inset-0 z-[-1] vault-grid opacity-60 pointer-events-none dark:opacity-20"></div>
 
         {/* Subtle Ambient Light (Top Center) */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-emerald-100/30 dark:bg-emerald-900/20 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
+
+        {/* Interactive Cursor Glow */}
+        <CursorGlow />
 
         {/* Show Navbar only when NOT in Dashboard or Login mode */}
         {!location.pathname.startsWith('/dashboard') && location.pathname !== '/login' && (

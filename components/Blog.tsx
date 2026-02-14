@@ -11,7 +11,7 @@ export const Blog: React.FC = () => {
       title: "How to beat the ATS in 2024",
       category: "Resume Tips",
       date: "Mar 15, 2024",
-      color: "bg-blue-100 text-blue-700",
+      color: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
       image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=800"
     },
     {
@@ -19,7 +19,7 @@ export const Blog: React.FC = () => {
       title: "The secret to writing bullet points that sell",
       category: "Career Growth",
       date: "Mar 12, 2024",
-      color: "bg-purple-100 text-purple-700",
+      color: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
       image: "https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?auto=format&fit=crop&q=80&w=800"
     },
     {
@@ -27,13 +27,13 @@ export const Blog: React.FC = () => {
       title: "Keywords vs. Context: What AI looks for",
       category: "Technology",
       date: "Mar 10, 2024",
-      color: "bg-emerald-100 text-emerald-700",
+      color: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
       image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=800"
     }
   ];
 
   return (
-    <section id="blog" className="py-24 relative dark:bg-slate-950 transition-colors duration-300">
+    <section id="blog" className="py-24 relative dark:bg-[#020c07] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex justify-between items-end mb-12">
           <div>

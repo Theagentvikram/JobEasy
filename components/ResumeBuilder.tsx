@@ -239,7 +239,7 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
    };
 
    return (
-      <div className="flex flex-col h-screen bg-[#f8fafc] dark:bg-black transition-colors duration-300">
+      <div className="flex flex-col h-screen bg-[#f8fafc] dark:bg-[#020c07] transition-colors duration-300">
          <style>{`
             @media print {
                @page { margin: 0; size: A4 portrait; }
@@ -249,7 +249,7 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
          `}</style>
 
          {/* DASHBOARD HEADER */}
-         <div className="h-16 bg-white dark:bg-dark-gray border-b border-gray-200 dark:border-dark-gray flex items-center justify-between px-4 z-30 shadow-sm print:hidden shrink-0 relative transition-colors duration-300">
+         <div className="h-16 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-emerald-500/10 flex items-center justify-between px-4 z-30 shadow-sm print:hidden shrink-0 relative transition-colors duration-300">
             <div className="flex items-center gap-3">
                <button onClick={onBack} className="p-2 hover:bg-gray-100 dark:hover:bg-black rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                   <ArrowLeft size={20} />
@@ -277,7 +277,7 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
                <div className="h-6 w-px bg-gray-200 mx-1"></div>
                <button
                   onClick={updateTemplate}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-dark-gray text-xs font-bold rounded-lg hover:bg-gray-50 dark:hover:bg-dark-gray transition-all shadow-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-emerald-950/40 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-emerald-500/10 text-xs font-bold rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-sm"
                >
                   <Palette size={14} /> {resume.templateId}
                </button>
@@ -295,12 +295,12 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
          <div className="flex flex-1 overflow-hidden">
 
             {/* LEFT PANEL: VERTICAL ACCORDION EDITOR */}
-            <div className="w-1/2 flex flex-col border-r border-gray-200 dark:border-dark-gray bg-[#f8fafc] dark:bg-black z-10 overflow-hidden transition-colors duration-300">
+            <div className="w-1/2 flex flex-col border-r border-gray-200 dark:border-emerald-500/10 bg-[#f8fafc] dark:bg-black z-10 overflow-hidden transition-colors duration-300">
 
                <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
 
                   {/* Context Helper */}
-                  <div className="mb-6 bg-white dark:bg-dark-gray p-4 rounded-xl border border-gray-200 dark:border-dark-gray shadow-sm transition-colors duration-300">
+                  <div className="mb-6 bg-white dark:bg-neutral-900 p-4 rounded-xl border border-gray-200 dark:border-emerald-500/10 shadow-sm transition-colors duration-300">
                      <div className="flex items-center gap-2 mb-2 text-gray-900 dark:text-white font-bold text-sm">
                         <Sparkles size={16} className="text-emerald-500" />
                         Add the job description for accurate suggestions...
@@ -310,13 +310,13 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
                         value={jobDescription}
                         onChange={(e) => setJobDescription(e.target.value)}
                         placeholder="Paste job description here..."
-                        className="w-full text-xs p-3 bg-gray-50 dark:bg-black border border-gray-200 dark:border-dark-gray rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none resize-none h-12 transition-all focus:h-24 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                        className="w-full text-xs p-3 bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-500/10 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none resize-none h-12 transition-all focus:h-24 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600"
                      />
                   </div>
 
                   <div className="space-y-3 pb-20">
                      {sections.map(section => (
-                        <div key={section.id} className="bg-white dark:bg-dark-gray rounded-xl border border-gray-200 dark:border-dark-gray shadow-sm overflow-hidden transition-all duration-300">
+                        <div key={section.id} className="bg-white dark:bg-emerald-950/80 rounded-xl border border-gray-200 dark:border-emerald-500/10 shadow-sm overflow-hidden transition-all duration-300">
                            <button
                               onClick={() => toggleSection(section.id)}
                               className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors ${activeSection === section.id ? 'bg-gray-50 dark:bg-slate-800' : ''}`}
@@ -331,13 +331,13 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
                            </button>
 
                            {activeSection === section.id && (
-                              <div className="p-4 border-t border-gray-100 dark:border-dark-gray animate-slide-down">
+                              <div className="p-4 border-t border-gray-100 dark:border-emerald-500/10 animate-slide-down">
                                  {/* Personal Info */}
                                  {section.id === 'personal' && (
                                     <div className="grid grid-cols-2 gap-4">
                                        <div className="col-span-2">
                                           <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Target Job Title</label>
-                                          <input value={resume.personalInfo.title} onChange={(e) => updateInfo('title', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-black border border-gray-200 dark:border-dark-gray rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                                          <input value={resume.personalInfo.title} onChange={(e) => updateInfo('title', e.target.value)} className="w-full p-2.5 mt-1 bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-500/10 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
                                        </div>
                                        <div>
                                           <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Full Name</label>

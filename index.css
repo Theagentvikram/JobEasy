@@ -27,6 +27,33 @@
   .border-dark-gray {
     border-color: #1a1a1a;
   }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+  }
+
+  .dark .glass-panel {
+    background: rgba(10, 10, 10, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .vault-grid {
+    background-color: #ffffff;
+    background-image: linear-gradient(#e5e7eb 1px, transparent 1px),
+      linear-gradient(to right, #e5e7eb 1px, #ffffff 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  }
+
+  .dark .vault-grid {
+    background-color: #000000;
+    background-image: linear-gradient(#1a1a1a 1px, transparent 1px),
+      linear-gradient(to right, #1a1a1a 1px, #000000 1px);
+  }
 }
 
 /* Custom Scrollbar */
