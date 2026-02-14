@@ -6,7 +6,7 @@ import pypdf
 import traceback
 from dotenv import load_dotenv
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 from openai import OpenAI
 
 # Explicitly load .env from the backend directory
