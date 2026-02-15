@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowRight, PlayCircle, Sparkles, Lock, Loader2, CheckCircle, FileCheck } from 'lucide-react';
+import { ArrowRight, PlayCircle, Sparkles, Lock, CheckCircle, FileCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { analyzeResume } from '../services/geminiService';
 import { AnalysisResult } from '../types';
 import { FileDragDrop } from './FileDragDrop';
@@ -8,23 +9,75 @@ interface HeroProps {
   onStart: () => void;
 }
 
+const WaterFlowLoader = () => (
+  <div className="w-full h-16 rounded-xl overflow-hidden relative bg-emerald-900/10 border border-emerald-500/20">
+    {/* Filling Effect */}
+    <div className="absolute bottom-0 left-0 w-full bg-emerald-500/80 animate-[rise_2s_ease-out_forwards]" style={{ height: '0%', animationFillMode: 'forwards', animationName: 'rise' }}></div>
+
+    {/* Waves */}
+    <div className="absolute bottom-0 left-0 w-[200%] h-full">
+      <div className="absolute bottom-0 w-full h-full bg-emerald-400/30 rounded-[40%] animate-wave" style={{ transformOrigin: '50% 50%' }}></div>
+      <div className="absolute bottom-0 w-full h-full bg-emerald-600/30 rounded-[40%] animate-wave-slow" style={{ transformOrigin: '50% 50%', left: '-10%' }}></div>
+    </div>
+
+    {/* Text */}
+    <div className="absolute inset-0 flex items-center justify-center z-10">
+      <span className="text-emerald-900 dark:text-white font-bold text-sm tracking-widest uppercase animate-pulse">Analyzing Resume...</span>
+    </div>
+
+    <style>{`
+      @keyframes rise {
+        0% { height: 0%; }
+        100% { height: 100%; }
+      }
+    `}</style>
+  </div>
+);
+
 export const Hero: React.FC<HeroProps> = ({ onStart }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [quickResult, setQuickResult] = useState<AnalysisResult | null>(null);
-  const [fileData, setFileData] = useState<{ base64: string, mimeType: string } | null>(null);
+  const [fileData, setFileData] = useState<{ base64: string, mimeType: string, fileName: string } | null>(null);
+  const navigate = useNavigate();
 
   const handleFileSelect = (base64: string, mimeType: string, fileName: string) => {
-    setFileData({ base64, mimeType });
+    setFileData({ base64, mimeType, fileName });
     setQuickResult(null); // Reset prev result
   };
 
   const handleQuickScan = async () => {
     if (!fileData) return;
     setIsAnalyzing(true);
-    // Analyze without a job description for general feedback
-    const data = await analyzeResume(fileData.base64, fileData.mimeType, "");
-    setQuickResult(data);
-    setIsAnalyzing(false);
+    try {
+      // Analyze without a job description for general feedback
+      const data = await analyzeResume(fileData.base64, fileData.mimeType, "");
+
+      // Simulate water flow delay if analysis is too fast
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      setQuickResult(data);
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      alert("Failed to analyze resume. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleUnlock = () => {
+    if (quickResult && fileData) {
+      try {
+        // Save to sessionStorage to persist across login
+        sessionStorage.setItem('pendingScanResult', JSON.stringify(quickResult));
+        sessionStorage.setItem('pendingScanFile', JSON.stringify(fileData));
+        navigate('/login?redirect=dashboard');
+      } catch (e) {
+        console.error("Storage failed:", e);
+        navigate('/login');
+      }
+    } else {
+      onStart();
+    }
   };
 
   return (
@@ -92,13 +145,18 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
                       <FileDragDrop onFileSelect={handleFileSelect} label="Upload Resume PDF" />
                     </div>
 
-                    <button
-                      onClick={handleQuickScan}
-                      disabled={!fileData || isAnalyzing}
-                      className="w-full py-4 rounded-xl font-semibold bg-gray-900 dark:bg-emerald-600 text-white hover:bg-gray-800 dark:hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg dark:shadow-none"
-                    >
-                      {isAnalyzing ? <Loader2 className="animate-spin" size={18} /> : 'Scan Resume Now'}
-                    </button>
+                    {isAnalyzing ? (
+                      <WaterFlowLoader />
+                    ) : (
+                      <button
+                        onClick={handleQuickScan}
+                        disabled={!fileData}
+                        className="w-full py-4 rounded-xl font-semibold bg-gray-900 dark:bg-emerald-600 text-white hover:bg-gray-800 dark:hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg dark:shadow-none"
+                      >
+                        Scan Resume Now
+                      </button>
+                    )}
+
                     {fileData && !isAnalyzing && (
                       <p className="text-center text-xs text-emerald-600 mt-2 font-medium">File loaded! Click scan to proceed.</p>
                     )}
@@ -113,7 +171,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-emerald-950/80 rounded-xl p-5 mb-6 text-left shadow-sm border border-emerald-100 dark:border-emerald-900/30 relative overflow-hidden group cursor-pointer" onClick={onStart}>
+                    <div className="bg-white dark:bg-emerald-950/80 rounded-xl p-5 mb-6 text-left shadow-sm border border-emerald-100 dark:border-emerald-900/30 relative overflow-hidden group cursor-pointer" onClick={handleUnlock}>
                       <div className="flex items-center gap-3 mb-3 border-b border-gray-50 dark:border-emerald-500/10 pb-2">
                         <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-emerald-950/40 flex items-center justify-center text-gray-500 dark:text-gray-400">
                           <FileCheck size={16} />
@@ -139,7 +197,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
                     </div>
 
                     <button
-                      onClick={onStart}
+                      onClick={handleUnlock}
                       className="w-full py-3 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 dark:shadow-none"
                     >
                       Unlock Detailed Report

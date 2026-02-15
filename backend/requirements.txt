@@ -13,3 +13,4 @@ pypdf>=4.0.1
 openai>=1.0.0
 langchain-groq
 langchain
+razorpay>=1.4.0

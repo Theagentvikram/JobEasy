@@ -12,101 +12,57 @@ import { Pricing } from './components/Pricing';
 import { Blog } from './components/Blog';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
-import { BlogDetail } from './components/BlogDetail'; // Import BlogDetail
+import { BlogDetail } from './components/BlogDetail';
 import { ThemeProvider } from './context/ThemeContext';
 import { CursorGlow } from './components/ui/cursor-glow';
 
-// DEV MODE: Set to false to enable actual Authentication (Firebase + Mock)
-const DEV_MODE = false;
-const DEV_USER_EMAIL = 'dev@jobeasy.local';
-
 export default function App() {
-  const [userEmail, setUserEmail] = useState<string | null>(DEV_MODE ? DEV_USER_EMAIL : null);
-  // ... (rest of state matching original)
-  const [userData, setUserData] = useState<any>(null); // Store full profile including plan
-  const [loading, setLoading] = useState(!DEV_MODE);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Track mock logins to prevent Firebase from over-riding them
-  const isMockLogin = React.useRef(false);
-
-  // ... (keep all existing logic)
-
   const fetchUserProfile = async () => {
     try {
-      // Dynamic import to avoid circular dependency issues locally if any
       const { default: api } = await import('./services/api');
       const response = await api.get('/auth/me');
       setUserData(response.data);
-      console.log('User Profile Loaded:', response.data);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
   };
 
-  // Listen for auth state changes (skipped in DEV_MODE)
+  // Listen for Firebase auth state changes — single source of truth
   useEffect(() => {
-    // Check for persisted mock session first
-    const storedUser = localStorage.getItem('jobeasy_mock_user');
-    if (storedUser) {
-      console.log('Restoring mock user session:', storedUser);
-      setUserEmail(storedUser);
-      isMockLogin.current = true;
-      setLoading(false);
-      fetchUserProfile(); // Fetch profile for mock user too
-      if (location.pathname === '/login' || location.pathname === '/') {
-        navigate('/dashboard');
-      }
-      return;
-    }
-
-    if (DEV_MODE) {
-      console.log('🚀 DEV MODE: Bypassing Firebase auth');
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // If we have a real firebase user, sync state
       if (user) {
-        isMockLogin.current = false; // Reset mock flag if real user found
         setUserEmail(user.email);
-        fetchUserProfile(); // Fetch profile
-        if (location.pathname === '/login' || location.pathname === '/') {
+        fetchUserProfile();
+
+        // Handle Redirects (e.g. from Hero quick scan)
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+
+        if (redirect) {
+          navigate(redirect);
+        } else if (location.pathname === '/login' || location.pathname === '/') {
           navigate('/dashboard');
         }
-      }
-      // If no firebase user, ONLY clear if it's not a mock session
-      else if (!isMockLogin.current) {
-        // Double check local storage before clearing (in case of race condition)
-        if (!localStorage.getItem('jobeasy_mock_user')) {
-          setUserEmail(null);
-          setUserData(null);
-          if (location.pathname.startsWith('/dashboard')) {
-            navigate('/');
-          }
+      } else {
+        setUserEmail(null);
+        setUserData(null);
+        if (location.pathname.startsWith('/dashboard')) {
+          navigate('/');
         }
       }
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [location.pathname, navigate]);
-
-  const handleLogin = (email: string) => {
-    if (email === 'theagentvikram@gmail.com' || email === 'sidhardharoy9@gmail.com') {
-      isMockLogin.current = true;
-    }
-    // Persist mock login
-    localStorage.setItem('jobeasy_mock_user', email);
-    setUserEmail(email);
-    fetchUserProfile(); // Fetch immediately on login action
-    navigate('/dashboard');
-  };
+  }, [navigate]); // Removed location.pathname dependency to avoid circular loops
 
   const handleLogout = async () => {
     try {
-      isMockLogin.current = false;
-      localStorage.removeItem('jobeasy_mock_user');
       await auth.signOut();
       setUserEmail(null);
       setUserData(null);
@@ -117,10 +73,16 @@ export default function App() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#020c07] text-emerald-600">Loading JobEasy...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#020c07] text-emerald-600">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+          Loading JobEasy...
+        </div>
+      </div>
+    );
   }
 
-  // Helper for Landing Page content
   const LandingPage = () => (
     <div className="animate-fade-in">
       <Hero onStart={() => navigate('/login')} />
@@ -137,17 +99,17 @@ export default function App() {
     <ThemeProvider>
       <div className="min-h-screen font-sans selection:bg-emerald-100 selection:text-emerald-900 relative text-gray-900 dark:text-gray-100 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 transition-colors duration-300">
 
-        {/* Global Background - VaultFlow Style Grid */}
+        {/* Global Background */}
         <div className="fixed inset-0 z-[-1] bg-white dark:bg-[#020c07] transition-colors duration-300"></div>
         <div className="fixed inset-0 z-[-1] vault-grid opacity-60 pointer-events-none dark:opacity-20"></div>
 
-        {/* Subtle Ambient Light (Top Center) */}
+        {/* Subtle Ambient Light */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-emerald-100/30 dark:bg-emerald-900/20 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
 
         {/* Interactive Cursor Glow */}
         <CursorGlow />
 
-        {/* Show Navbar only when NOT in Dashboard or Login mode */}
+        {/* Show Navbar only when NOT in Dashboard or Login */}
         {!location.pathname.startsWith('/dashboard') && location.pathname !== '/login' && (
           <Navbar
             isLoggedIn={!!userEmail}
@@ -156,14 +118,13 @@ export default function App() {
           />
         )}
 
-        <main className="min-h-screen flex flex-col">
+        <main className="min-h-screen flex flex-col animate-fade-in">
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/blog/:id" element={<BlogDetail />} /> {/* Add Blog Route */}
-            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/blog/:id" element={<BlogDetail />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/dashboard/*" element={
-              // Dashboard takes full height and manages its own layout
-              <div className="h-screen overflow-hidden">
+              <div className="h-screen overflow-hidden animate-fade-in">
                 <Scanner
                   user={{ email: userEmail, ...userData }}
                   onLogout={handleLogout}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Check, WarningCircle, Sparkle, Spinner, Target, ChartBar, CaretRight, User, Briefcase, Lightning, Trash, ClockCounterClockwise, CloudArrowUp } from '@phosphor-icons/react';
+import { FileText, Check, WarningCircle, Sparkle, Spinner, Target, ChartBar, CaretRight, User, Briefcase, Lightning, Trash, ClockCounterClockwise, CloudArrowUp, Link } from '@phosphor-icons/react';
 import { analyzeResume } from '../services/geminiService';
 import { AnalysisResult } from '../types';
 import { FileDragDrop } from './FileDragDrop';
@@ -27,10 +27,42 @@ export const ATSView: React.FC<{ isPro?: boolean, user?: any }> = ({ isPro = fal
 
   /* New Logic: Handle incoming file from Scanner/Dashboard */
   useEffect(() => {
-    if (location.state?.file) {
-      const { base64, name, type, url } = location.state.file;
-      setFileData({ base64, mimeType: type, name, url });
-    }
+    const processIncomingState = async () => {
+      if (location.state?.file) {
+        const { base64, name, type, url } = location.state.file;
+        setFileData({ base64, mimeType: type, name, url });
+      }
+
+      if (location.state?.scanResult) {
+        const data = location.state.scanResult;
+        setResult(data);
+
+        // Auto-save this pre-calculated result to history
+        try {
+          // Small delay to ensure state is settled? Not strictly needed but safe.
+          await api.post('/ats/scan', {
+            score: data.score || 0,
+            summary: data.summary || '',
+            missingKeywords: data.missingKeywords || [],
+            hardSkills: data.hardSkills || [],
+            softSkills: data.softSkills || [],
+            improvements: data.improvements || [],
+            skillsDetected: data.skillsDetected || [],
+            formattingIssues: data.formattingIssues || [],
+            sectionScores: data.sectionScores || null,
+            candidateInfo: data.candidateInfo || null,
+            resumeId: null,
+            jobDescription: '', // Quick scan usually has no JD
+            fileName: location.state?.file?.name || 'Quick Scan',
+          });
+          fetchHistory();
+        } catch (e) {
+          console.warn("Failed to auto-save quick scan to history:", e);
+        }
+      }
+    };
+
+    processIncomingState();
     fetchHistory();
   }, [location.state]);
 
@@ -102,19 +134,27 @@ export const ATSView: React.FC<{ isPro?: boolean, user?: any }> = ({ isPro = fal
 
       setResult(data);
 
-      // Save to Backend
-      await api.post('/ats/scan', {
-        score: data.score,
-        summary: data.summary,
-        missingKeywords: data.missingKeywords,
-        hardSkills: data.hardSkills,
-        softSkills: data.softSkills,
-        improvements: data.improvements,
-        resumeId: null, // Linked to file?
-        jobDescription: jobDesc,
-        // We can send fileUrl if we had it
-      });
-      fetchHistory();
+      // Save to Backend (best effort - don't let save failure hide results)
+      try {
+        await api.post('/ats/scan', {
+          score: data.score || 0,
+          summary: data.summary || '',
+          missingKeywords: data.missingKeywords || [],
+          hardSkills: data.hardSkills || [],
+          softSkills: data.softSkills || [],
+          improvements: data.improvements || [],
+          skillsDetected: data.skillsDetected || [],
+          formattingIssues: data.formattingIssues || [],
+          sectionScores: data.sectionScores || null,
+          candidateInfo: data.candidateInfo || null,
+          resumeId: null,
+          jobDescription: jobDesc,
+          fileName: fileData?.name || '',
+        });
+        fetchHistory();
+      } catch (saveErr) {
+        console.warn('Failed to save scan to history (results still displayed):', saveErr);
+      }
 
     } catch (error: any) {
       console.error("Analysis failed:", error);
@@ -171,6 +211,80 @@ export const ATSView: React.FC<{ isPro?: boolean, user?: any }> = ({ isPro = fal
                 value={jobDesc}
                 onChange={(e) => setJobDesc(e.target.value)}
               />
+            </div>
+
+            {/* URL Import Overlay/Option */}
+            {/* URL Import Overlay/Option */}
+            <div className="px-4 pb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-extrabold bg-gradient-to-r from-emerald-500 to-teal-400 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">New</span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Auto-fill from URL (Fast & Free)</span>
+              </div>
+              <div className="flex gap-2 relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <Link size={14} className="text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Paste LinkedIn/Indeed job link..."
+                  className="flex-1 pl-9 pr-3 py-2.5 text-xs bg-white dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-500/10 rounded-xl outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all shadow-sm"
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      const url = e.currentTarget.value;
+                      if (!url) return;
+                      try {
+                        e.currentTarget.disabled = true;
+                        e.currentTarget.parentElement?.classList.add('opacity-70');
+                        const originalPlaceholder = e.currentTarget.placeholder;
+                        e.currentTarget.placeholder = "Fetching job info...";
+
+                        const res = await api.post('/ai/extract-job', { url });
+                        if (res.data.job_description) {
+                          setJobDesc(res.data.job_description);
+                          e.currentTarget.value = "";
+                          // Optional: Flash success or something
+                        }
+                      } catch (err) {
+                        alert("Failed to fetch job. Please check the link or paste text manually.");
+                        console.error(err);
+                      } finally {
+                        e.currentTarget.disabled = false;
+                        e.currentTarget.parentElement?.classList.remove('opacity-70');
+                        e.currentTarget.placeholder = "Paste LinkedIn/Indeed job link...";
+                        e.currentTarget.focus();
+                      }
+                    }
+                  }}
+                />
+                <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-200/50 dark:shadow-none transition-all transform hover:scale-105 active:scale-95"
+                  onClick={async (e) => {
+                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                    if (!input || !input.value) return;
+
+                    try {
+                      const originalText = e.currentTarget.innerText;
+                      e.currentTarget.innerText = "Fetching...";
+                      e.currentTarget.disabled = true;
+                      input.disabled = true;
+
+                      const res = await api.post('/ai/extract-job', { url: input.value });
+                      if (res.data.job_description) {
+                        setJobDesc(res.data.job_description);
+                        input.value = "";
+                      }
+                    } catch (err) {
+                      alert("Failed to fetch job. Please check the link or paste text manually.");
+                      console.error(err);
+                    } finally {
+                      e.currentTarget.innerText = "Fetch";
+                      e.currentTarget.disabled = false;
+                      input.disabled = false;
+                    }
+                  }}
+                >
+                  Fetch
+                </button>
+              </div>
             </div>
           </div>
 
@@ -248,10 +362,12 @@ export const ATSView: React.FC<{ isPro?: boolean, user?: any }> = ({ isPro = fal
                   <h3 className="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase">Overall Match</h3>
                   <div className="text-5xl font-extrabold text-emerald-600 dark:text-emerald-500">{result.score}<span className="text-lg text-gray-400 dark:text-gray-600">/100</span></div>
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-gray-900 dark:text-white">{result.candidateInfo.name}</div>
-                  <div className="text-gray-500 dark:text-gray-400 text-sm">{result.candidateInfo.email}</div>
-                </div>
+                {result.candidateInfo && (
+                  <div className="text-right">
+                    <div className="font-bold text-gray-900 dark:text-white">{result.candidateInfo.name}</div>
+                    <div className="text-gray-500 dark:text-gray-400 text-sm">{result.candidateInfo.email}</div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -313,7 +429,7 @@ export const ATSView: React.FC<{ isPro?: boolean, user?: any }> = ({ isPro = fal
 
             <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">Free Limit Reached</h3>
             <p className="text-gray-500 dark:text-gray-400 text-center mb-8">
-              You've used your 2 free AI resume scans. Upgrade to Pro for unlimited scans and advanced insights.
+              You've used your 1 free AI resume scan for today. Upgrade for premium access (up to 20 scans/day and 10 resume uploads/week).
             </p>
 
             <div className="space-y-3">
@@ -321,7 +437,7 @@ export const ATSView: React.FC<{ isPro?: boolean, user?: any }> = ({ isPro = fal
                 onClick={() => navigate('/dashboard/plans')}
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                Upgrade to Pro
+                View Passes
               </button>
               <button
                 onClick={() => setShowLimitModal(false)}

@@ -9,11 +9,7 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 
-interface LoginProps {
-  onLogin: (email: string) => void;
-}
-
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -30,24 +26,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError(null);
     setSuccessMessage(null);
 
-    // BACKDOOR for Test Accounts
-    if (!isForgotPassword && (email === 'theagentvikram@gmail.com' || email === 'sidhardharoy9@gmail.com')) {
-      setTimeout(() => {
-        onLogin(email);
-      }, 500);
-      return;
-    }
-
     try {
       if (isForgotPassword) {
-        await sendPasswordResetEmail(auth, email);
-        setSuccessMessage("Password reset email sent! Check your inbox.");
+        const actionCodeSettings = {
+          url: window.location.origin + '/login',
+          handleCodeInApp: true,
+        };
+        await sendPasswordResetEmail(auth, email, actionCodeSettings);
+        setSuccessMessage("Password reset email sent! Please check your inbox (and spam).");
+        setIsForgotPassword(false); // Switch back to login view to prompt them to wait
       } else if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
-        onLogin(email);
+        // onLogin(email); // Let App.tsx handle it
       } else {
         await signInWithEmailAndPassword(auth, email, password);
-        onLogin(email);
+        // onLogin(email); // Let App.tsx handle it
       }
     } catch (err: any) {
       console.error(err);
@@ -59,6 +52,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError("Password should be at least 6 characters.");
       } else if (err.code === 'auth/user-not-found') {
         setError("No account found with this email.");
+      } else if (err.code === 'auth/invalid-email') {
+        setError("Please enter a valid email address.");
+      } else if (err.code === 'auth/too-many-requests') {
+        setError("Too many attempts. Please try again later.");
       } else {
         setError(err.message || "Authentication failed. Please try again.");
       }
@@ -72,8 +69,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      onLogin(result.user.email || '');
+      await signInWithPopup(auth, provider);
+      // onLogin is NOT called here for real auth. 
+      // App.tsx's onAuthStateChanged will detect the user and redirect.
     } catch (err: any) {
       console.error("Google Sign-in Error:", err);
       // Detailed error for debugging

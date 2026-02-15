@@ -12,7 +12,16 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 
 # Load environment variables
+# Load environment variables
 env_path = Path(__file__).resolve().parent.parent / ".env"
+if not env_path.exists():
+    # Try root directory (assuming backend/services/...)
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+
+if not env_path.exists():
+     # Try .env.local in root
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env.local"
+
 load_dotenv(dotenv_path=env_path)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")

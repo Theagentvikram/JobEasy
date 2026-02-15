@@ -1265,13 +1265,901 @@
       "volunteering": [],
       "custom": [],
       "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "1771136281186": {
+      "id": "1771136281186",
+      "templateId": "creative",
+      "title": "Untitled Resume",
+      "lastModified": "2026-02-15T06:18:01.186Z",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Your Name",
+        "email": "",
+        "phone": "",
+        "location": "",
+        "linkedin": "",
+        "website": "",
+        "title": "Job Title"
+      },
+      "summary": "",
+      "experience": [],
+      "education": [],
+      "skills": [],
+      "projects": [],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "9dc23a4d-b7c7-4fa1-ab49-23682d49fef3": {
+      "id": "9dc23a4d-b7c7-4fa1-ab49-23682d49fef3",
+      "templateId": "modern",
+      "title": "Abhinay Cherupally",
+      "lastModified": "2026-02-15T06:40:54.841552",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Abhinay Cherupally",
+        "email": "cherupallyabhi@gmail.com",
+        "phone": "+91-6302323643",
+        "location": "Hyderabad, Telangana, India",
+        "linkedin": "https://www.linkedin.com/in/AbhiCherupally",
+        "website": "https://github.com/Theagentvikram",
+        "title": "Data Science \u2014 AI/ML Engineer \u2014 Full-Stack ML Developer"
+      },
+      "summary": "AI/ML Engineer with expertise in developing scalable machine learning and generative AI solutions, including Retrieval-Augmented Generation (RAG). Built NLP-based fake news detection system during internship at Intel by applying strong problem-solving skills. Published research on real-time retail theft detection using YOLOv8 and DeepSORT. Developed ResuMatch, a SaaS resume matching platform leveraging FastAPI, LangChain, vector databases, and NoSQL technologies. Proficient in Python, TensorFlow, PyTorch, FastAPI, LangChain, React.js, Node.js, Docker, Kubernetes, Git, AWS (Lambda, S3, EC2), and GCP. Strong experience in full-stack development, LLM integration, and deploying end-to-end AI/ML pipelines.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "Machine Learning Intern",
+          "company": "Intel Corporation",
+          "startDate": "May 2023",
+          "endDate": "Jul 2023",
+          "description": "Built comprehensive fake news detection system using advanced NLP pipelines, RAG techniques, NoSQL databases, and classification models, demonstrating strong problem-solving skills to address complex data challenges\nImplemented end-to-end ML workflows from data preprocessing to model evaluation and deployment on GCP infrastructure, applying problem-solving techniques to optimize performance\nCollaborated with cross-functional teams on real-world AI applications with production-level requirements\nAchieved high accuracy in text classification using transformer-based models and traditional ML techniques"
+        },
+        {
+          "id": "exp_2",
+          "role": "Machine Learning Engineer",
+          "company": "Syncd Analytics",
+          "startDate": "Aug 2025",
+          "endDate": "Present",
+          "description": "Contributed to the design and deployment of an AI-powered Quality Control platform for appraisal document processing, helping achieve 60\u201380% reduction in manual review time.\nDeveloped microservices using Flask REST APIs and integrated Next.js frontend components, working with ChromaDB for vector storage and implementing Dockerized deployments on AWS infrastructure.\nBuilt ML pipelines integrating OpenAI GPT-4 and AWS models, implementing DSPy for document parsing workflows, QC rule verification logic, and multi-model fallback mechanisms.\nImplemented authentication flows using JWT, created real-time dashboard components for monitoring, optimized parallel document processing pipelines, and ensured compliance with MISMO/FHA/UAD standards."
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Bachelor's in Artificial Intelligence & Machine Learning",
+          "school": "Sreenidhi Institute of Science and Technology (SNIST)",
+          "year": "Dec 2021 - Aug 2025"
+        },
+        {
+          "id": "edu_2",
+          "degree": "Master of Science in Artificial Intelligence",
+          "school": "Florida Atlantic University",
+          "year": "Jan 2026 - Dec 2027"
+        }
+      ],
+      "skills": [
+        "Python",
+        "JavaScript",
+        "Java",
+        "C/C++",
+        "SQL",
+        "R",
+        "TensorFlow",
+        "PyTorch",
+        "Scikit-learn",
+        "Keras",
+        "YOLOv8",
+        "OpenCV",
+        "DsPy",
+        "NLP",
+        "Vision Models",
+        "LangChain",
+        "Transformers",
+        "Ollama",
+        "Mistral",
+        "Fine-tuning",
+        "LoRa",
+        "QLoRa",
+        "React.js",
+        "FastAPI",
+        "Node.js",
+        "HTML/CSS",
+        "RESTful APIs",
+        "AWS (Lambda, Elastic Beanstalk, S3, EC2, Fargate)",
+        "Docker",
+        "Git",
+        "Linux",
+        "OCI",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter",
+        "MySQL",
+        "PostgreSQL",
+        "MongoDB",
+        "ChromaDB",
+        "Supabase",
+        "Teamwork",
+        "Problem Solving",
+        "Communication",
+        "Critical Thinking"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "name": "ResuMatch - Hiring Assistant for HR",
+          "description": "Collaborated in developing an AI-driven recruitment platform using React with TypeScript and FastAPI, integrating Mistral 7B LLM and OpenRouter APIs to automate resume parsing with 95% skill extraction accuracy.\nWorked in engineering a scalable microservices architecture with SQLite and RESTful APIs, enabling role-based authentication and concurrent workflows for 100+ recruiters and applicants.\nCo-designed a responsive UI using Tailwind CSS and React Context for real-time job postings and interactive resume visualization, increasing recruiter efficiency by 30%.\nContributed to Docker-based containerization and deployment on Vercel and Render, establishing CI/CD pipelines that reduced deployment time by 40%.",
+          "link": ""
+        },
+        {
+          "id": "proj_2",
+          "name": "Retail Theft Detection System",
+          "description": "Developed an advanced retail theft detection framework using YOLOv8 and DeepSORT, delivering 95%+ object detection accuracy and robust multi-object tracking under varying lighting and occlusion conditions.\nImplemented a scalable computer vision pipeline spanning data collection, annotation, model optimization, and deployment.\nLeveraged Python and OpenCV to streamline video data extraction and preprocessing, improving detection speed by 20% while maintaining high accuracy.\nContributed to academic knowledge by publishing research outcomes in a peer-reviewed journal, highlighting novel applications of deep learning in retail security monitoring.",
+          "link": "https://ijsrem.com/download/retail-theft-detection-system-using-yolov8-and-deepsort/"
+        },
+        {
+          "id": "proj_3",
+          "name": "MeetNote",
+          "description": "Engineered a SaaS Chrome extension to capture and transcribe meeting audio in real-time using Whisper, achieving a 90% transcription accuracy rate and boosting user productivity.\nIntegrated state-of-the-art LLM models (Mistral and Whisper) for automatic summarization, delivering concise meeting highlights and reducing user review time by 35%.\nConstructed the frontend with Next.js, React, and TypeScript and developed backend APIs with FastAPI and Python, ensuring scalable and efficient full-stack performance.",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "cad40554-ef62-4e5c-8013-e9f472aaa64d": {
+      "id": "cad40554-ef62-4e5c-8013-e9f472aaa64d",
+      "templateId": "modern",
+      "title": "Abhinay Cherupally",
+      "lastModified": "2026-02-15T07:24:27.973035",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Abhinay Cherupally",
+        "email": "cherupallyabhi@gmail.com",
+        "phone": "+91-6302323643",
+        "location": "Hyderabad, Telangana, India",
+        "linkedin": "https://www.linkedin.com/in/AbhiCherupally",
+        "website": "https://github.com/Theagentvikram",
+        "title": "Data Science \u2014 AI/ML Engineer \u2014 Full-Stack ML Developer"
+      },
+      "summary": "AI/ML Engineer with expertise in developing scalable machine learning and generative AI solutions, including Retrieval-Augmented Generation (RAG). Built NLP-based fake news detection system during internship at Intel by applying strong problem-solving skills. Published research on real-time retail theft detection using YOLOv8 and DeepSORT. Developed ResuMatch, a SaaS resume matching platform leveraging FastAPI, LangChain, vector databases, and NoSQL technologies. Proficient in Python, TensorFlow, PyTorch, FastAPI, LangChain, React.js, Node.js, Docker, Kubernetes, Git, AWS (Lambda, S3, EC2), and GCP. Strong experience in full-stack development, LLM integration, and deploying end-to-end AI/ML pipelines.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "Machine Learning Intern",
+          "company": "Intel Corporation",
+          "startDate": "May 2023",
+          "endDate": "Jul 2023",
+          "description": "Built comprehensive fake news detection system using advanced NLP pipelines, RAG techniques, NoSQL databases, and classification models, demonstrating strong problem-solving skills to address complex data challenges\nImplemented end-to-end ML workflows from data preprocessing to model evaluation and deployment on GCP infrastructure, applying problem-solving techniques to optimize performance\nCollaborated with cross-functional teams on real-world AI applications with production-level requirements\nAchieved high accuracy in text classification using transformer-based models and traditional ML techniques"
+        },
+        {
+          "id": "exp_2",
+          "role": "Machine Learning Engineer",
+          "company": "Syncd Analytics",
+          "startDate": "Aug 2025",
+          "endDate": "Present",
+          "description": "Contributed to the design and deployment of an AI-powered Quality Control platform for appraisal document processing, helping achieve 60\u201380% reduction in manual review time.\nDeveloped microservices using Flask REST APIs and integrated Next.js frontend components, working with ChromaDB for vector storage and implementing Dockerized deployments on AWS infrastructure.\nBuilt ML pipelines integrating OpenAI GPT-4 and AWS models, implementing DSPy for document parsing workflows, QC rule verification logic, and multi-model fallback mechanisms.\nImplemented authentication flows using JWT, created real-time dashboard components for monitoring, optimized parallel document processing pipelines, and ensured compliance with MISMO/FHA/UAD standards."
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Bachelor's in Artificial Intelligence & Machine Learning",
+          "school": "Sreenidhi Institute of Science and Technology (SNIST)",
+          "year": "Dec 2021 - Aug 2025"
+        },
+        {
+          "id": "edu_2",
+          "degree": "Master of Science in Artificial Intelligence",
+          "school": "Florida Atlantic University",
+          "year": "Jan 2026 - Dec 2027"
+        }
+      ],
+      "skills": [
+        "Python",
+        "JavaScript",
+        "Java",
+        "C/C++",
+        "SQL",
+        "R",
+        "TensorFlow",
+        "PyTorch",
+        "Scikit-learn",
+        "Keras",
+        "YOLOv8",
+        "OpenCV",
+        "DsPy",
+        "NLP",
+        "Vision Models",
+        "LangChain",
+        "Transformers",
+        "Ollama",
+        "Mistral",
+        "Fine-tuning",
+        "LoRa",
+        "QLoRa",
+        "React.js",
+        "FastAPI",
+        "Node.js",
+        "HTML/CSS",
+        "RESTful APIs",
+        "AWS (Lambda, Elastic Beanstalk, S3, EC2, Fargate)",
+        "Docker",
+        "Git",
+        "Linux",
+        "OCI",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter",
+        "MySQL",
+        "PostgreSQL",
+        "MongoDB",
+        "ChromaDB",
+        "Supabase",
+        "Teamwork",
+        "Problem Solving",
+        "Communication",
+        "Critical Thinking"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "name": "ResuMatch - Hiring Assistant for HR",
+          "description": "Collaborated in developing an AI-driven recruitment platform using React with TypeScript and FastAPI, integrating Mistral 7B LLM and OpenRouter APIs to automate resume parsing with 95% skill extraction accuracy.\nWorked in engineering a scalable microservices architecture with SQLite and RESTful APIs, enabling role-based authentication and concurrent workflows for 100+ recruiters and applicants.\nCo-designed a responsive UI using Tailwind CSS and React Context for real-time job postings and interactive resume visualization, increasing recruiter efficiency by 30%.\nContributed to Docker-based containerization and deployment on Vercel and Render, establishing CI/CD pipelines that reduced deployment time by 40%.",
+          "link": ""
+        },
+        {
+          "id": "proj_2",
+          "name": "Retail Theft Detection System",
+          "description": "Developed an advanced retail theft detection framework using YOLOv8 and DeepSORT, delivering 95%+ object detection accuracy and robust multi-object tracking under varying lighting and occlusion conditions.\nImplemented a scalable computer vision pipeline spanning data collection, annotation, model optimization, and deployment.\nLeveraged Python and OpenCV to streamline video data extraction and preprocessing, improving detection speed by 20% while maintaining high accuracy.\nContributed to academic knowledge by publishing research outcomes in a peer-reviewed journal, highlighting novel applications of deep learning in retail security monitoring.",
+          "link": "https://ijsrem.com/download/retail-theft-detection-system-using-yolov8-and-deepsort/"
+        },
+        {
+          "id": "proj_3",
+          "name": "MeetNote",
+          "description": "Engineered a SaaS Chrome extension to capture and transcribe meeting audio in real-time using Whisper, achieving a 90% transcription accuracy rate and boosting user productivity.\nIntegrated state-of-the-art LLM models (Mistral and Whisper) for automatic summarization, delivering concise meeting highlights and reducing user review time by 35%.\nConstructed the frontend with Next.js, React, and TypeScript and developed backend APIs with FastAPI and Python, ensuring scalable and efficient full-stack performance.",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "8adb6d3a-acbf-496b-9269-a305c2a20f6e": {
+      "id": "8adb6d3a-acbf-496b-9269-a305c2a20f6e",
+      "templateId": "modern",
+      "title": "Abhinay Cherupally",
+      "lastModified": "2026-02-15T07:46:20.234674",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Abhinay Cherupally",
+        "email": "cherupallyabhi@gmail.com",
+        "phone": "+91-6302323643",
+        "location": "Hyderabad, Telangana, India",
+        "linkedin": "https://www.linkedin.com/in/AbhiCherupally",
+        "website": "https://github.com/Theagentvikram",
+        "title": "Data Science \u2014 AI/ML Engineer \u2014 Full-Stack ML Developer"
+      },
+      "summary": "AI/ML Engineer with expertise in developing scalable machine learning and generative AI solutions, including Retrieval-Augmented Generation (RAG). Built NLP-based fake news detection system during internship at Intel by applying strong problem-solving skills. Published research on real-time retail theft detection using YOLOv8 and DeepSORT. Developed ResuMatch, a SaaS resume matching platform leveraging FastAPI, LangChain, vector databases, and NoSQL technologies. Proficient in Python, TensorFlow, PyTorch, FastAPI, LangChain, React.js, Node.js, Docker, Kubernetes, Git, AWS (Lambda, S3, EC2), and GCP. Strong experience in full-stack development, LLM integration, and deploying end-to-end AI/ML pipelines.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "Machine Learning Intern",
+          "company": "Intel Corporation",
+          "startDate": "May 2023",
+          "endDate": "Jul 2023",
+          "description": "Built comprehensive fake news detection system using advanced NLP pipelines, RAG techniques, NoSQL databases, and classification models, demonstrating strong problem-solving skills to address complex data challenges\nImplemented end-to-end ML workflows from data preprocessing to model evaluation and deployment on GCP infrastructure, applying problem-solving techniques to optimize performance\nCollaborated with cross-functional teams on real-world AI applications with production-level requirements\nAchieved high accuracy in text classification using transformer-based models and traditional ML techniques"
+        },
+        {
+          "id": "exp_2",
+          "role": "Machine Learning Engineer",
+          "company": "Syncd Analytics",
+          "startDate": "Aug 2025",
+          "endDate": "Present",
+          "description": "Contributed to the design and deployment of an AI-powered Quality Control platform for appraisal document processing, helping achieve 60\u201380% reduction in manual review time.\nDeveloped microservices using Flask REST APIs and integrated Next.js frontend components, working with ChromaDB for vector storage and implementing Dockerized deployments on AWS infrastructure.\nBuilt ML pipelines integrating OpenAI GPT-4 and AWS models, implementing DSPy for document parsing workflows, QC rule verification logic, and multi-model fallback mechanisms.\nImplemented authentication flows using JWT, created real-time dashboard components for monitoring, optimized parallel document processing pipelines, and ensured compliance with MISMO/FHA/UAD standards."
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Bachelor's in Artificial Intelligence & Machine Learning",
+          "school": "Sreenidhi Institute of Science and Technology (SNIST)",
+          "year": "Dec 2021 - Aug 2025"
+        },
+        {
+          "id": "edu_2",
+          "degree": "Master of Science in Artificial Intelligence",
+          "school": "Florida Atlantic University",
+          "year": "Jan 2026 - Dec 2027"
+        }
+      ],
+      "skills": [
+        "Python",
+        "JavaScript",
+        "Java",
+        "C/C++",
+        "SQL",
+        "R",
+        "TensorFlow",
+        "PyTorch",
+        "Scikit-learn",
+        "Keras",
+        "YOLOv8",
+        "OpenCV",
+        "DsPy",
+        "NLP",
+        "Vision Models",
+        "LangChain",
+        "Transformers",
+        "Ollama",
+        "Mistral",
+        "Fine-tuning",
+        "LoRa",
+        "QLoRa",
+        "React.js",
+        "FastAPI",
+        "Node.js",
+        "HTML/CSS",
+        "RESTful APIs",
+        "AWS (Lambda, Elastic Beanstalk, S3, EC2, Fargate)",
+        "Docker",
+        "Git",
+        "Linux",
+        "OCI",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter",
+        "MySQL",
+        "PostgreSQL",
+        "MongoDB",
+        "ChromaDB",
+        "Supabase",
+        "Teamwork",
+        "Problem Solving",
+        "Communication",
+        "Critical Thinking"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "name": "ResuMatch - Hiring Assistant for HR",
+          "description": "Collaborated in developing an AI-driven recruitment platform using React with TypeScript and FastAPI, integrating Mistral 7B LLM and OpenRouter APIs to automate resume parsing with 95% skill extraction accuracy.\nWorked in engineering a scalable microservices architecture with SQLite and RESTful APIs, enabling role-based authentication and concurrent workflows for 100+ recruiters and applicants.\nCo-designed a responsive UI using Tailwind CSS and React Context for real-time job postings and interactive resume visualization, increasing recruiter efficiency by 30%.\nContributed to Docker-based containerization and deployment on Vercel and Render, establishing CI/CD pipelines that reduced deployment time by 40%.",
+          "link": ""
+        },
+        {
+          "id": "proj_2",
+          "name": "Retail Theft Detection System",
+          "description": "Developed an advanced retail theft detection framework using YOLOv8 and DeepSORT, delivering 95%+ object detection accuracy and robust multi-object tracking under varying lighting and occlusion conditions.\nImplemented a scalable computer vision pipeline spanning data collection, annotation, model optimization, and deployment.\nLeveraged Python and OpenCV to streamline video data extraction and preprocessing, improving detection speed by 20% while maintaining high accuracy.\nContributed to academic knowledge by publishing research outcomes in a peer-reviewed journal, highlighting novel applications of deep learning in retail security monitoring.",
+          "link": "https://ijsrem.com/download/retail-theft-detection-system-using-yolov8-and-deepsort/"
+        },
+        {
+          "id": "proj_3",
+          "name": "MeetNote",
+          "description": "Engineered a SaaS Chrome extension to capture and transcribe meeting audio in real-time using Whisper, achieving a 90% transcription accuracy rate and boosting user productivity.\nIntegrated state-of-the-art LLM models (Mistral and Whisper) for automatic summarization, delivering concise meeting highlights and reducing user review time by 35%.\nConstructed the frontend with Next.js, React, and TypeScript and developed backend APIs with FastAPI and Python, ensuring scalable and efficient full-stack performance.",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "0829b462-4d30-4ec2-87de-98d84e3716a7": {
+      "id": "0829b462-4d30-4ec2-87de-98d84e3716a7",
+      "templateId": "modern",
+      "title": "Viraj Soni",
+      "lastModified": "2026-02-15T07:48:59.380725",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Viraj Soni",
+        "email": "soniviraj296@gmail.com",
+        "phone": "(646) 740-7792",
+        "location": "",
+        "linkedin": "https://www.linkedin.com/in/viraj-soni/",
+        "website": "",
+        "title": ""
+      },
+      "summary": "Over 5 years of experience as a Software Developer and DevOps Engineer. In-depth knowledge of building, deploying and maintaining cloud environment with focus on different DevOps Tools, CI/CD and AWS Architecture and container technologies.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "DevOps Engineer",
+          "company": "Fannie Mae",
+          "startDate": "10/2016",
+          "endDate": "Present",
+          "description": "Refactor monolithic applications to a Microservices and Component based architectures for CI-CD deployments.\nCreated Task definitions and services CloudFormation stacks for ECS Fargate container Deployments for multiple RESTAPIs and invoked the container from AWS lambda functions.\nCreated Step function flow using more than 10 lambda functions for scanning the Fannie Mae AWS infrastructure.\nUsed Extensive Cloud formation for provisioning AWS infrastructure using urban Code Deploy tools for SAST, DAST, SCA, Infra and compliance scan applications.\nDesigned the Release Plans while coordinating with Stake Holders including Project Management Lead, Development Lead, and QA Team Lead.\nConfigured and managed SCM tools SVN, Git, branching strategies and troubleshoot code merging issues with coordination with application developers.\nCreated and deployed IaC Cloud formation stack for SNS Topics, AWS lambda, Cloudwatch Dashboard, DynamoDB, Step function, SSM parameter store, Secret manager entries for REST APIs using Urban code tool deployment tool and Jenkins file.\nWorked on migration of applications project from on premise to AWS Cloud platform by building a Continuous delivery pipeline using Jenkins file(CI) and Urban Code Deploy(CD tool)\nInstalling, configuring, and administering Jenkins CI tool on Linux machines for automating deployments and providing complete automation solution.\nAssisted in Maintaining/Updating existing Development, Staging, and Production ECS clusters.\nCollaborated closely with the application teams to drive adoption of the container solution, setting up orchestration for application deployments.\nGuiding development teams on best practices to containerize applications.\nEnsured optimum performance, high availability and stability of solutions and the container orchestration platform (Docker/ECS fargate) is regularly maintained and released to non-production without any downtime.\nAssisted development team to migrate applications to Docker-ECS fargate -AWS platform.\nCreated Jenkins CI_CD pipelines for continuous build & deployment and integrated Junit and SonarQube plugins in Jenkins for automated testing and for Code quality check.\nUsed Jenkins pipelines to drive all microservices Docker builds out to the jfrog Artifactory repository and then deployed ECR repo and ECS cluster for container deployments.\nUsed Ansible to manage Web applications, Environments configuration Files, Users, Mount and Packages.\nWorked with Ansible playbooks for virtual and physical instance provisioning, configuration management, patching and software deployment on AWS environments through automated tools.\nExperienced in creating custom applications container images, tagging and pushing Docker images to jfrog artifactory repository and enabling twist lock stage.\nAuthored Terraform modules for infrastructure management.\nAuthored and published a module to the Terraform registry for enterprise customers to deploy our product inside their AWS environment.\nHands-on experience of tracking tools such as JIRA."
+        },
+        {
+          "id": "exp_2",
+          "role": "JAVA Developer",
+          "company": "IT Souls",
+          "startDate": "06/2012",
+          "endDate": "05/2014",
+          "description": "Collaborated with other developers on designing, developing, testing, and implementing new JSP pages, HTML pages, and Servlets.\nMaintained company website(www.itsouls.com) and using own knowledge and experience resolved any problematic issues.\nProvided web support and beneficial advice to clients.\nUsing the latest technologies and software programmers (Java, JavaScript, HTML, DHTML, CSS), designed and developed various user-friendly websites and applications.\nReviewed and tested existing code to discover and fix bugs.\nDeveloped databases and original eye-catching user interfaces; provided knowledge and expertise to clients on any web related issues.\nParticipated in weekly team meetings with managers; provided drafts and reports on the progress of the projects.\nDeveloped JUnit tests and created Cobertura code coverage reports for JAVA applications.\nCreated Jenkins pipeline and integrated SonarQube, CAST, HP-Fortify, Sona Type-CLM (Static code analysis) with Jenkins build job.\nPerformed technology upgrades of Spring 2.0.2 to 3.0.1 and Hibernate 2.1.6 to 3.2.5.\nDesigned and developed a standalone Java application using the Java template engine Free Marker to automatically generate HTML pages.\nDeveloped different SOAP Web Services using WSDL.\nInteracted with external services to get the user information making web service SOAP calls.\nUsed XML, WSDL, and SOAP Web Services for communicating data between different applications.\nDeveloping re-usable web services using SOAP, XML, WSDL, XML Schema\nUsed XSL/XSLT for transforming and displaying data.\nCreated Database Tables, Sequences and wrote hibernate mapping files and POJO class.\nUsed Hibernate annotations to persist the data into Oracle Database.\nUsed Log4j and commons-logging frameworks for logging the application flow.\nSOAP UI is used extensively to test the middleware components independently.\nCreated build and deployment plans for QA, TRN and PRD environments using Bamboo.\nLeading DevOps and AppOps for QA, ACPT and PRD deployments."
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Bachelor's in Computer Science",
+          "school": "Gujarat Technological University, India",
+          "year": ""
+        },
+        {
+          "id": "edu_2",
+          "degree": "Master's in Computer Science",
+          "school": "New York Institute of Technology, New York",
+          "year": ""
+        }
+      ],
+      "skills": [
+        "Linux",
+        "Windows",
+        "Centos",
+        "C",
+        "JAVA",
+        "Shell scripting",
+        "Bash",
+        "Python",
+        "JavaScript",
+        "AWS",
+        "EC2",
+        "Elastic Beanstalk",
+        "ELB",
+        "Route53",
+        "S3",
+        "Cloud Front",
+        "SNS",
+        "RDS",
+        "IAM",
+        "CloudFormation",
+        "Jenkins",
+        "Bamboo",
+        "Urban code deploy",
+        "ICART ClearQuest",
+        "Terraform",
+        "GitLab",
+        "Ansible",
+        "Chef",
+        "GIT",
+        "SVN",
+        "HTTP/HTTPS",
+        "FTP",
+        "NFS",
+        "SMB",
+        "SNMP",
+        "SSH",
+        "DNS",
+        "TCP/IP",
+        "DHCP",
+        "Splunk",
+        "ELK",
+        "CloudWatch",
+        "HTML",
+        "XML",
+        "SOAP",
+        "WSDL",
+        "XSD",
+        "XSL",
+        "XPATH",
+        "Docker",
+        "Kubernetes",
+        "ECS",
+        "EKS",
+        "Apache 2.x",
+        "Apache Tomcat 6.x",
+        "7.x",
+        "Glassfish",
+        "JBoss",
+        "Ngnix",
+        "Jetty",
+        "MySQL",
+        "Redis",
+        "DynamoDB"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "name": "Fannie Mae Hackathon",
+          "description": "Dockerize UI and REST API components of application and deployed to AWS infrastructure, Kubernetes -OpenShift platform.",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
+    },
+    "1f140ce0-aae3-4220-97e2-b830505d9d9c": {
+      "id": "1f140ce0-aae3-4220-97e2-b830505d9d9c",
+      "templateId": "modern",
+      "title": "Aseef Ahmed",
+      "lastModified": "2026-02-15T08:00:21.928620",
+      "score": 0,
+      "personalInfo": {
+        "fullName": "Aseef Ahmed",
+        "email": "Aseef.Ahmed004@msd.govt.nz",
+        "phone": "+64224561914",
+        "location": "Wellington, New Zealand",
+        "linkedin": "linkedin.com/in/aseefahmed",
+        "website": "aseefahmed.github.io",
+        "title": "AWS DevOps Engineer | AWS Developer | AWS SysOps Administrator | AWS Solution Architect"
+      },
+      "summary": "Red Hat And AWS Certified Engineer having more than 9+ years of overall professional IT experience and 4+ years of experience in dealing with Cloud service providers like AWS & GCP, DevOps Implementation, Build & Release engineering and Linux administration.",
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "Cloud Engineer",
+          "company": "Ministry of Social Development (MSD), New Zealand",
+          "startDate": "November, 2019",
+          "endDate": "Current",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_2",
+          "role": "DevOps Content Creator",
+          "company": "Packt Publishing",
+          "startDate": "January, 2019",
+          "endDate": "October, 2019",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_3",
+          "role": "Senior DevOps Engineer & Chief Cloud Architect",
+          "company": "CrossOver",
+          "startDate": "January, 2018",
+          "endDate": "January, 2019",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_4",
+          "role": "Sr. Software Engineer",
+          "company": "MARS Solutions Ltd",
+          "startDate": "December, 2016",
+          "endDate": "November, 2017",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_5",
+          "role": "Sr. Software Engineer",
+          "company": "Fair Pattern Inc.",
+          "startDate": "April, 2015",
+          "endDate": "December, 2016",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_6",
+          "role": "Senior Software Engineer",
+          "company": "Nexus IT Consultants",
+          "startDate": "April, 2011",
+          "endDate": "February, 2015",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_7",
+          "role": "PHP Developer",
+          "company": "BJIT Ltd. (Bangladesh-Japan IT)",
+          "startDate": "February, 2008",
+          "endDate": "September, 2009",
+          "description": "No description provided"
+        },
+        {
+          "id": "exp_8",
+          "role": "Web Developer",
+          "company": "Evoknow Inc. (US Based Company)",
+          "startDate": "July, 2007",
+          "endDate": "May, 2008",
+          "description": "No description provided"
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "degree": "Computer Science & Engineering (CSE)",
+          "school": "Jahangirnagar University (Bangladesh)",
+          "year": ""
+        },
+        {
+          "id": "edu_2",
+          "degree": "Master\u2019s in Business Administration (MBA)",
+          "school": "University of Wales (United Kingdom)",
+          "year": ""
+        }
+      ],
+      "skills": [
+        "AWS",
+        "GCP",
+        "Azure",
+        "IBM Cloud",
+        "Docker",
+        "Docker Swarm",
+        "Kubernetes",
+        "Red Hat Openshift",
+        "AWS ECS",
+        "HTML5",
+        "CSS",
+        "JavaScript",
+        "PHP",
+        "MySQL",
+        "Bootstrap",
+        "WordPress",
+        "Ruby on Rails",
+        "C#",
+        "Python",
+        "ASP.NET",
+        "Shell Programming",
+        "Data Analysis in Python",
+        "Laravel",
+        "Codeigniter",
+        "Zend",
+        "CakePHP",
+        "Django",
+        "Magento",
+        "Jenkins",
+        "Chef",
+        "Ansible",
+        "Puppet",
+        "AWS",
+        "Selenium",
+        "Datadog/New Relic",
+        "Maven",
+        "Docker",
+        "Azure DevOps",
+        "Machine Learning",
+        "Data Factory",
+        "Web App",
+        "Azure Function",
+        "Apache",
+        "Nginx",
+        "Tomcat",
+        "Elastic Cloud Compute (EC2)",
+        "Simple Storage Service (S3)",
+        "CloudFormation",
+        "Relational Database Services (RDS)",
+        "JQuery",
+        "React.JS",
+        "Node.JS",
+        "Angular.JS",
+        "MySQL",
+        "MongoDB",
+        "SQL Server",
+        "MS. Excel",
+        "MS. Access",
+        "MS. PowerPoint",
+        "Amazon",
+        "Payment Gateways",
+        "Google",
+        "Facebook",
+        "Twitter",
+        "Linux",
+        "Mac",
+        "Windows",
+        "Git",
+        "Github/BitBucket",
+        "System Administration",
+        "Database Server",
+        "Web Server",
+        "DNS Server",
+        "Mail Server",
+        "Firewall",
+        "Jira",
+        "Microsoft Office 2010"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "name": "Building & Deploying a Serverless Web Application into GCP",
+          "description": "Hosted the frontend application into Google Storage, managing & authenticating the users through Amazon Cognito, building the serverless backend with Lambda, NoSQL & Python, building & deploying RESTful APs with API Gateway",
+          "link": ""
+        },
+        {
+          "id": "proj_2",
+          "name": "Automated software delivery life cycle using CI/CD pipeline in GCP",
+          "description": "Successfully generated a release pipeline that automates software delivery process using GCP DevOps toolchain, presented automated code deployments by connecting pipeline, managed and plugged build service, including Jenkins with the CI/CD automation",
+          "link": ""
+        },
+        {
+          "id": "proj_3",
+          "name": "Created a build server for Continuous Integration (CI) on GCP",
+          "description": "Introduced and presented a virtual application server to host Jenkins server using GCP Virtual Instance, installed Jenkins on instances, configured the Jenkins with build servers in order to spin up additional instances as build servers, based on resource consumption",
+          "link": ""
+        },
+        {
+          "id": "proj_4",
+          "name": "Migrated a GIT repository from GitHub into GCP Repository",
+          "description": "Migrated a big project to the GCP repository, as the project was too big, the migration process has been done incrementally with a python script",
+          "link": ""
+        },
+        {
+          "id": "proj_5",
+          "name": "Hosted a static website in AWS (Using AWS S3, Route53 & CloudFront)",
+          "description": "Installed, arranged and configured a static website using Amazon S3, connected the domain name with that website using Amazon Route 53",
+          "link": ""
+        },
+        {
+          "id": "proj_6",
+          "name": "Break a Monolith Application into Microservices",
+          "description": "Containerize the application, deploying the application into ECS cluster, breaking the application into several interconnected services and push each service's image to an Amazon ECR repository, deploying the application as a set of interconnected services behind an Application Load Balancer (ALB)",
+          "link": ""
+        },
+        {
+          "id": "proj_7",
+          "name": "Deploy a Kubernetes Application in Google Kubernetes Engine",
+          "description": "Launching a Python web application environment using GCP App Service, deploying the web application using App Engine",
+          "link": ""
+        },
+        {
+          "id": "proj_8",
+          "name": "Migrating database from Oracle to Amazon Redshift",
+          "description": "Converted the data warehouse schema and code from an Oracle data warehouse running on Amazon Relational Database Service (Amazon RDS) using the AWS Schema Conversion Tool (AWS SCT), migrated data from the Oracle data warehouse to Amazon Redshift using the AWS Database Migration Service (AWS DMS)",
+          "link": ""
+        },
+        {
+          "id": "proj_9",
+          "name": "Set Up an Email-Receiving Pipeline",
+          "description": "Set up a domain to receive email using Amazon SES, saved the emails in raw format to an Amazon S3 bucket",
+          "link": ""
+        },
+        {
+          "id": "proj_10",
+          "name": "Deploy a Data Warehouse",
+          "description": "Created an Amazon Redshift cluster from the AWS Management Console, configured the cluster by choosing the instance type and specifying the number of nodes, secured the cluster using AWS IAM and set it up for access, loaded the data to the cluster from Amazon S3 after defining a schema and creating the tables",
+          "link": ""
+        },
+        {
+          "id": "proj_11",
+          "name": "Design a database for a mobile app with Amazon DynamoDB",
+          "description": "The DynamoDB contained a single-table design that combined multiple entity types in one table and a composite primary key that allow for many-to-many relationships, normalized the data to make the information consistent and redundancy free",
+          "link": ""
+        },
+        {
+          "id": "proj_12",
+          "name": "Implementing Amazon ElastiCache for caching session data using Redis",
+          "description": "Configured Amazon ElastiCache nodes for Redis as a distributed cache to handle the sessions from the application",
+          "link": ""
+        },
+        {
+          "id": "proj_13",
+          "name": "Deploy WordPress with Amazon RDS, CloudFront, Cloud Formation and EC2 in AWS",
+          "description": "Installed, arranged and configured a static website using Amazon S3, connected the domain name with that website using Amazon Route 53, made sure Automated backup and recovery are there so that we won\u2019t lose data in the event of any accident",
+          "link": ""
+        },
+        {
+          "id": "proj_14",
+          "name": "Implementing Continuous Delivery Pipelines with Spinnaker and Google Kubernetes Engine (GKE)",
+          "description": "Set up an environment by launching Google Cloud Shell, created a Kubernetes Engine cluster, and configured the identity and user management scheme, deployed Spinnaker to Kubernetes Engine using Helm chart",
+          "link": ""
+        },
+        {
+          "id": "proj_15",
+          "name": "Setting up a Development Environment for Python using AppDev in GCP",
+          "description": "Set up a Python development environment on Google Cloud Platform, using Google Compute Engine to create a virtual machine (VM) and installed software libraries for the development",
+          "link": ""
+        },
+        {
+          "id": "proj_16",
+          "name": "Launch a service using Deployment Manager in GCP",
+          "description": "Installed and configured an advanced deployment using Deployment Manager templates, enabled Stackdriver monitoring, configured Stackdriver Uptime Checks and notifications",
+          "link": ""
+        },
+        {
+          "id": "proj_17",
+          "name": "Automating cloud infrastructure with Ansible / Chef",
+          "description": "Used Ansible/chef to automate cloud infrastructure such as virtual machines, load balancer, storage etc in AWS/GCP, automated configuration management such as installing software packages, updating patches and configurations etc. within the virtual machines",
+          "link": ""
+        },
+        {
+          "id": "proj_18",
+          "name": "Build a Log Analytics Solution in AWS",
+          "description": "Set up a Kinesis Agent on data sources to collect data and send it continuously to Amazon Kinesis Firehose, created an end-to-end data delivery stream using Kinesis Firehose",
+          "link": ""
+        },
+        {
+          "id": "proj_19",
+          "name": "Build a Serverless Real-Time Data Processing App in AWS",
+          "description": "Created a stream in Kinesis and wrote to and read from the stream to track information, built a Kinesis Data Analytics application to read from the stream and aggregated metrics",
+          "link": ""
+        },
+        {
+          "id": "proj_20",
+          "name": "Implementing CI/CD Pipeline with Azure DevOps for the following Stack",
+          "description": "Kubernetes, Node.JS Application, Java Application, .NET Core App, Web App & SQL Server Database",
+          "link": ""
+        },
+        {
+          "id": "proj_21",
+          "name": "Securing the Secrets in the pipelines using Azure Key Vault",
+          "description": "Accessing Secrets from Azure Key Vault, linking Secrets from Azure Key Vault",
+          "link": ""
+        },
+        {
+          "id": "proj_22",
+          "name": "Data Analysis & Visualization with Various Python Libraries",
+          "description": "Data analysis, cleaning, transformation with Pandas Library, data visualization with Matplotlib and Tableau",
+          "link": ""
+        },
+        {
+          "id": "proj_23",
+          "name": "Implementing Configuration Management using Terraform",
+          "description": "Deploying three tier web application in Azure with Terraform, deploying Terraform infrastructure using Azure DevOps",
+          "link": ""
+        },
+        {
+          "id": "proj_24",
+          "name": "Automating infrastructure deployments in the Cloud with Terraform and Azure Pipelines",
+          "description": "Developing Terraform Code for the infrastructure, building application using Azure Pipeline, deploying Azure resources using Terraform (IaC) in Azure CD pipeline",
+          "link": ""
+        },
+        {
+          "id": "proj_25",
+          "name": "Automating Infrastructure Deployments in the Cloud with Ansible and Azure Pipelines",
+          "description": "Creating Azure service principal, configuring and Defining Ansible on Linux VM, creating Azure Connections on Azure DevOps",
+          "link": ""
+        },
+        {
+          "id": "proj_26",
+          "name": "Implementing CI/CD pipelines for deploying Azure Web Apps",
+          "description": "Deploying Azure Infrastructure using Terraform and Azure Pipeline, using multiple deployment slots for development, staging and production environment, monitoring health check of the web application via Azure Log Analytics",
+          "link": ""
+        },
+        {
+          "id": "proj_27",
+          "name": "Designing infrastructure for deploying three-tier application in multiple Azure Region",
+          "description": "Implementing Azure Traffic Manager to minimize the application latency, making sure Azure resources are highly available and fault tolerant using various Azure offerings",
+          "link": ""
+        },
+        {
+          "id": "proj_28",
+          "name": "Implementing CI/CD pipeline for Microservice application on Azure Kubernetes Cluster",
+          "description": "Configuring build and release pipeline within Azure DevOps, building infrastructure and deploying application with Azure Pipelines, monitoring Kubernetes clusters using Prometheus and Grafana",
+          "link": ""
+        }
+      ],
+      "certifications": [],
+      "awards": [],
+      "achievements": [],
+      "publications": [],
+      "references": [],
+      "volunteering": [],
+      "custom": [],
+      "userId": "mock_user_theagentvikram@gmail.com"
     }
   },
   "users": {
     "mock_user_theagentvikram@gmail.com": {
-      "scan_count": 2,
-      "resume_count": 2,
-      "plan": "free"
+      "scan_count": 4,
+      "resume_count": 6,
+      "plan": "pro"
     }
   }
 }

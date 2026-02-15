@@ -2,11 +2,17 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth
 import os
 from dotenv import load_dotenv
+from datetime import datetime, timezone
+from typing import Optional
 
 load_dotenv()
 
-# Initialize Firebase
-# Expects 'serviceAccountKey.json' in the backend directory OR credentials in env vars
+FREE_SCAN_DAILY_LIMIT = 1
+FREE_RESUME_LIFETIME_LIMIT = 2
+PAID_SCAN_DAILY_LIMIT = 20
+PAID_RESUME_WEEKLY_LIMIT = 10
+
+# Initialize Firebase Admin SDK
 cred_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "serviceAccountKey.json")
 
 if os.path.exists(cred_path):
@@ -22,239 +28,240 @@ elif os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON"):
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
 else:
-    # Fallback/Placeholder
-    print("WARNING: serviceAccountKey.json not found AND FIREBASE_SERVICE_ACCOUNT_JSON not set.")
-    print("Firebase features will fall back to local mock DB (data will be lost on restart).")
+    print("CRITICAL: serviceAccountKey.json not found AND FIREBASE_SERVICE_ACCOUNT_JSON not set.")
+    print("Firebase features will NOT work. Please provide credentials.")
 
 def verify_token(token: str):
-    # DEVELOPMENT BACKDOOR: If no service account, bypass verification
-    # This ensures the app works even without the Admin SDK Key
     if not firebase_admin._apps:
-        # Return a mock user based on the token or just a generic one
-        # Ideally we'd decode the JWT without verification to get the email, but for now:
-        return {
-            "uid": "dev_user_123", 
-            "email": "dev@example.com",
-            "name": "Developer"
-        }
+        raise Exception("Firebase Admin SDK not initialized. Cannot verify tokens.")
 
     try:
         decoded_token = auth.verify_id_token(token)
         return decoded_token
     except Exception as e:
         print(f"Error verifying token: {e}")
-        # Soft fail for dev if token is present but verification fails (e.g. clock skew)
-        return {"uid": "dev_user_123", "email": "dev@example.com"} if "serviceAccountKey" not in str(e) else None
+        return None
 
-import json
-
-# Local JSON DB Fallback (Mocking Firestore)
-class LocalDocument:
-    def __init__(self, data):
-        self._data = data
-        self.exists = bool(data)
-    
-    def to_dict(self):
-        return self._data
-
-class LocalQuery:
-    def __init__(self, results):
-        self._results = results
-
-    def stream(self):
-        return self._results
-
-    def get(self):
-        # Firestore queries also have .get() which returns the list
-        return self._results
-
-    def order_by(self, field, direction='ASCENDING'):
-        # Basic sort implementation for local mock
-        reverse = direction == 'DESCENDING'
-        # sort only if field exists in dict
-        try:
-            self._results.sort(key=lambda x: x.to_dict().get(field, 0), reverse=reverse)
-        except:
-            pass
-        return self
-
-    def limit(self, count):
-        self._results = self._results[:count]
-        return self
-
-class LocalCollection:
-    def __init__(self, name):
-        self.name = name
-        self.file_path = "local_db.json"
-        
-    def _load(self):
-        if not os.path.exists(self.file_path):
-            return {}
-        try:
-            with open(self.file_path, "r") as f:
-                return json.load(f)
-        except:
-            return {}
-
-    def _save(self, data):
-        with open(self.file_path, "w") as f:
-            json.dump(data, f, indent=2)
-
-    def document(self, doc_id):
-        return LocalDocRef(self.name, doc_id, self)
-        
-    def where(self, field, op, value):
-        # op ignored (assumed '==')
-        all_data = self._load()
-        col_data = all_data.get(self.name, {})
-        results = []
-        for _, doc_data in col_data.items():
-            if doc_data.get(field) == value:
-                results.append(LocalDocument(doc_data))
-        return LocalQuery(results)
-
-    def stream(self):
-        # Return list of everything in the collection
-        all_data = self._load()
-        col_data = all_data.get(self.name, {})
-        return [LocalDocument(doc) for doc in col_data.values()]
-
-class LocalDocRef:
-    def __init__(self, col_name, doc_id, collection):
-        self.col_name = col_name
-        self.doc_id = doc_id
-        self.collection = collection
-        
-    def set(self, data):
-        db = self.collection._load()
-        if self.col_name not in db:
-            db[self.col_name] = {}
-        db[self.col_name][self.doc_id] = data
-        self.collection._save(db)
-        
-    def get(self):
-        db = self.collection._load()
-        data = db.get(self.col_name, {}).get(self.doc_id)
-        return LocalDocument(data)
-    
-    def delete(self):
-        db = self.collection._load()
-        if self.col_name in db and self.doc_id in db[self.col_name]:
-            del db[self.col_name][self.doc_id]
-            self.collection._save(db)
-
-class LocalFirestore:
-    def collection(self, name):
-        return LocalCollection(name)
-
-# Global DB instances for caching
+# Firestore client singleton
 _db_instance = None
-_is_local = False
 
 def get_db():
-    global _db_instance, _is_local
+    """Returns a Firestore client. Raises Exception if unavailable."""
+    global _db_instance
     
-    # 1. If we've already decided to use local DB, return it (singleton)
-    if _is_local:
-        if _db_instance is None or not isinstance(_db_instance, LocalFirestore):
-             _db_instance = LocalFirestore()
-        return _db_instance
-
-    # 2. If we have a valid real Firestore client, return it
     if _db_instance:
         return _db_instance
-
-    # 3. Try to initialize and verify real Firestore
-    if firebase_admin._apps:
-        try:
-            print("Attempting to connect to real Firestore...")
-            db = firestore.client()
-            
-            # Connectivity Check: Try a minimal operation to verify permissions/API status
-            try:
-                # Attempt to stream 1 document with a short timeout to fail fast
-                # Increased timeout to 10s to account for slow connections
-                list(db.collection('resumes').limit(1).stream(timeout=10))
-                print("Firestore Connection Verified.")
-                _db_instance = db
-                return _db_instance
-                
-            except Exception as e:
-                print(f"Firestore Verification Failed: {e}")
-                # We still fall back to local DB to keep the app running, 
-                # but we log the error clearly.
-                # If the user wants to debug, they should check these logs.
-                import traceback
-                traceback.print_exc()
-                
-                print("FALLING BACK TO LOCAL JSON DB due to connection error.")
-                _is_local = True
-                _db_instance = LocalFirestore()
-                return _db_instance
-                
-        except Exception as e:
-            print(f"Firestore Client Init Failed: {e}")
-            pass
-
-    # 4. Default Fallback
-    print("Using Local JSON Database (Persistence Mode) - Default Fallback")
-    _is_local = True
-    _db_instance = LocalFirestore()
+    
+    if not firebase_admin._apps:
+        raise Exception("Firebase Admin SDK not initialized. Cannot access Firestore.")
+    
+    _db_instance = firestore.client()
+    print("Firestore client created.")
     return _db_instance
+
+
+def _get_today_str():
+    """Returns today's date as YYYY-MM-DD string."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _get_week_key():
+    """Returns ISO week key as YYYY-Www."""
+    now = datetime.now(timezone.utc)
+    iso_year, iso_week, _ = now.isocalendar()
+    return f"{iso_year}-W{iso_week:02d}"
+
+
+def _parse_iso_datetime(value):
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        normalized = value.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(normalized)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def is_paid_plan_active(user_data: dict) -> bool:
+    """
+    Determines whether a paid plan is currently active.
+    Legacy users with plan='pro' and no pass metadata remain active.
+    """
+    if user_data.get("plan") != "pro":
+        return False
+
+    pass_type = user_data.get("plan_type")
+    if not pass_type:
+        # Legacy perpetual "pro" records
+        return True
+
+    if pass_type == "lifetime":
+        return True
+
+    expires_at_raw = user_data.get("plan_expires_at")
+    expires_at = _parse_iso_datetime(expires_at_raw)
+    if not expires_at:
+        return False
+
+    return expires_at > datetime.now(timezone.utc)
+
+
+def ensure_effective_plan(user_id: str, user_data: Optional[dict] = None):
+    """
+    Normalizes expired paid passes to free plan and returns effective user data.
+    """
+    db = get_db()
+    user_ref = db.collection('users').document(user_id)
+    data = user_data if user_data is not None else {}
+
+    if user_data is None:
+        doc = user_ref.get()
+        if not doc.exists:
+            return {
+                "scan_count": 0,
+                "scan_count_date": _get_today_str(),
+                "resume_count": 0,
+                "resume_count_week": 0,
+                "resume_count_week_key": _get_week_key(),
+                "plan": "free",
+                "plan_type": "free",
+                "plan_expires_at": None,
+            }
+        data = doc.to_dict()
+
+    if data.get("plan") == "pro" and not is_paid_plan_active(data):
+        user_ref.set({
+            "plan": "free",
+            "plan_type": "free",
+            "plan_expires_at": None
+        }, merge=True)
+        data["plan"] = "free"
+        data["plan_type"] = "free"
+        data["plan_expires_at"] = None
+
+    return data
+
 
 def check_user_limit(user_id: str, limit_type: str = "scan_count"):
     """
-    Checks if a user has reached their limit for a specific action.
-    limit_type: 'scan_count' (for ATS) or 'resume_count' (for Uploads)
-    Free users: Max 2 scans, Max 2 resumes.
-    Pro users: Unlimited.
+    Checks if a user has reached their daily limit for a specific action.
+    Free users: 1 ATS scan/day, 2 resumes total.
+    Paid users: 20 ATS scans/day, 10 resume uploads/week.
     Returns: True if allowed, False if limit reached.
     """
     db = get_db()
-    # Check user document in 'users' collection
     user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
-        # Create new user record
-        user_ref.set({"scan_count": 0, "resume_count": 0, "plan": "free"})
+        # Create new user record with today's date
+        user_ref.set({
+            "scan_count": 0, 
+            "scan_count_date": _get_today_str(),
+            "resume_count": 0,
+            "resume_count_week": 0,
+            "resume_count_week_key": _get_week_key(),
+            "plan": "free",
+            "plan_type": "free",
+            "plan_expires_at": None
+        })
         return True
         
-    data = user_doc.to_dict()
-    # Check plan - if 'pro', unlimited
-    if data.get("plan") == "pro":
-        return True
+    data = ensure_effective_plan(user_id, user_doc.to_dict())
+    plan = data.get("plan", "free")
+
+    is_paid = plan == "pro"
+
+    # For scan_count: daily reset for all plans
+    if limit_type == "scan_count":
+        today = _get_today_str()
+        last_date = data.get("scan_count_date", "")
         
-    # Check count based on type
-    # Default limit is 2 for both
-    current_count = data.get(limit_type, 0)
-    if current_count >= 2:
-        return False
+        if last_date != today:
+            # New day — reset counter
+            user_ref.update({
+                "scan_count": 0,
+                "scan_count_date": today
+            })
+            return True
         
+        current_count = data.get("scan_count", 0)
+        return current_count < (PAID_SCAN_DAILY_LIMIT if is_paid else FREE_SCAN_DAILY_LIMIT)
+
+    # For resume_count: weekly cap for paid, lifetime cap for free
+    if limit_type == "resume_count":
+        if is_paid:
+            current_week_key = _get_week_key()
+            stored_week_key = data.get("resume_count_week_key", "")
+            if stored_week_key != current_week_key:
+                user_ref.set({
+                    "resume_count_week": 0,
+                    "resume_count_week_key": current_week_key
+                }, merge=True)
+                return True
+            current_week_count = data.get("resume_count_week", 0)
+            return current_week_count < PAID_RESUME_WEEKLY_LIMIT
+
+        current_count = data.get("resume_count", 0)
+        return current_count < FREE_RESUME_LIFETIME_LIMIT
+
+    # Unknown limit type defaults to allow
     return True
 
+
 def increment_scan_count(user_id: str, limit_type: str = "scan_count"):
-    """
-    Increments the usage count for a user.
-    """
+    """Increments the usage count for a user."""
     db = get_db()
     user_ref = db.collection('users').document(user_id)
     doc = user_ref.get()
     
     if doc.exists:
-        data = doc.to_dict()
-        current_count = data.get(limit_type, 0)
-        
-        # Determine the other count to preserve it (for local DB)
-        updates = {limit_type: current_count + 1}
-        
-        if hasattr(user_ref, "update"):
-             user_ref.update(updates)
+        data = ensure_effective_plan(user_id, doc.to_dict())
+        updates = {}
+
+        if limit_type == "scan_count":
+            current_count = data.get("scan_count", 0)
+            updates["scan_count"] = current_count + 1
+            updates["scan_count_date"] = _get_today_str()
+        elif limit_type == "resume_count":
+            if data.get("plan") == "pro":
+                current_week_key = _get_week_key()
+                stored_week_key = data.get("resume_count_week_key", "")
+                current_week_count = data.get("resume_count_week", 0)
+
+                if stored_week_key != current_week_key:
+                    current_week_count = 0
+
+                updates["resume_count_week"] = current_week_count + 1
+                updates["resume_count_week_key"] = current_week_key
+            else:
+                current_count = data.get("resume_count", 0)
+                updates["resume_count"] = current_count + 1
         else:
-             data[limit_type] = current_count + 1
-             user_ref.set(data)
+            current_count = data.get(limit_type, 0)
+            updates[limit_type] = current_count + 1
+
+        if updates:
+            user_ref.set(updates, merge=True)
     else:
         # Initialize with 1 for the current type
-        initial_data = {"scan_count": 0, "resume_count": 0, "plan": "free"}
-        initial_data[limit_type] = 1
+        initial_data = {
+            "scan_count": 0, 
+            "scan_count_date": _get_today_str(),
+            "resume_count": 0,
+            "resume_count_week": 0,
+            "resume_count_week_key": _get_week_key(),
+            "plan": "free",
+            "plan_type": "free",
+            "plan_expires_at": None
+        }
+        if limit_type == "scan_count":
+            initial_data["scan_count"] = 1
+        elif limit_type == "resume_count":
+            initial_data["resume_count"] = 1
+        else:
+            initial_data[limit_type] = 1
         user_ref.set(initial_data)

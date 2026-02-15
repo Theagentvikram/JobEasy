@@ -83,8 +83,13 @@ class ATSScan(BaseModel):
     hardSkills: List[str] = []
     softSkills: List[str] = []
     improvements: List[str] = []
+    skillsDetected: List[str] = []
+    formattingIssues: List[str] = []
+    sectionScores: Optional[Dict[str, Any]] = None
+    candidateInfo: Optional[Dict[str, Any]] = None
     resumeId: Optional[str] = None
     jobDescription: Optional[str] = ""
+    fileName: Optional[str] = ""
 
 # --- AI Analysis Models ---
 

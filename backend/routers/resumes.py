@@ -27,17 +27,21 @@ async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
     if not check_user_limit(user_id, limit_type="resume_count"):
         raise HTTPException(
             status_code=403, 
-            detail="Free plan limit reached (2 resumes). Upgrade to Pro for unlimited."
+            detail="Free plan limit reached (2 resumes total). Upgrade for premium access (up to 10 uploads/week)."
         )
 
+    print(f"DEBUG: Parse Resume Request received for user: {user_id}")
     try:
         # Try new LLM parser first
         try:
+            print("DEBUG: Attempting new extract_resume_data parser...")
             parsed_data = await extract_resume_data(request.file_content)
+            print("DEBUG: New parser success.")
         except Exception as e:
-            print(f"New parser failed, falling back to legacy: {e}")
+            print(f"DEBUG: New parser failed, falling back to legacy: {e}")
             json_str = await parse_resume_legacy(request.file_content)
             parsed_data = json.loads(json_str)
+            print("DEBUG: Legacy parser success.")
         
         # Ensure minimal required fields for frontend safety
         resume = Resume(
@@ -95,7 +99,7 @@ async def create_resume(resume: Resume, user=Depends(get_current_user)):
     if not check_user_limit(user_id, limit_type="resume_count"):
         raise HTTPException(
             status_code=403, 
-            detail="Free plan limit reached (2 resumes). Upgrade to Pro for unlimited."
+            detail="Free plan limit reached (2 resumes total). Upgrade for premium access (up to 10 uploads/week)."
         )
 
     resume.userId = user_id # Enforce ownership

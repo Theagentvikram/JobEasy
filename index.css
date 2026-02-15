@@ -114,6 +114,42 @@
   animation: expandIn 0.5s ease-out both;
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(-25%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-wave {
+  animation: wave 4s linear infinite;
+}
+
+.animate-wave-slow {
+  animation: wave 6s linear infinite;
+}
+
 /* Print Styles for Resume PDF Export */
 @media print {
   @page {

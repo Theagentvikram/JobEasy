@@ -23,7 +23,9 @@ import {
    FolderSimple,
    UserCircle,
    Robot,
-   MapTrifold
+   MapTrifold,
+   Checks,
+   Spinner
 } from '@phosphor-icons/react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase/config';
@@ -50,6 +52,10 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
    const [resumes, setResumes] = useState<Resume[]>([]);
    const [documentsOpen, setDocumentsOpen] = useState(true);
    const [isLoading, setIsLoading] = useState(false);
+   // Import Progress States
+   const [importStatus, setImportStatus] = useState<string>('idle'); // idle, uploading, analyzing, success
+   const [importError, setImportError] = useState<string | undefined>(undefined);
+
    const navigate = useNavigate();
    const location = useLocation();
    const { theme, toggleTheme } = useTheme();
@@ -58,15 +64,61 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
    // Determine Plan based on 'plan' field from backend, or fallback to email check if legacy
    // Also check for 'plan' === 'pro'
-   const isPro = user?.plan === 'pro' || user?.email?.toLowerCase() === 'theagentvikram@gmail.com';
+   const isPro = user?.plan === 'pro';
    console.log('DEBUG: Scanner - User:', user, 'Calculated isPro:', isPro);
 
-   const planName = isPro ? 'Pro Plan' : 'Free Plan';
+   const planName = isPro
+      ? user?.plan_type === 'lifetime'
+         ? 'Lifetime Access'
+         : user?.plan_type === 'monthly'
+            ? 'Monthly'
+         : user?.plan_type === 'weekly'
+            ? 'Weekly Pass'
+            : 'Quarterly Pass'
+      : 'Free Plan';
    const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
    const userInitials = userName.substring(0, 2).toUpperCase();
 
    useEffect(() => {
       fetchResumes();
+
+      // Check for pending scan from Hero quick audit
+      const checkPendingScan = () => {
+         try {
+            const pendingScanResult = sessionStorage.getItem('pendingScanResult');
+            const pendingScanFile = sessionStorage.getItem('pendingScanFile');
+
+            if (pendingScanResult && pendingScanFile) {
+               console.log("Found pending scan, redirecting to ATS view...");
+               const analysis = JSON.parse(pendingScanResult);
+               const fileData = JSON.parse(pendingScanFile);
+
+               // Clear immediately
+               sessionStorage.removeItem('pendingScanResult');
+               sessionStorage.removeItem('pendingScanFile');
+
+               // Navigate to ATS view with this data
+               // Use a small timeout to ensure routes are ready?
+               setTimeout(() => {
+                  navigate('/dashboard/ats', {
+                     state: {
+                        scanResult: analysis,
+                        file: {
+                           name: fileData.fileName,
+                           type: fileData.mimeType,
+                           base64: fileData.base64
+                        }
+                     }
+                  });
+               }, 100);
+            }
+         } catch (e) {
+            console.error("Failed to load pending scan:", e);
+            sessionStorage.removeItem('pendingScanResult');
+         }
+      };
+
+      checkPendingScan();
    }, []);
 
    const fetchResumes = async () => {
@@ -100,14 +152,32 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
    const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+         console.log("No file selected for import.");
+         return;
+      }
+
+      console.log(`Starting import for file: ${file.name}`);
 
       setIsLoading(true);
+      setImportStatus('uploading');
+      setImportError(undefined);
+
       try {
-         // Upload to Firebase Storage
-         const storageRef = ref(storage, `resumes/${user.uid}/${Date.now()}_${file.name}`);
-         await uploadBytes(storageRef, file);
-         const downloadURL = await getDownloadURL(storageRef);
+         // Upload to Firebase Storage (Best Effort — skip on failure)
+         let downloadURL = null;
+         try {
+            const storageRef = ref(storage, `resumes/${user.uid || 'anon'}/${Date.now()}_${file.name}`);
+            await Promise.race([
+               (async () => { await uploadBytes(storageRef, file); downloadURL = await getDownloadURL(storageRef); })(),
+               new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timed out')), 5000))
+            ]);
+            console.log(`File uploaded to Firebase: ${downloadURL}`);
+         } catch (uploadError: any) {
+            console.warn("Firebase Storage upload skipped. Proceeding with Base64 only.", uploadError.message);
+         }
+
+         setImportStatus('analyzing');
 
          // Read file as Base64 for legacy parser fallback (if needed)
          const reader = new FileReader();
@@ -115,6 +185,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
          reader.onload = async () => {
             const base64String = reader.result as string;
+            console.log("File read as base64, sending to backend...");
 
             try {
                const response = await api.post<Resume>('/resumes/parse', {
@@ -122,36 +193,50 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                   file_url: downloadURL
                });
 
+               console.log("Backend response:", response.data);
+
                const importedResume = response.data;
+               setImportStatus('success');
 
-               // Fetch updated list and navigate
-               await fetchResumes();
+               // Optimistically add the new resume to local state so EditorWrapper finds it immediately
+               setResumes(prev => [...prev.filter(r => r.id !== importedResume.id), importedResume]);
 
-               // Navigate to editor with the new resume loaded
-               navigate(`/dashboard/resumes/${importedResume.id}/edit`);
+               // Also refresh from backend in background
+               fetchResumes();
+
+               // Short delay to show success, then navigate
+               setTimeout(() => {
+                  setImportStatus('idle');
+                  setIsLoading(false);
+                  navigate(`/dashboard/resumes/${importedResume.id}/edit`);
+               }, 1000);
 
             } catch (error: any) {
                console.error("Backend parsing failed:", error);
-               if (error.response?.status === 403) {
-                  alert("Free limit reached (2 resumes). Please upgrade to Pro.");
-               } else {
-                  alert("Failed to analyze resume. Please try again.");
-               }
-            } finally {
                setIsLoading(false);
+               if (error.response?.status === 403) {
+                  setImportError("Free limit reached (2 resumes total). Upgrade for premium access (up to 10 uploads/week).");
+               } else {
+                  setImportError(`Failed to analyze resume: ${error.response?.data?.detail || error.message}`);
+               }
             }
          };
 
          reader.onerror = () => {
             console.error("File reading failed");
-            alert("Failed to read file.");
+            setImportError("Failed to read file on client side.");
             setIsLoading(false);
          };
 
-      } catch (error) {
+      } catch (error: any) {
          console.error("Error uploading/importing resume:", error);
-         alert("Failed to upload file.");
+         setImportError(`Failed to upload file: ${error.message}`);
          setIsLoading(false);
+      }
+
+      // Reset input so same file can be selected again
+      if (event.target) {
+         event.target.value = '';
       }
    };
 
@@ -189,7 +274,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
       } catch (e: any) {
          console.error("Failed to create resume", e);
          if (e.response?.status === 403) {
-            alert("Free limit reached (2 resumes). Please upgrade to Pro.");
+            alert("Free limit reached (2 resumes total). Upgrade for premium access (up to 10 uploads/week).");
          } else {
             alert("Failed to create resume. Please try again.");
          }
@@ -205,31 +290,32 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
       if (!file) return;
 
       setIsLoading(true);
-      try {
-         // Upload to Firebase Storage
-         const storageRef = ref(storage, `ats_scans/${user.uid}/${Date.now()}_${file.name}`);
-         await uploadBytes(storageRef, file);
-         const downloadURL = await getDownloadURL(storageRef);
 
+      try {
          const reader = new FileReader();
          reader.readAsDataURL(file);
          reader.onload = async () => {
             const base64String = reader.result as string;
+            setIsLoading(false);
             navigate('/dashboard/ats', {
                state: {
                   file: {
                      base64: base64String,
                      name: file.name,
                      type: file.type,
-                     url: downloadURL
+                     url: null
                   }
                }
             });
+         };
+         reader.onerror = () => {
+            console.error("File reading failed for ATS scan");
+            alert("Failed to read file.");
             setIsLoading(false);
          };
       } catch (error) {
-         console.error("Error parsing resume:", error);
-         alert("Failed to parse resume. Please try again.");
+         console.error("Error processing file for ATS:", error);
+         alert("Failed to process file for ATS scan.");
          setIsLoading(false);
       }
    };
@@ -271,7 +357,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
       } catch (e: any) {
          console.error("Failed to create resume", e);
          if (e.response?.status === 403) {
-            alert("Free limit reached (2 resumes). Please upgrade to Pro.");
+            alert("Free limit reached (2 resumes total). Upgrade for premium access (up to 10 uploads/week).");
          } else {
             alert("Failed to create resume. Please try again.");
          }
@@ -289,8 +375,113 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
       }
    };
 
+   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+   const [profileUrl, setProfileUrl] = useState('');
+   const [isImportingProfile, setIsImportingProfile] = useState(false);
+
+   const handleImportProfileClick = () => {
+      setIsProfileModalOpen(true);
+   };
+
+   const handleProfileImport = async () => {
+      if (!profileUrl) return;
+      setIsImportingProfile(true);
+      try {
+         const { default: api } = await import('../services/api');
+         const res = await api.post('/ai/extract-profile', { url: profileUrl });
+
+         // Create new resume with this data
+         const newResume: Resume = {
+            id: Date.now().toString(),
+            templateId: 'modern',
+            title: res.data.title || 'Imported Profile',
+            lastModified: new Date().toISOString(),
+            score: 0,
+            personalInfo: {
+               fullName: res.data.personalInfo?.fullName || 'Your Name',
+               email: res.data.personalInfo?.email || '',
+               phone: res.data.personalInfo?.phone || '',
+               location: res.data.personalInfo?.location || '',
+               linkedin: res.data.personalInfo?.linkedin || profileUrl,
+               website: res.data.personalInfo?.website || '',
+               title: res.data.personalInfo?.title || ''
+            },
+            summary: res.data.summary || '',
+            experience: res.data.experience || [],
+            education: res.data.education || [],
+            skills: res.data.skills || [],
+            projects: res.data.projects || [],
+            certifications: [],
+            awards: [],
+            achievements: [],
+            publications: [],
+            references: [],
+            volunteering: [],
+            custom: [],
+            userId: user.uid || 'temp-user'
+         };
+
+         await api.post('/resumes', newResume);
+
+         if (newResume.personalInfo.title?.includes("Manual Entry Required") || newResume.summary?.includes("Could not automatically extract")) {
+            alert("⚠️ Note: We couldn't fully scrape this profile (likely due to privacy settings or bot protection). A draft has been created for you to fill in manually.");
+         }
+
+         await fetchResumes();
+         setIsProfileModalOpen(false);
+         setProfileUrl('');
+         navigate(`/dashboard/resumes/${newResume.id}/edit`);
+
+      } catch (err: any) {
+         console.error("Profile import failed", err);
+         if (err.response?.status === 403) {
+            alert("Free limit reached (2 resumes total). Upgrade for premium access (up to 10 uploads/week) or delete an old resume.");
+         } else {
+            alert("Failed to create resume from profile. Please try again.");
+         }
+      } finally {
+         setIsImportingProfile(false);
+      }
+   };
+
    return (
       <div className="flex h-screen bg-emerald-50/30 dark:bg-[#020c07] font-sans relative overflow-hidden transition-colors duration-300">
+         {isProfileModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+               <div className="bg-white dark:bg-[#051510] border border-gray-200 dark:border-emerald-500/20 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Import from Profile</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                     Paste your LinkedIn or other profile URL to automatically generate a resume.
+                  </p>
+
+                  <input
+                     type="text"
+                     placeholder="https://linkedin.com/in/username"
+                     value={profileUrl}
+                     onChange={(e) => setProfileUrl(e.target.value)}
+                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-emerald-500/20 bg-gray-50 dark:bg-black/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 outline-none mb-4"
+                     autoFocus
+                  />
+
+                  <div className="flex gap-3 justify-end">
+                     <button
+                        onClick={() => setIsProfileModalOpen(false)}
+                        className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                     >
+                        Cancel
+                     </button>
+                     <button
+                        onClick={handleProfileImport}
+                        disabled={isImportingProfile || !profileUrl}
+                        className="px-6 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                     >
+                        {isImportingProfile ? <Spinner className="animate-spin" /> : <CloudArrowUp size={18} />}
+                        {isImportingProfile ? 'Importing...' : 'Import Profile'}
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
          <Particles
             className="absolute inset-0 z-0 pointer-events-none"
             quantity={200}
@@ -364,10 +555,10 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                         <div className="p-2 bg-white/10 rounded-lg">
                            <Lightning size={16} className="text-yellow-400" weight="fill" />
                         </div>
-                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">PRO</span>
+                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">PREMIUM</span>
                      </div>
                      <h4 className="font-bold text-sm mb-1">Unlock Premium</h4>
-                     <p className="text-xs text-gray-400 mb-3">Get detailed reports & unlimited AI scans.</p>
+                     <p className="text-xs text-gray-400 mb-3">Get detailed reports, up to 20 scans/day, and up to 10 uploads/week.</p>
                      <button onClick={() => navigate('/dashboard/plans')} className="w-full py-1.5 bg-white text-gray-900 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50 transition-colors">
                         View Plans
                      </button>
@@ -401,7 +592,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                               <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 dark:bg-emerald-900/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:opacity-100 transition-opacity"></div>
                               <div className="relative z-10">
                                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-4">
-                                    <Scan size={14} /> Only 2 scans left today
+                                    <Scan size={14} /> {isPro ? 'Premium access: up to 20 scans/day' : 'Free plan: 1 scan/day'}
                                  </div>
                                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">ATS Scanner</h2>
                                  <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md">Get an ATS score and tailored keywords for any job application. Our AI ensures you match the job description perfectly.</p>
@@ -416,10 +607,18 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                        accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                        onChange={handleFileUpload}
                                     />
-                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-emerald-950/40 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-emerald-500/10 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
+                                    <button onClick={handleImportProfileClick} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-emerald-950/40 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-emerald-500/10 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
                                        <LinkedinLogo size={18} className="text-blue-600" /> Import Profile
                                     </button>
                                  </div>
+                                 {/* Hidden input for Import Profile (Resume Import) */}
+                                 <input
+                                    type="file"
+                                    ref={importInputRef}
+                                    className="hidden"
+                                    accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                    onChange={handleImportFile}
+                                 />
                               </div>
                            </div>
 
@@ -443,7 +642,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                     From Scratch
                                  </button>
                                  <button
-                                    onClick={handleImportClick}
+                                    onClick={handleImportProfileClick}
                                     className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
                                  >
                                     <CloudArrowUp size={14} /> Import
@@ -634,9 +833,21 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                   </div >
                } />
                < Route path="settings" element={< Settings user={user} />} />
-               < Route path="plans" element={< Plans isPro={isPro} onUpgradeSuccess={requestRefresh} />} />
+               < Route path="plans" element={< Plans isPro={isPro} activePlanType={user?.plan_type || ''} onUpgradeSuccess={requestRefresh} />} />
             </Routes >
          </main >
+
+         {/* Import/ATS Progress Modal */}
+         <ImportProgressModal
+            isOpen={importStatus !== 'idle' || !!importError}
+            status={importStatus}
+            error={importError}
+            onClose={() => {
+               setImportStatus('idle');
+               setImportError(undefined);
+               setIsLoading(false);
+            }}
+         />
 
       </div >
    );
@@ -662,6 +873,94 @@ const EditorWrapper = ({ resumes, saveResume, onBack }: { resumes: Resume[], sav
       </div>
    );
 };
+
+
+// --- New Component: Import Progress Modal ---
+const ImportProgressModal = ({ isOpen, status, error, onClose }: { isOpen: boolean, status: string, error?: string, onClose: () => void }) => {
+   const [progress, setProgress] = React.useState(0);
+   const [statusText, setStatusText] = React.useState('Preparing...');
+
+   React.useEffect(() => {
+      if (!isOpen) { setProgress(0); return; }
+
+      // Simulate progress based on status
+      if (status === 'uploading') {
+         setStatusText('Uploading document...');
+         // Animate to 50%
+         let current = 0;
+         const interval = setInterval(() => {
+            current += 2;
+            if (current >= 50) { clearInterval(interval); current = 50; }
+            setProgress(current);
+         }, 60);
+         return () => clearInterval(interval);
+      } else if (status === 'analyzing') {
+         setStatusText('AI is analyzing your resume...');
+         // Animate from 50% to 80%
+         setProgress(50);
+         let current = 50;
+         const interval = setInterval(() => {
+            current += 1;
+            if (current >= 80) { clearInterval(interval); current = 80; }
+            setProgress(current);
+         }, 150);
+         return () => clearInterval(interval);
+      } else if (status === 'success') {
+         setStatusText('Import complete!');
+         // Animate from wherever to 100%
+         setProgress(100);
+      }
+   }, [status, isOpen]);
+
+   if (!isOpen) return null;
+
+   return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+         <div className={`w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden relative transition-all duration-500 ${error ? 'bg-red-600' : progress === 100 ? 'bg-emerald-600' : 'bg-emerald-600'
+            }`}>
+
+            <div className="px-6 py-5 relative z-10">
+               {/* Top: Status + Percentage */}
+               <div className="flex justify-between items-center text-white mb-3">
+                  <span className="flex items-center gap-2 font-bold text-sm">
+                     {error ? (
+                        <><CloudArrowUp size={18} weight="fill" /> Import Failed</>
+                     ) : progress === 100 ? (
+                        <><Checks size={18} weight="bold" /> Import Complete!</>
+                     ) : (
+                        <><Spinner className="animate-spin" size={16} /> {statusText}</>
+                     )}
+                  </span>
+                  <span className="font-black text-sm tabular-nums">{Math.round(progress)}%</span>
+               </div>
+
+               {/* Progress Bar */}
+               <div className="w-full bg-black/20 rounded-full h-2.5 overflow-hidden backdrop-blur-sm">
+                  <div
+                     className="bg-white h-full shadow-[0_0_10px_rgba(255,255,255,0.5)] transition-all duration-300 ease-out rounded-full"
+                     style={{ width: `${progress}%` }}
+                  />
+               </div>
+
+               {/* Error close button */}
+               {error && (
+                  <div className="mt-3 text-center">
+                     <p className="text-white/80 text-xs mb-2">{error}</p>
+                     <button
+                        onClick={onClose}
+                        className="px-4 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-lg transition-colors"
+                     >
+                        Dismiss
+                     </button>
+                  </div>
+               )}
+            </div>
+         </div>
+      </div>
+   );
+};
+
+// --- End New Component ---
 
 const SidebarItem = ({ icon, label, active, onClick, isExternal, Badge }: any) => (
    <button
