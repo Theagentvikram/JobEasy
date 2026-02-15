@@ -30,11 +30,36 @@ else:
     else:
         print("WARNING: Razorpay credentials not set. Payment features disabled.")
 
-# Hardcoded Coupons
+# Coupon configuration
+# type: "percent" or "fixed_amount"
+# value: percentage (for percent) or smallest currency unit (for fixed_amount)
 COUPONS = {
-    "BOSS45": 100,  # 100% off
-    "GETJOB": 30,   # 30% off
-    "JOBEASY45": 45 # 45% off
+    "BOSS45": {
+        "type": "percent",
+        "value": 100,
+        "public": False,
+        "description": "Internal full-access coupon."
+    },
+    "GETJOB": {
+        "type": "percent",
+        "value": 30,
+        "public": True,
+        "description": "30% off any plan."
+    },
+    "JOBEASY45": {
+        "type": "percent",
+        "value": 45,
+        "public": True,
+        "description": "45% off any plan."
+    },
+    "TRIAL99": {
+        "type": "fixed_amount",
+        "value": 9900,  # Rs 99.00 in paise
+        "currency": "INR",
+        "plans": ["weekly"],
+        "public": True,
+        "description": "Weekly trial for Rs 99 (India only)."
+    },
 }
 
 PLAN_DURATIONS_DAYS = {
@@ -83,8 +108,25 @@ async def get_payment_config():
 async def validate_coupon(req: ValidateCouponRequest):
     """Checks if a coupon code is valid and returns the discount percentage."""
     code = req.code.strip().upper()
-    if code in COUPONS:
-        return {"valid": True, "discount": COUPONS[code]}
+    coupon = COUPONS.get(code)
+    if coupon:
+        if coupon["type"] == "percent":
+            return {
+                "valid": True,
+                "code": code,
+                "coupon_type": "percent",
+                "discount": coupon["value"],
+                "message": coupon.get("description", f"{coupon['value']}% off applied.")
+            }
+        return {
+            "valid": True,
+            "code": code,
+            "coupon_type": "fixed_amount",
+            "discount": 0,
+            "final_amount": coupon["value"],
+            "currency": coupon.get("currency"),
+            "message": coupon.get("description", "Coupon applied.")
+        }
     return {"valid": False, "discount": 0, "message": "Invalid coupon code"}
 
 @router.post("/create-order")
@@ -95,9 +137,32 @@ async def create_order(req: CreateOrderRequest, user=Depends(get_current_user)):
     
     # 1. Handle Coupon Logic
     discount_percent = 0
-    if coupon_code and coupon_code in COUPONS:
-        discount_percent = COUPONS[coupon_code]
-        print(f"Applying coupon {coupon_code}: {discount_percent}% off")
+    fixed_amount = None
+    coupon_type = None
+    coupon = COUPONS.get(coupon_code) if coupon_code else None
+    if coupon:
+        coupon_type = coupon.get("type")
+
+        allowed_plans = coupon.get("plans", [])
+        if allowed_plans and plan_type not in allowed_plans:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{coupon_code} is only valid for: {', '.join(allowed_plans)}"
+            )
+
+        required_currency = coupon.get("currency")
+        if required_currency and req.currency.upper() != required_currency.upper():
+            raise HTTPException(
+                status_code=400,
+                detail=f"{coupon_code} is only valid for {required_currency} payments."
+            )
+
+        if coupon_type == "percent":
+            discount_percent = int(coupon.get("value", 0))
+            print(f"Applying coupon {coupon_code}: {discount_percent}% off")
+        elif coupon_type == "fixed_amount":
+            fixed_amount = int(coupon.get("value", 0))
+            print(f"Applying coupon {coupon_code}: fixed amount {fixed_amount}")
     
     # 2. Check for 100% OFF (Direct Activation)
     if discount_percent == 100:
@@ -136,7 +201,9 @@ async def create_order(req: CreateOrderRequest, user=Depends(get_current_user)):
     try:
         # Calculate discounted amount
         final_amount = req.amount
-        if discount_percent > 0:
+        if coupon_type == "fixed_amount" and fixed_amount is not None:
+            final_amount = fixed_amount
+        elif discount_percent > 0:
             final_amount = int(req.amount * (1 - discount_percent / 100))
         
         # Ensure amount is at least 100 paise (Razorpay minimum) unless 0 which is handled above
@@ -165,6 +232,7 @@ async def create_order(req: CreateOrderRequest, user=Depends(get_current_user)):
             "amount": final_amount,
             "originalAmount": req.amount,
             "discount": discount_percent,
+            "couponType": coupon_type,
             "coupon": coupon_code,
             "plan": plan_type,
             "status": "created",
