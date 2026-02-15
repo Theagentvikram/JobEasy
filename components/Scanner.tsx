@@ -145,8 +145,8 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
 
    const importInputRef = React.useRef<HTMLInputElement>(null);
 
-   const handleImportClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
+   const handleImportClick = (e?: React.MouseEvent) => {
+      e?.stopPropagation();
       importInputRef.current?.click();
    };
 
@@ -424,7 +424,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
          await api.post('/resumes', newResume);
 
          if (newResume.personalInfo.title?.includes("Manual Entry Required") || newResume.summary?.includes("Could not automatically extract")) {
-            alert("⚠️ Note: We couldn't fully scrape this profile (likely due to privacy settings or bot protection). A draft has been created for you to fill in manually.");
+            alert("⚠️ This profile has restricted access. A draft resume was created for manual editing. For best results, use PDF resume import.");
          }
 
          await fetchResumes();
@@ -568,7 +568,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
          )}
 
          {/* MAIN CONTENT AREA */}
-         <main className="flex-1 overflow-y-auto relative z-10 custom-scrollbar">
+         <main key={location.pathname} className="flex-1 overflow-y-auto relative z-10 custom-scrollbar animate-route-in">
 
             {/* ROUTES */}
             <Routes>
@@ -611,7 +611,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                        <LinkedinLogo size={18} className="text-blue-600" /> Import Profile
                                     </button>
                                  </div>
-                                 {/* Hidden input for Import Profile (Resume Import) */}
+                                 {/* Hidden input for Resume file import */}
                                  <input
                                     type="file"
                                     ref={importInputRef}
@@ -642,18 +642,11 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                                     From Scratch
                                  </button>
                                  <button
-                                    onClick={handleImportProfileClick}
+                                    onClick={handleImportClick}
                                     className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
                                  >
                                     <CloudArrowUp size={14} /> Import
                                  </button>
-                                 <input
-                                    type="file"
-                                    ref={importInputRef}
-                                    className="hidden"
-                                    accept=".pdf,.docx,.doc"
-                                    onChange={handleImportFile}
-                                 />
                               </div>
                            </div>
                         </div >
@@ -813,7 +806,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
                } />
 
                < Route path="referral" element={
-                  <div className="p-8 max-w-7xl mx-auto h-[calc(100vh-2rem)]">
+                  <div className="p-8 max-w-7xl mx-auto h-[calc(100vh-2rem)] rounded-3xl border border-emerald-200/70 dark:border-emerald-500/10 bg-gradient-to-br from-emerald-100/70 via-emerald-50/70 to-teal-50/60 dark:from-transparent dark:via-transparent dark:to-transparent">
                      <button onClick={() => navigate('/dashboard')} className="mb-4 text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1 font-medium transition-colors">
                         <CaretRight size={16} className="rotate-180" /> Back to Dashboard
                      </button>

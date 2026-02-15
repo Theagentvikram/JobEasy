@@ -71,6 +71,7 @@ class Resume(BaseModel):
     references: List[GenericItem] = []
     volunteering: List[GenericItem] = []
     custom: List[CustomSection] = []
+    sourceHash: Optional[str] = None
     userId: Optional[str] = None # Added for ownership
 
 class ATSScan(BaseModel):
@@ -136,34 +137,70 @@ class JobStatus(str):
     REFERRAL_RECEIVED = "referral_received"
     APPLY_TODAY = "apply_today"
     APPLIED = "applied"
+    INTERVIEW = "interview"
+    OFFER = "offer"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
     CLOSED = "closed"
 
 class OutreachStatus(str):
     PENDING = "pending"
+    VIEWED = "viewed"
+    REPLIED = "replied"
+    REFERRAL_GIVEN = "referral_given"
+    DECLINED = "declined"
+    # Legacy aliases (kept for compatibility)
     ACCEPTED = "accepted"
     NO_RESPONSE = "no_response"
     REJECTED = "rejected"
 
 class Outreach(BaseModel):
-    id: str
-    jobId: str
-    contactName: str
-    platform: str = "LinkedIn" # LinkedIn, Email, Twitter, etc.
+    id: str = ""
+    jobId: str = ""
+    contactName: str = ""
+    contactTitle: str = ""
+    platform: str = "linkedin"  # linkedin, email, twitter, etc.
+    contactLink: Optional[str] = ""
+    # New primary status field
+    responseStatus: str = OutreachStatus.PENDING
+    # Legacy field preserved for backward compatibility in frontend
     status: str = OutreachStatus.PENDING
+    messageSent: Optional[str] = ""
+    responseNotes: Optional[str] = ""
     notes: Optional[str] = ""
-    dateConnnected: str # ISO date string
+    # Legacy typo kept intentionally for old docs/frontends
+    dateConnnected: Optional[str] = ""
+    dateConnected: Optional[str] = ""
+    dateResponded: Optional[str] = ""
+    followUpDate: Optional[str] = ""
+    createdAt: Optional[str] = ""
 
 class Job(BaseModel):
     id: str
     userId: str
     title: str
     company: str
-    source: str = "LinkedIn"
+    source: str = "linkedin"
+    sourceOther: Optional[str] = ""
     link: Optional[str] = ""
+    jobDescription: Optional[str] = ""
+    location: Optional[str] = ""
+    jobType: Optional[str] = "unknown"  # remote, hybrid, onsite, unknown
+    salaryRange: Optional[str] = ""
+    sponsorshipRequired: bool = False
     dateDiscovered: str # ISO date string
     waitingPeriod: int = 2 # Days to wait before applying
     outreachCount: int = 0
     status: str = JobStatus.WAITING_REFERRAL
+    priority: int = 0 # 0-3
     notes: Optional[str] = ""
+    tags: List[str] = []
     outreach: List[Outreach] = []
     autoMoveDate: Optional[str] = None # Calculated date when it moves to Apply Today
+    dateApplied: Optional[str] = None
+    dateClosed: Optional[str] = None
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+    # Computed on read (Option C style virtual status)
+    effectiveStatus: Optional[str] = None
+    daysUntilApply: Optional[int] = None

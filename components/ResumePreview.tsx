@@ -5,6 +5,7 @@ import { Mail, Phone, MapPin, Linkedin, Globe } from 'lucide-react';
 interface ResumePreviewProps {
    resume: Resume;
    scale?: number;
+   isExport?: boolean;
 }
 
 // A4 dimensions in pixels (96 DPI approx) gives lots of room for varying screen densities
@@ -16,6 +17,63 @@ const PAGE_HEIGHT = '297mm';
 const getFlattenedContent = (resume: Resume) => {
    const items: any[] = [];
    const { summary, experience, projects, skills, education } = resume;
+   const chunk = <T,>(arr: T[], size: number) => {
+      const chunks: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) {
+         chunks.push(arr.slice(i, i + size));
+      }
+      return chunks;
+   };
+   const splitDescriptionIntoChunks = (text: string, maxChars: number = 140) => {
+      const lines = text
+         .split('\n')
+         .map((line) => line.trim())
+         .filter((line) => line.length > 0);
+
+      const chunks: string[] = [];
+
+      const splitSentenceByWords = (sentence: string, maxLen: number) => {
+         const words = sentence.split(/\s+/).filter(Boolean);
+         const out: string[] = [];
+         let current = "";
+
+         for (const word of words) {
+            const next = current ? `${current} ${word}` : word;
+            if (next.length > maxLen && current) {
+               out.push(current);
+               current = word;
+            } else {
+               current = next;
+            }
+         }
+
+         if (current) out.push(current);
+         return out;
+      };
+
+      for (const line of lines) {
+         const bulletMatch = line.match(/^([•\-*])\s*/);
+         const bulletPrefix = bulletMatch ? `${bulletMatch[1]} ` : "";
+         const cleanLine = line.replace(/^([•\-*])\s*/, "");
+         const sentencePieces = cleanLine.split(/(?<=[.!?])\s+/).filter(Boolean);
+         const sourcePieces = sentencePieces.length > 0 ? sentencePieces : [cleanLine];
+
+         let isFirstPieceForLine = true;
+         for (const piece of sourcePieces) {
+            const subPieces = piece.length > maxChars
+               ? splitSentenceByWords(piece, maxChars)
+               : [piece];
+
+            for (const subPiece of subPieces) {
+               const normalized = `${isFirstPieceForLine ? bulletPrefix : ""}${subPiece}`.trim();
+               if (normalized) chunks.push(normalized);
+               isFirstPieceForLine = false;
+            }
+         }
+      }
+
+      return chunks.length > 0 ? chunks : [text.trim()].filter(Boolean);
+   };
 
    // Summary
    if (summary) items.push({ type: 'summary', content: summary, id: 'summary' });
@@ -28,7 +86,7 @@ const getFlattenedContent = (resume: Resume) => {
          items.push({ type: 'experience-header', data: exp, id: `exp-${exp.id}-header` });
          // Description Paragraphs
          if (exp.description) {
-            const paras = exp.description.split('\n').filter(line => line.trim().length > 0);
+            const paras = splitDescriptionIntoChunks(exp.description);
             paras.forEach((para, i) => {
                items.push({
                   type: 'experience-para',
@@ -50,7 +108,7 @@ const getFlattenedContent = (resume: Resume) => {
          items.push({ type: 'project-header', data: proj, id: `proj-${proj.id}-header` });
          // Description Paragraphs
          if (proj.description) {
-            const paras = proj.description.split('\n').filter(line => line.trim().length > 0);
+            const paras = splitDescriptionIntoChunks(proj.description);
             paras.forEach((para, i) => {
                items.push({
                   type: 'project-para',
@@ -70,7 +128,11 @@ const getFlattenedContent = (resume: Resume) => {
       education.forEach(edu => items.push({ type: 'education', data: edu, id: `edu-${edu.id}` }));
 
       if (skills.length > 0) items.push({ type: 'section-title', content: 'Skills', id: 'skills-title' });
-      if (skills.length > 0) items.push({ type: 'skills', data: skills, id: 'skills-list' });
+      if (skills.length > 0) {
+         chunk(skills, 12).forEach((skillGroup, index) => {
+            items.push({ type: 'skills', data: skillGroup, id: `skills-list-${index}` });
+         });
+      }
    }
 
    return items;
@@ -282,20 +344,38 @@ const ProjectItem = ({ data, variant }: { data: any, variant: string }) => {
    );
 }
 
-const EducationList = ({ data, variant }: { data: any[], variant: string }) => {
+const EducationEntry = ({ data, variant }: { data: any, variant: string }) => {
+   if (variant === 'modern') {
+      return (
+         <Section className="relative pl-3 border-l-2 border-emerald-100 mb-3">
+            <div className="flex justify-between items-baseline gap-2 mb-0.5">
+               <div className="font-bold text-gray-900 text-sm">{data.school}</div>
+               <div className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">{data.year}</div>
+            </div>
+            <div className="text-xs text-gray-600">{data.degree}</div>
+         </Section>
+      );
+   }
+
+   if (variant === 'creative') {
+      return (
+         <Section className="mb-3 p-2 rounded-lg border border-purple-100 bg-purple-50/40">
+            <div className="font-bold text-gray-900 text-xs">{data.school}</div>
+            <div className="text-[11px] text-purple-700 font-semibold">{data.degree}</div>
+            <div className="text-[10px] text-gray-500">{data.year}</div>
+         </Section>
+      );
+   }
+
    return (
-      <div className="space-y-3">
-         {data.map(edu => (
-            <Section key={edu.id} className="flex justify-between items-start">
-               <div>
-                  <div className="font-bold text-gray-900 text-sm">{edu.school}</div>
-                  <div className="text-xs text-gray-700">{edu.degree}</div>
-               </div>
-               <div className="text-xs text-gray-600">{edu.year}</div>
-            </Section>
-         ))}
-      </div>
-   )
+      <Section className="mb-3 flex justify-between items-start gap-3">
+         <div>
+            <div className="font-bold text-gray-900 text-sm">{data.school}</div>
+            <div className="text-xs text-gray-700">{data.degree}</div>
+         </div>
+         <div className="text-xs text-gray-600 whitespace-nowrap">{data.year}</div>
+      </Section>
+   );
 }
 
 const SkillsList = ({ data, variant }: { data: string[], variant: string }) => {
@@ -324,6 +404,13 @@ const SkillsList = ({ data, variant }: { data: string[], variant: string }) => {
 const getFlattenedSidebar = (resume: Resume) => {
    const items: any[] = [];
    const { personalInfo, skills, education } = resume;
+   const chunk = <T,>(arr: T[], size: number) => {
+      const chunks: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) {
+         chunks.push(arr.slice(i, i + size));
+      }
+      return chunks;
+   };
 
    // Contact (Always first, usually fits)
    items.push({ type: 'contact', data: personalInfo, id: 'sidebar-contact' });
@@ -331,12 +418,9 @@ const getFlattenedSidebar = (resume: Resume) => {
    // Skills
    if (skills.length > 0) {
       items.push({ type: 'sidebar-title', content: 'Skills', id: 'sidebar-skills-title' });
-      // Group skills? Or split? Skills usually wrapped. 
-      // Let's treat valid skill clusters as items or just the whole list as one if short. 
-      // For now, let's push the WHOLE skills list as one block since splitting chips is hard without more logic.
-      // Or better: Each skill tag? No, they wrap.
-      // Let's push the whole list.
-      items.push({ type: 'sidebar-skills-list', data: skills, id: 'sidebar-skills-list' });
+      chunk(skills, 14).forEach((skillGroup, index) => {
+         items.push({ type: 'sidebar-skills-list', data: skillGroup, id: `sidebar-skills-list-${index}` });
+      });
    }
 
    // Education
@@ -383,162 +467,157 @@ const SidebarItem: React.FC<{ item: any }> = ({ item }) => {
 }
 
 // MAIN COMPONENT
-export const ResumePreview: React.FC<ResumePreviewProps> = ({ resume, scale = 1 }) => {
+export const ResumePreview: React.FC<ResumePreviewProps> = ({ resume, scale = 1, isExport = false }) => {
    const { personalInfo, skills, education } = resume;
 
    // Main Content Pagination
-   const [page1Items, setPage1Items] = useState<any[]>([]);
-   const [page2Items, setPage2Items] = useState<any[]>([]);
+   const [mainPages, setMainPages] = useState<any[][]>([[]]);
    const measureRef = useRef<HTMLDivElement>(null);
 
    // Sidebar Pagination
-   const [page1Sidebar, setPage1Sidebar] = useState<any[]>([]);
-   const [page2Sidebar, setPage2Sidebar] = useState<any[]>([]);
+   const [sidebarPages, setSidebarPages] = useState<any[][]>([[]]);
    const sidebarMeasureRef = useRef<HTMLDivElement>(null);
 
    // Extract all main content items
    const allItems = getFlattenedContent(resume);
    const sidebarItems = getFlattenedSidebar(resume);
 
+   const getMainPageLimits = (templateId: string) => {
+      if (templateId === 'modern') return { first: 930, next: 1000 };
+      if (templateId === 'creative') return { first: 900, next: 1010 };
+      // professional, minimalist, and default templates have larger header on page 1
+      return { first: 860, next: 1000 };
+   };
+
+   const getMeasurementWidth = (templateId: string) => {
+      // Main content column for templates with side structure.
+      if (templateId === 'modern' || templateId === 'creative') return '135mm';
+      // Full-width content templates.
+      return '180mm';
+   };
+
+   const adjustMainSplit = (items: any[], start: number, splitIndex: number) => {
+      // Greedy split: use maximum content that fits on page to avoid large visual gaps.
+      return splitIndex;
+   };
+
+   const adjustSidebarSplit = (items: any[], start: number, splitIndex: number) => {
+      let adjusted = splitIndex;
+      if (adjusted >= items.length) return adjusted;
+      if (adjusted > start && items[adjusted - 1]?.type === 'sidebar-title') {
+         adjusted -= 1;
+      }
+      return adjusted;
+   };
+
+   const splitItemsIntoPages = (
+      items: any[],
+      heights: number[],
+      firstLimit: number,
+      nextLimit: number,
+      margin: number,
+      adjustSplit: (items: any[], start: number, splitIndex: number) => number
+   ) => {
+      if (items.length === 0) return [[]];
+
+      const pages: any[][] = [];
+      let cursor = 0;
+      let pageNumber = 0;
+
+      while (cursor < items.length) {
+         const limit = pageNumber === 0 ? firstLimit : nextLimit;
+         let usedHeight = 0;
+         let splitIndex = cursor;
+
+         for (let i = cursor; i < items.length; i += 1) {
+            const itemHeight = heights[i] ?? 0;
+            const extra = itemHeight + (i > cursor ? margin : 0);
+            if (usedHeight + extra > limit) {
+               break;
+            }
+            usedHeight += extra;
+            splitIndex = i + 1;
+         }
+
+         // Ensure progress even if one item is taller than a page.
+         if (splitIndex === cursor) {
+            splitIndex = cursor + 1;
+         }
+
+         let adjusted = adjustSplit(items, cursor, splitIndex);
+         if (adjusted <= cursor) {
+            adjusted = cursor + 1;
+         }
+
+         pages.push(items.slice(cursor, adjusted));
+         cursor = adjusted;
+         pageNumber += 1;
+      }
+
+      return pages;
+   };
+
+   const getMeasuredItemHeights = (elements: HTMLElement[]) => {
+      if (elements.length === 0) return [];
+
+      const heights: number[] = [];
+      for (let i = 0; i < elements.length; i += 1) {
+         const current = elements[i];
+         const next = elements[i + 1];
+
+         if (next) {
+            const laidOut = next.offsetTop - current.offsetTop;
+            heights.push(laidOut > 0 ? laidOut : current.offsetHeight);
+         } else {
+            heights.push(current.offsetHeight);
+         }
+      }
+
+      return heights;
+   };
+
    // Measurement Effect - MAIN
    useEffect(() => {
       if (!measureRef.current) return;
-      // ... existing logic ...
 
       const container = measureRef.current;
       const children = Array.from(container.children);
 
-      if (children.length === 0) {
-         setPage1Items(allItems);
-         setPage2Items([]);
+      if (children.length === 0 || allItems.length === 0) {
+         setMainPages([allItems]);
          return;
       }
 
-      let currentHeight = 0;
-      // Refined limits: A4 height is ~1123px.
-      // Modern: Has sidebar, main content width is narrower but full height is available. 
-      // Padding is usually ~24px top/bottom = 48px. 1123 - 48 = 1075px is safe max.
-      // We'll use 1080px for Modern to be aggressive but safe.
-      // Professional: Has ~40px padding top/bottom = 80px. Header is ~150px-200px.
-      // 1123 - 80 = 1043px total usable.  We need to account for header height which is part of the flow 
-      // BUT header is fixed at top of P1. The content starts AFTER header.
-      // NOTE: "limit" here applies to the *dynamic content list*, not the full page.
-      // So for Professional, P1 available height = 1123 - (padding + header).
-      // Let's assume a safe static limit for now but slightly increased from before.
-
-      const limit = resume.templateId === 'modern' ? 980 : 1050; // Reduced to 980 to ensure bottom spacing
-
-      let splitIndex = -1;
-
-      for (let i = 0; i < children.length; i++) {
-         const child = children[i] as HTMLElement;
-         const h = child.getBoundingClientRect().height;
-         // Minimal margin assumption between items
-         const margin = 10;
-
-         if (currentHeight + h + margin > limit) {
-            splitIndex = i;
-            break;
-         }
-         currentHeight += h + margin;
-      }
-
-      if (splitIndex === -1) {
-         setPage1Items(allItems);
-         setPage2Items([]);
-      } else {
-         // --- ORPHAN PREVENTION LOGIC ---
-
-         // 1. If the item meant to be first on Page 2 is a "description" or "list item" that belongs to a section title
-         //    that is currently the *last* thing on Page 1, we should pull that Title to Page 2.
-
-         // Check item at splitIndex - 1 (last item on Page 1)
-         let adjustedSplitIndex = splitIndex;
-
-         if (adjustedSplitIndex > 0 && adjustedSplitIndex < allItems.length) {
-            const lastItemP1 = allItems[adjustedSplitIndex - 1];
-            const firstItemP2 = allItems[adjustedSplitIndex];
-
-            // Case A: Last item on P1 is a Section Title -> Move it to P2
-            if (lastItemP1.type === 'section-title') {
-               adjustedSplitIndex--;
-            }
-            // Case B: Last item on P1 is a Header (Exp/Proj) and next is its content -> Move Header to P2
-            else if (lastItemP1.type === 'experience-header' || lastItemP1.type === 'project-header') {
-               // If natural flow continues to a paragraph, keep them together
-               if (firstItemP2.type === 'experience-para' || firstItemP2.type === 'project-para') {
-                  adjustedSplitIndex--;
-
-                  // If moving the header exposes a Section Title as the new last item, move that too
-                  if (adjustedSplitIndex > 0) {
-                     const newLast = allItems[adjustedSplitIndex - 1];
-                     if (newLast.type === 'section-title') {
-                        adjustedSplitIndex--;
-                     }
-                  }
-               }
-            }
-         }
-
-         setPage1Items(allItems.slice(0, adjustedSplitIndex));
-         setPage2Items(allItems.slice(adjustedSplitIndex));
-      }
-
-   }, [resume, scale, allItems.length]); // Re-run when content length changes
+      const heights = getMeasuredItemHeights(children as HTMLElement[]);
+      const limits = getMainPageLimits(resume.templateId || 'modern');
+      const pages = splitItemsIntoPages(allItems, heights, limits.first, limits.next, 0, adjustMainSplit);
+      setMainPages(pages);
+   }, [resume, scale, allItems.length]);
 
    // Measurement Effect - SIDEBAR
    useEffect(() => {
       if (!sidebarMeasureRef.current || resume.templateId !== 'modern') {
-         // If not modern, we don't paginate sidebar dynamic lists usually (handled differently or static)
-         // But let's set P1 items to all just in case
-         setPage1Sidebar(sidebarItems);
-         setPage2Sidebar([]);
+         setSidebarPages([sidebarItems]);
          return;
       }
 
       const container = sidebarMeasureRef.current;
       const children = Array.from(container.children);
 
-      if (children.length === 0) {
-         setPage1Sidebar(sidebarItems);
-         setPage2Sidebar([]);
+      if (children.length === 0 || sidebarItems.length === 0) {
+         setSidebarPages([sidebarItems]);
          return;
       }
 
-      let currentHeight = 0;
-      const limit = 980; // Match Main content limit for consistency
-      let splitIndex = -1;
-
-      for (let i = 0; i < children.length; i++) {
-         const child = children[i] as HTMLElement;
-         const h = child.getBoundingClientRect().height;
-         const margin = 0; // margin handles in component
-
-         if (currentHeight + h > limit) {
-            splitIndex = i;
-            break;
-         }
-         currentHeight += h;
-      }
-
-      if (splitIndex === -1) {
-         setPage1Sidebar(sidebarItems);
-         setPage2Sidebar([]);
-      } else {
-         // Check for orphaned titles in sidebar
-         let adjusted = splitIndex;
-         if (adjusted > 0 && sidebarItems[adjusted - 1].type === 'sidebar-title') {
-            adjusted--;
-         }
-
-         setPage1Sidebar(sidebarItems.slice(0, adjusted));
-         setPage2Sidebar(sidebarItems.slice(adjusted));
-      }
+      const heights = getMeasuredItemHeights(children as HTMLElement[]);
+      const pages = splitItemsIntoPages(sidebarItems, heights, 980, 980, 0, adjustSidebarSplit);
+      setSidebarPages(pages);
    }, [resume, scale, sidebarItems.length, resume.templateId]);
 
    // Common styles
-   const pageWrapperClass = "bg-white shadow-2xl print:shadow-none relative transition-all duration-300 ease-in-out print:w-[210mm] print:h-[297mm] print:overflow-hidden animate-expand-in overflow-hidden";
+   const pageWrapperClass = "resume-page bg-white shadow-2xl print:shadow-none relative transition-all duration-300 ease-in-out print:w-[210mm] print:h-[297mm] print:overflow-hidden animate-expand-in overflow-hidden";
    const pageDims = { width: PAGE_WIDTH, height: PAGE_HEIGHT };
+   const pageGapClass = isExport ? "gap-0" : "gap-2";
    // Reset transform in print mode to avoid scaling issues
    const containerStyles = { transformOrigin: 'top center', animationFillMode: 'both' };
    const printStyles = `
@@ -548,6 +627,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ resume, scale = 1 
             display: block !important;
             height: auto !important;
             overflow: visible !important;
+         }
+         .resume-page {
+            page-break-after: always;
+            break-after: page;
+         }
+         .resume-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
          }
          .print-break-before {
             break-before: page;
@@ -573,7 +660,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ resume, scale = 1 
          case 'project-header': content = <ProjectHeader data={item.data} variant={v} />; break;
          case 'project-para': content = <ProjectPara content={item.content} variant={v} isLast={item.isLast} />; break;
 
-         case 'education': content = <ExperienceItem data={item.data} variant={v} />; break; // Reuse Exp for now or custom
+         case 'education': content = <EducationEntry data={item.data} variant={v} />; break;
          case 'skills': content = <SkillsList data={item.data} variant={v} />; break;
          default: content = null;
       }
@@ -599,12 +686,16 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ resume, scale = 1 
       <>
          <style>{printStyles}</style>
          <div
-            className="flex flex-col gap-8 origin-top transition-all duration-300 print-container print:gap-0"
+            className={`flex flex-col ${pageGapClass} origin-top transition-all duration-300 print-container print:gap-0`}
             style={{ ...containerStyles, transform: `scale(${scale})` }}
          >
 
             {/* HIDDEN MEASUREMENT CONTAINER - MAIN */}
-            <div ref={measureRef} className="absolute invisible w-[140mm] pointer-events-none" style={{ left: '-9999px' }}>
+            <div
+               ref={measureRef}
+               className="absolute invisible pointer-events-none text-gray-900"
+               style={{ left: '-9999px', width: getMeasurementWidth(resume.templateId || 'modern') }}
+            >
                {allItems.map(item => renderItem(item, resume.templateId))}
             </div>
 
@@ -613,122 +704,112 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ resume, scale = 1 
                {sidebarItems.map((item, i) => <SidebarItem key={i} item={item} />)}
             </div>
 
-            {/* PAGE 1 */}
-            <div key={`page1-${resume.templateId}`} className={pageWrapperClass} style={pageDims}>
-               <div className="absolute top-2 right-2 text-[10px] text-gray-300 font-mono print:hidden">Page 1</div>
+            {Array.from({
+               length: Math.max(
+                  mainPages.length,
+                  resume.templateId === 'modern' ? sidebarPages.length : mainPages.length
+               )
+            }).map((_, pageIndex) => {
+               const pageItems = mainPages[pageIndex] || [];
+               const pageSidebar = sidebarPages[pageIndex] || [];
+               const isFirstPage = pageIndex === 0;
+               const pageLabel = `Page ${pageIndex + 1}`;
 
-               {/* --- TEMPLATE LAYOUTS --- */}
-               {resume.templateId === 'modern' && (
-                  <div className="grid grid-cols-12 min-h-[297mm]">
-                     <div className="col-span-4 bg-emerald-900 text-white p-8 space-y-5">
-                        {/* Sidebar Content Page 1 */}
-                        {page1Sidebar.map((item, i) => <SidebarItem key={i} item={item} />)}
-                     </div>
-                     <div className="col-span-8 p-10">
-                        <div className="border-b-4 border-emerald-500 pb-4 mb-5">
-                           <h1 className="text-2xl font-extrabold text-gray-900 uppercase tracking-tight leading-none mb-1">{personalInfo.fullName}</h1>
-                           <p className="text-sm text-emerald-600 font-medium tracking-wide">{personalInfo.title}</p>
-                        </div>
-                        {page1Items.map((item, i) => renderItem(item, 'modern', i, true))}
-                     </div>
-                  </div>
-               )}
+               return (
+                  <div
+                     key={`page-${resume.templateId}-${pageIndex}`}
+                     className={`${pageWrapperClass} ${isFirstPage ? '' : 'print-break-before'}`.trim()}
+                     style={pageDims}
+                  >
+                     <div className="absolute top-2 right-2 text-[10px] text-gray-300 font-mono print:hidden">{pageLabel}</div>
 
-               {(resume.templateId === 'professional' || resume.templateId === 'minimalist' || !resume.templateId) && (
-                  <div className="p-12 h-full">
-                     <header className="border-b-2 border-gray-800 pb-4 mb-6 text-center">
-                        <h1 className="text-2xl font-serif font-bold text-gray-900 mb-1 tracking-wide uppercase">{personalInfo.fullName}</h1>
-                        <p className="text-sm text-gray-600 font-serif italic mb-3">{personalInfo.title}</p>
-                        <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500 font-medium uppercase tracking-wider">
-                           {personalInfo.email && <span>{personalInfo.email}</span>}
-                           {personalInfo.phone && <span className="border-l border-gray-300 pl-4">{personalInfo.phone}</span>}
-                        </div>
-                     </header>
-                     <div>
-                        {page1Items.map((item, i) => renderItem(item, resume.templateId || 'professional', i, true))}
-                     </div>
-                  </div>
-               )}
-
-               {resume.templateId === 'creative' && (
-                  <div className="h-full">
-                     <div className="h-20 bg-gradient-to-r from-purple-600 to-pink-500 p-5 flex items-end justify-between text-white">
-                        <div>
-                           <h1 className="text-2xl font-black mb-0.5 tracking-tighter">{personalInfo.fullName}</h1>
-                           <p className="text-sm font-medium opacity-90">{personalInfo.title}</p>
-                        </div>
-                        <div className="text-right text-xs opacity-80 font-mono space-y-0.5">
-                           <div>{personalInfo.email}</div>
-                           <div>{personalInfo.phone}</div>
-                        </div>
-                     </div>
-                     <div className="grid grid-cols-12 h-full">
-                        <div className="col-span-4 bg-gray-50 p-5 space-y-5 border-r border-gray-100">
-                           {/* Sidebar for Creative: Edu & Skills */}
-                           {education.length > 0 && (
-                              <Section>
-                                 <h3 className="font-black text-gray-900 text-xs mb-2">Education</h3>
-                                 <div className="space-y-2">
-                                    {education.map(edu => (
-                                       <div key={edu.id} className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                                          <div className="font-bold text-purple-600 text-xs">{edu.school}</div>
-                                          <div className="text-[10px] font-bold text-gray-700">{edu.degree}</div>
-                                          <div className="text-[9px] text-gray-400">{edu.year}</div>
-                                       </div>
-                                    ))}
+                     {resume.templateId === 'modern' && (
+                        <div className="grid grid-cols-12 min-h-[297mm]">
+                           <div className="col-span-4 bg-emerald-900 text-white p-8 space-y-5">
+                              {pageSidebar.map((item, i) => <SidebarItem key={`${pageIndex}-sidebar-${i}`} item={item} />)}
+                           </div>
+                           <div className={`col-span-8 ${isFirstPage ? 'p-10' : 'p-10 pt-10'}`}>
+                              {isFirstPage && (
+                                 <div className="border-b-4 border-emerald-500 pb-4 mb-5">
+                                    <h1 className="text-2xl font-extrabold text-gray-900 uppercase tracking-tight leading-none mb-1">{personalInfo.fullName}</h1>
+                                    <p className="text-sm text-emerald-600 font-medium tracking-wide">{personalInfo.title}</p>
                                  </div>
-                              </Section>
-                           )}
-                           {skills.length > 0 && (
-                              <Section>
-                                 <h3 className="font-black text-gray-900 text-xs mb-2">Skills</h3>
-                                 <div className="flex flex-wrap gap-1">
-                                    {skills.map((skill, i) => <span key={i} className="px-1.5 py-0.5 bg-pink-50 text-pink-600 text-[9px] font-bold rounded-full border border-pink-100">{skill}</span>)}
+                              )}
+                              {pageItems.map((item, i) => renderItem(item, 'modern', i, true))}
+                           </div>
+                        </div>
+                     )}
+
+                     {(resume.templateId === 'professional' || resume.templateId === 'minimalist' || !resume.templateId) && (
+                        <div className={isFirstPage ? "p-12 h-full" : "p-10 pt-16"}>
+                           {isFirstPage && (
+                              <header className="border-b-2 border-gray-800 pb-4 mb-6 text-center">
+                                 <h1 className="text-2xl font-serif font-bold text-gray-900 mb-1 tracking-wide uppercase">{personalInfo.fullName}</h1>
+                                 <p className="text-sm text-gray-600 font-serif italic mb-3">{personalInfo.title}</p>
+                                 <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500 font-medium uppercase tracking-wider">
+                                    {personalInfo.email && <span>{personalInfo.email}</span>}
+                                    {personalInfo.phone && <span className="border-l border-gray-300 pl-4">{personalInfo.phone}</span>}
                                  </div>
-                              </Section>
+                              </header>
                            )}
+                           <div>
+                              {pageItems.map((item, i) => renderItem(item, resume.templateId || 'professional', i, true))}
+                           </div>
                         </div>
-                        <div className="col-span-8 p-5">
-                           {page1Items.map((item, i) => renderItem(item, 'creative', i, true))}
+                     )}
+
+                     {resume.templateId === 'creative' && (
+                        <div className="h-full">
+                           {isFirstPage && (
+                              <div className="h-20 bg-gradient-to-r from-purple-600 to-pink-500 p-5 flex items-end justify-between text-white">
+                                 <div>
+                                    <h1 className="text-2xl font-black mb-0.5 tracking-tighter">{personalInfo.fullName}</h1>
+                                    <p className="text-sm font-medium opacity-90">{personalInfo.title}</p>
+                                 </div>
+                                 <div className="text-right text-xs opacity-80 font-mono space-y-0.5">
+                                    <div>{personalInfo.email}</div>
+                                    <div>{personalInfo.phone}</div>
+                                 </div>
+                              </div>
+                           )}
+                           <div className="grid grid-cols-12 h-full">
+                              <div className={`col-span-4 bg-gray-50 border-r border-gray-100 ${isFirstPage ? 'p-5 space-y-5' : ''}`}>
+                                 {isFirstPage && (
+                                    <>
+                                       {education.length > 0 && (
+                                          <Section>
+                                             <h3 className="font-black text-gray-900 text-xs mb-2">Education</h3>
+                                             <div className="space-y-2">
+                                                {education.map(edu => (
+                                                   <div key={edu.id} className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                                                      <div className="font-bold text-purple-600 text-xs">{edu.school}</div>
+                                                      <div className="text-[10px] font-bold text-gray-700">{edu.degree}</div>
+                                                      <div className="text-[9px] text-gray-400">{edu.year}</div>
+                                                   </div>
+                                                ))}
+                                             </div>
+                                          </Section>
+                                       )}
+                                       {skills.length > 0 && (
+                                          <Section>
+                                             <h3 className="font-black text-gray-900 text-xs mb-2">Skills</h3>
+                                             <div className="flex flex-wrap gap-1">
+                                                {skills.map((skill, i) => <span key={i} className="px-1.5 py-0.5 bg-pink-50 text-pink-600 text-[9px] font-bold rounded-full border border-pink-100">{skill}</span>)}
+                                             </div>
+                                          </Section>
+                                       )}
+                                    </>
+                                 )}
+                              </div>
+                              <div className={`col-span-8 ${isFirstPage ? 'p-5' : 'p-5 pt-10'}`}>
+                                 {pageItems.map((item, i) => renderItem(item, 'creative', i, true))}
+                              </div>
+                           </div>
                         </div>
-                     </div>
+                     )}
                   </div>
-               )}
-            </div>
-
-            {/* PAGE 2 (Conditional) */}
-            {page2Items.length > 0 && (
-               <div key={`page2-${resume.templateId}`} className={`${pageWrapperClass} print-break-before`} style={pageDims}>
-                  <div className="absolute top-2 right-2 text-[10px] text-gray-300 font-mono print:hidden">Page 2</div>
-
-                  {resume.templateId === 'modern' && (
-                     <div className="grid grid-cols-12 min-h-[297mm]">
-                        <div className="col-span-4 bg-emerald-900 text-white p-8 space-y-5">
-                           {/* Sidebar Content Page 2 */}
-                           {page2Sidebar.map((item, i) => <SidebarItem key={i} item={item} />)}
-                        </div>
-                        <div className="col-span-8 p-10 pt-10">
-                           {page2Items.map((item, i) => renderItem(item, 'modern', i, true))}
-                        </div>
-                     </div>
-                  )}
-
-                  {(resume.templateId === 'professional' || resume.templateId === 'minimalist' || !resume.templateId) && (
-                     <div className="p-10 pt-16">
-                        {page2Items.map((item, i) => renderItem(item, resume.templateId || 'professional', i, true))}
-                     </div>
-                  )}
-
-                  {resume.templateId === 'creative' && (
-                     <div className="grid grid-cols-12 h-full">
-                        <div className="col-span-4 bg-gray-50 border-r border-gray-100"></div>
-                        <div className="col-span-8 p-5 pt-10">
-                           {page2Items.map((item, i) => renderItem(item, 'creative', i, true))}
-                        </div>
-                     </div>
-                  )}
-               </div>
-            )}
+               );
+            })}
          </div>
       </>
    );

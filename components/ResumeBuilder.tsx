@@ -38,8 +38,7 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
    const handleDownload = async () => {
       setIsDownloading(true);
 
-      // Wait for element to be fully rendered and layout settled
-      // 2 seconds to be safe for heavy layouts
+      // Wait for multi-page layout + measurement effects to settle.
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       const element = document.getElementById('resume-preview-content');
@@ -59,12 +58,17 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
             html2canvas: {
                scale: 2,
                useCORS: true,
-               logging: true,
+               logging: false,
+               scrollX: 0,
                scrollY: 0,
-               windowWidth: document.documentElement.scrollWidth,
-               windowHeight: document.documentElement.scrollHeight
+               windowWidth: element.scrollWidth,
+               windowHeight: element.scrollHeight
             },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+            pagebreak: {
+               mode: ['css', 'legacy'],
+               before: '.print-break-before'
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true }
          };
 
          await html2pdf().set(opt).from(element).save();
@@ -148,14 +152,16 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
       setResume(prev => ({ ...prev, templateId: nextTemplate }));
    };
 
-   const handleImportFromDesk = () => {
+   const handleImportFromDesk = async () => {
       if (!window.confirm("This will overwrite your current resume details with data from your Career Desk. Continue?")) return;
 
       try {
-         const deskProfile = JSON.parse(localStorage.getItem('desk_profile') || '{}');
-         const deskSkills = JSON.parse(localStorage.getItem('desk_skills') || '[]');
-         const deskExp = JSON.parse(localStorage.getItem('desk_experiences') || '[]');
-         const deskProjects = JSON.parse(localStorage.getItem('desk_projects') || '[]');
+         const response = await api.get('/user/desk');
+         const data = response.data || {};
+         const deskProfile = data.profile || {};
+         const deskSkills = Array.isArray(data.skills) ? data.skills : [];
+         const deskExp = Array.isArray(data.experiences) ? data.experiences : [];
+         const deskProjects = Array.isArray(data.projects) ? data.projects : [];
 
          setResume(prev => ({
             ...prev,
@@ -185,7 +191,7 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
          }));
       } catch (e) {
          console.error("Failed to import from desk", e);
-         alert("Failed to load data from Career Desk.");
+         alert("Failed to load data from Career Desk cloud storage.");
       }
    };
 
@@ -507,7 +513,7 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ initialResume, onB
             }
          >
             <div style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
-               <ResumePreview resume={resume} scale={1} />
+               <ResumePreview resume={resume} scale={1} isExport />
             </div>
          </div>
 

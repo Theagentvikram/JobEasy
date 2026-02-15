@@ -97,6 +97,39 @@
   animation: fadeIn 0.4s ease-out forwards;
 }
 
+@keyframes routeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+    filter: blur(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-route-in {
+  animation: routeIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes softFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-soft-float {
+  animation: softFloat 2.8s ease-in-out infinite;
+}
+
 
 @keyframes expandIn {
   from {

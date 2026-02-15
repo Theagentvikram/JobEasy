@@ -8,6 +8,7 @@ from services.gemini import parse_resume_to_json as parse_resume_legacy
 from services.resume_parser import extract_resume_data
 import json
 import uuid
+import hashlib
 from datetime import datetime
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
@@ -20,9 +21,30 @@ class UploadRequest(BaseModel):
     file_content: str
     file_url: Optional[str] = None
 
+
+def compute_source_hash(file_content: str) -> str:
+    normalized = file_content.split("base64,", 1)[1] if "base64," in file_content else file_content
+    return hashlib.md5(normalized.encode("utf-8", errors="ignore")).hexdigest()
+
 @router.post("/parse")
 async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
     user_id = user['uid']
+    db = get_db()
+    source_hash = compute_source_hash(request.file_content)
+
+    # Parse once, store forever for identical uploads by the same user.
+    try:
+        cached_docs = db.collection('resumes') \
+            .where('userId', '==', user_id) \
+            .where('sourceHash', '==', source_hash) \
+            .limit(1) \
+            .stream()
+        for doc in cached_docs:
+            return Resume(**doc.to_dict())
+    except Exception as e:
+        # Fallback gracefully if this query isn't indexed yet.
+        print(f"Resume hash cache lookup skipped: {e}")
+
     # Check limit for RESUME UPLOADS
     if not check_user_limit(user_id, limit_type="resume_count"):
         raise HTTPException(
@@ -47,6 +69,7 @@ async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
         resume = Resume(
             id=str(uuid.uuid4()),
             userId=user['uid'],
+            sourceHash=source_hash,
             title=parsed_data.get('personalInfo', {}).get('fullName', 'New Resume'),
             personalInfo=parsed_data.get('personalInfo', {}),
             summary=parsed_data.get('summary', ''),
@@ -61,7 +84,6 @@ async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
         )
         
         # Save to DB immediately so it persists
-        db = get_db()
         if db:
             db.collection('resumes').document(resume.id).set(resume.model_dump())
             

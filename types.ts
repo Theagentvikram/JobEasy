@@ -37,6 +37,7 @@ export enum AppState {
 export interface Resume {
   id: string;
   userId?: string;
+  sourceHash?: string;
   templateId: string; // 'modern' | 'professional' | 'minimalist' | 'creative'
   title: string;
   lastModified: string;
@@ -113,11 +114,20 @@ export enum JobStatus {
   REFERRAL_RECEIVED = "referral_received",
   APPLY_TODAY = "apply_today",
   APPLIED = "applied",
+  INTERVIEW = "interview",
+  OFFER = "offer",
+  REJECTED = "rejected",
+  WITHDRAWN = "withdrawn",
   CLOSED = "closed",
 }
 
 export enum OutreachStatus {
   PENDING = "pending",
+  VIEWED = "viewed",
+  REPLIED = "replied",
+  REFERRAL_GIVEN = "referral_given",
+  DECLINED = "declined",
+  // legacy aliases
   ACCEPTED = "accepted",
   NO_RESPONSE = "no_response",
   REJECTED = "rejected",
@@ -127,10 +137,19 @@ export interface Outreach {
   id: string;
   jobId: string;
   contactName: string;
+  contactTitle?: string;
   platform: string;
-  status: OutreachStatus;
+  responseStatus?: OutreachStatus | string;
+  status?: OutreachStatus | string;
+  contactLink?: string;
+  messageSent?: string;
+  responseNotes?: string;
   notes?: string;
-  dateConnnected: string;
+  dateConnected?: string;
+  dateConnnected?: string;
+  dateResponded?: string;
+  followUpDate?: string;
+  createdAt?: string;
 }
 
 export interface Job {
@@ -139,12 +158,26 @@ export interface Job {
   title: string;
   company: string;
   source: string;
+  sourceOther?: string;
   link?: string;
+  jobDescription?: string;
+  location?: string;
+  jobType?: 'remote' | 'hybrid' | 'onsite' | 'unknown' | string;
+  salaryRange?: string;
+  sponsorshipRequired?: boolean;
   dateDiscovered: string;
   waitingPeriod: number;
   outreachCount: number;
   status: JobStatus;
+  priority?: number;
   notes?: string;
+  tags?: string[];
   outreach: Outreach[];
   autoMoveDate?: string;
+  dateApplied?: string;
+  dateClosed?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  effectiveStatus?: JobStatus | string;
+  daysUntilApply?: number;
 }

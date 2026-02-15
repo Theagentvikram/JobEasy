@@ -118,13 +118,13 @@ export default function App() {
           />
         )}
 
-        <main className="min-h-screen flex flex-col animate-fade-in">
+        <main key={location.pathname} className="min-h-screen flex flex-col animate-route-in">
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/blog/:id" element={<BlogDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard/*" element={
-              <div className="h-screen overflow-hidden animate-fade-in">
+              <div className="h-screen overflow-hidden animate-route-in">
                 <Scanner
                   user={{ email: userEmail, ...userData }}
                   onLogout={handleLogout}

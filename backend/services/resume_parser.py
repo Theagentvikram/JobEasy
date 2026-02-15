@@ -108,6 +108,35 @@ def extract_text_from_pdf(file_content: str) -> str:
         print(f"Error extracting PDF text: {e}")
         return ""
 
+
+def optimize_text_for_llm(raw_text: str, max_chars: int = 18000, max_lines: int = 700) -> str:
+    """
+    Reduce noisy OCR/layout artifacts before sending text to the LLM.
+    This keeps parser quality while cutting token usage significantly.
+    """
+    cleaned_lines: List[str] = []
+    previous_line = ""
+
+    for line in raw_text.splitlines():
+        normalized = " ".join(line.split()).strip()
+        if not normalized:
+            continue
+        if normalized == previous_line:
+            continue
+        cleaned_lines.append(normalized)
+        previous_line = normalized
+        if len(cleaned_lines) >= max_lines:
+            break
+
+    compact = "\n".join(cleaned_lines)
+    if len(compact) <= max_chars:
+        return compact
+
+    # Keep both head and tail so late sections (projects/certs) are not lost.
+    head_chars = int(max_chars * 0.65)
+    tail_chars = max_chars - head_chars
+    return f"{compact[:head_chars]}\n...\n{compact[-tail_chars:]}"
+
 async def extract_resume_data(file_content: str) -> dict:
     """
     Extracts structured resume data from file content using LangChain and Groq.
@@ -119,12 +148,11 @@ async def extract_resume_data(file_content: str) -> dict:
     text = extract_text_from_pdf(file_content)
     if not text:
         raise ValueError("Could not extract text from the provided file.")
-    
-    # Truncate text to fit context if necessary (approx 30k chars is safe for Llama 70b ~8k tokens)
-    # Llama 3.3 70b has 128k context, but let's be safe and efficient
-    text = text[:30000]
 
-    # 2. Setup LangChain with Groq
+    # 2. Normalize and trim noisy content to reduce token usage.
+    text = optimize_text_for_llm(text)
+
+    # 3. Setup LangChain with Groq
     # We use llama-3.3-70b-versatile for best instructions following
     llm = ChatGroq(
         temperature=0,
@@ -132,7 +160,7 @@ async def extract_resume_data(file_content: str) -> dict:
         groq_api_key=GROQ_API_KEY
     )
 
-    # 3. Define the extraction chain
+    # 4. Define the extraction chain
     structured_llm = llm.with_structured_output(ResumeSchema)
 
     system_prompt = """You are an expert Resume Parser. 
@@ -151,7 +179,7 @@ async def extract_resume_data(file_content: str) -> dict:
 
     chain = prompt | structured_llm
 
-    # 4. Invoke LLM
+    # 5. Invoke LLM
     try:
         result: ResumeSchema = chain.invoke({"text": text})
         

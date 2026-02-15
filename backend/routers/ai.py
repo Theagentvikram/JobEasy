@@ -178,6 +178,15 @@ def return_basic_profile(url, error_msg=None):
         domain = url.split('//')[-1].split('/')[0]
     except:
         domain = "Profile"
+    is_linkedin = "linkedin.com" in (url or "").lower()
+
+    if is_linkedin:
+        summary = (
+            "LinkedIn blocked automatic profile extraction. "
+            "A draft has been created. For best results, upload your resume PDF using Import."
+        )
+    else:
+        summary = "Could not automatically extract data from this profile URL. Please fill in details manually."
         
     return {
         "personalInfo": {
@@ -189,7 +198,7 @@ def return_basic_profile(url, error_msg=None):
             "linkedin": url,
             "title": "Imported Profile (Manual Entry Required)"
         },
-        "summary": f"Could not automatically extract data ({error_msg}). Please fill in details manually.",
+        "summary": summary,
         "experience": [],
         "education": [],
         "skills": [],
