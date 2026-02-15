@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from './firebase/config';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -19,6 +19,7 @@ import { CursorGlow } from './components/ui/cursor-glow';
 export default function App() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,6 +38,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        setFirebaseUser(user);
         setUserEmail(user.email);
         fetchUserProfile();
 
@@ -50,6 +52,7 @@ export default function App() {
           navigate('/dashboard');
         }
       } else {
+        setFirebaseUser(null);
         setUserEmail(null);
         setUserData(null);
         if (location.pathname.startsWith('/dashboard')) {
@@ -126,7 +129,12 @@ export default function App() {
             <Route path="/dashboard/*" element={
               <div className="h-screen overflow-hidden animate-route-in">
                 <Scanner
-                  user={{ email: userEmail, ...userData }}
+                  user={{
+                    uid: firebaseUser?.uid,
+                    displayName: firebaseUser?.displayName,
+                    email: firebaseUser?.email || userEmail,
+                    ...userData,
+                  }}
                   onLogout={handleLogout}
                   requestRefresh={fetchUserProfile}
                 />

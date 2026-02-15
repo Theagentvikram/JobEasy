@@ -28,7 +28,7 @@ import {
    Spinner
 } from '@phosphor-icons/react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase/config';
+import { auth, storage } from '../firebase/config';
 import { ATSView } from './ATSView';
 import { ResumeBuilder } from './ResumeBuilder';
 import { ResumePreview } from './ResumePreview';
@@ -167,7 +167,12 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
          // Upload to Firebase Storage (Best Effort — skip on failure)
          let downloadURL = null;
          try {
-            const storageRef = ref(storage, `resumes/${user.uid || 'anon'}/${Date.now()}_${file.name}`);
+            const authUid = user?.uid || auth.currentUser?.uid;
+            if (!authUid) {
+               throw new Error('Missing authenticated user UID');
+            }
+
+            const storageRef = ref(storage, `resumes/${authUid}/${Date.now()}_${file.name}`);
             await Promise.race([
                (async () => { await uploadBytes(storageRef, file); downloadURL = await getDownloadURL(storageRef); })(),
                new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timed out')), 5000))
@@ -418,7 +423,7 @@ export const Scanner: React.FC<ScannerProps> = ({ user, onLogout, requestRefresh
             references: [],
             volunteering: [],
             custom: [],
-            userId: user.uid || 'temp-user'
+            userId: user.uid || auth.currentUser?.uid || 'temp-user'
          };
 
          await api.post('/resumes', newResume);

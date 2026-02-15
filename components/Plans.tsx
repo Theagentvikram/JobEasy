@@ -10,7 +10,7 @@ declare global {
 
 interface PlansProps {
     isPro?: boolean;
-    onUpgradeSuccess?: () => void;
+    onUpgradeSuccess?: () => void | Promise<void>;
     activePlanType?: string;
 }
 
@@ -140,7 +140,7 @@ export const Plans: React.FC<PlansProps> = ({ isPro = false, onUpgradeSuccess, a
             });
             if (orderRes.data?.status === 'activated') {
                 setShowSuccessModal(true);
-                if (onUpgradeSuccess) onUpgradeSuccess();
+                if (onUpgradeSuccess) await onUpgradeSuccess();
                 setIsProcessing(false);
                 return;
             }
@@ -168,7 +168,7 @@ export const Plans: React.FC<PlansProps> = ({ isPro = false, onUpgradeSuccess, a
                             razorpay_signature: response.razorpay_signature,
                         });
                         setShowSuccessModal(true);
-                        if (onUpgradeSuccess) onUpgradeSuccess();
+                        if (onUpgradeSuccess) await onUpgradeSuccess();
                     } catch (err) { alert('Payment verification failed. Please contact support.'); }
                     setIsProcessing(false);
                 },
