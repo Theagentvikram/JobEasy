@@ -38,16 +38,43 @@ export interface PipelineRun {
 }
 
 export interface AutoApplySettings {
+  // Job search
   job_titles: string
   job_locations: string
   min_salary: number
-  match_score_threshold: number
   max_applications_per_day: number
+  match_score_threshold: number
   blacklist_companies: string
+
+  // AI provider
+  ai_provider: string        // 'groq' | 'openai' | 'anthropic'
+  ai_model: string
+  groq_api_key: string
+  openai_api_key: string
+  anthropic_api_key: string
+
+  // Email / outreach
   cold_email_enabled: boolean
-  ai_provider: string
+  daily_email_limit: number
+  email_delay_seconds: number
+  gmail_sender_email: string
+  gmail_app_password: string
+
+  // LinkedIn
+  linkedin_email: string
+  linkedin_password: string
+
+  // Schedule
   pipeline_hour: number
   pipeline_minute: number
+
+  // Source toggles
+  sources_jobspy: boolean
+  sources_wellfound: boolean
+  sources_naukri: boolean
+  sources_yc: boolean
+
+  // Sources (display only)
   sources: string[]
 }
 
@@ -74,4 +101,10 @@ export const autoapply = {
 
   getSettings: () =>
     api.get<AutoApplySettings>('/autoapply/settings'),
+
+  updateSettings: (data: Partial<AutoApplySettings>) =>
+    api.put('/autoapply/settings', data),
+
+  testConnection: (provider: string, apiKey: string) =>
+    api.post('/autoapply/settings/test-connection', { provider, api_key: apiKey }),
 }

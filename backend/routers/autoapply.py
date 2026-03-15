@@ -234,32 +234,180 @@ async def stats(user=Depends(get_current_user)):
 # ── Settings ─────────────────────────────────────────────────
 
 class AutoApplySettingsUpdate(BaseModel):
+    # Job search
     job_titles: Optional[str] = None
     job_locations: Optional[str] = None
     min_salary: Optional[int] = None
     match_score_threshold: Optional[float] = None
     max_applications_per_day: Optional[int] = None
     blacklist_companies: Optional[str] = None
+    # AI
+    ai_provider: Optional[str] = None
+    ai_model: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    # Email
     cold_email_enabled: Optional[bool] = None
+    daily_email_limit: Optional[int] = None
+    email_delay_seconds: Optional[int] = None
+    gmail_sender_email: Optional[str] = None
+    gmail_app_password: Optional[str] = None
+    # LinkedIn
+    linkedin_email: Optional[str] = None
+    linkedin_password: Optional[str] = None
+    # Schedule
+    pipeline_hour: Optional[int] = None
+    pipeline_minute: Optional[int] = None
+    # Sources toggles
+    sources_jobspy: Optional[bool] = None
+    sources_wellfound: Optional[bool] = None
+    sources_naukri: Optional[bool] = None
+    sources_yc: Optional[bool] = None
 
 
-@router.get("/settings")
-async def get_settings(user=Depends(get_current_user)):
-    """Get current AutoApply configuration."""
+_SETTINGS_OVERRIDE_FILE = Path(__file__).parent.parent / "autoapply_settings_override.json"
+
+
+def _load_overrides() -> dict:
+    """Load user-saved settings overrides from JSON file."""
+    if _SETTINGS_OVERRIDE_FILE.exists():
+        try:
+            import json
+            return json.loads(_SETTINGS_OVERRIDE_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_overrides(data: dict):
+    """Save settings overrides to JSON file."""
+    import json
+    existing = _load_overrides()
+    existing.update({k: v for k, v in data.items() if v is not None})
+    _SETTINGS_OVERRIDE_FILE.write_text(json.dumps(existing, indent=2))
+
+
+def _merged_settings() -> dict:
+    """Merge base settings with user overrides."""
     from autoapply.utils.settings import settings
-    return {
+    overrides = _load_overrides()
+    base = {
         "job_titles": settings.job_titles,
         "job_locations": settings.job_locations,
         "min_salary": settings.min_salary,
         "match_score_threshold": settings.match_score_threshold,
         "max_applications_per_day": settings.max_applications_per_day,
         "blacklist_companies": settings.blacklist_companies,
-        "cold_email_enabled": settings.cold_email_enabled,
         "ai_provider": settings.ai_provider,
+        "ai_model": settings.ai_model,
+        "groq_api_key": settings.groq_api_key,
+        "openai_api_key": settings.openai_api_key,
+        "anthropic_api_key": settings.anthropic_api_key,
+        "cold_email_enabled": settings.cold_email_enabled,
+        "daily_email_limit": settings.daily_email_limit,
+        "email_delay_seconds": settings.email_delay_seconds,
+        "gmail_sender_email": settings.gmail_sender_email,
+        "gmail_app_password": settings.gmail_app_password,
+        "linkedin_email": settings.linkedin_email,
+        "linkedin_password": settings.linkedin_password,
         "pipeline_hour": settings.pipeline_hour,
         "pipeline_minute": settings.pipeline_minute,
-        "sources": ["JobSpy (LinkedIn/Indeed/Glassdoor)", "Wellfound", "Naukri", "YC WAAS"],
+        "sources_jobspy": overrides.get("sources_jobspy", True),
+        "sources_wellfound": overrides.get("sources_wellfound", True),
+        "sources_naukri": overrides.get("sources_naukri", True),
+        "sources_yc": overrides.get("sources_yc", True),
     }
+    # Apply overrides (non-None values win)
+    for k, v in overrides.items():
+        if k in base and v is not None:
+            base[k] = v
+    # Mask secrets for display — send empty string if set, not the actual value
+    def mask(val): return "••••••••" if val else ""
+    display = dict(base)
+    display["groq_api_key"] = mask(base["groq_api_key"])
+    display["openai_api_key"] = mask(base["openai_api_key"])
+    display["anthropic_api_key"] = mask(base["anthropic_api_key"])
+    display["gmail_app_password"] = mask(base["gmail_app_password"])
+    display["linkedin_password"] = mask(base["linkedin_password"])
+    display["sources"] = ["JobSpy (LinkedIn/Indeed/Glassdoor)", "Wellfound", "Naukri", "YC WAAS"]
+    return display
+
+
+@router.get("/settings")
+async def get_settings(user=Depends(get_current_user)):
+    """Get current AutoApply configuration (base + user overrides)."""
+    return _merged_settings()
+
+
+@router.put("/settings")
+async def update_settings(req: AutoApplySettingsUpdate, user=Depends(get_current_user)):
+    """Persist AutoApply settings overrides to a local JSON file."""
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    # Don't overwrite secrets with the masked placeholder
+    for secret_field in ["groq_api_key", "openai_api_key", "anthropic_api_key", "gmail_app_password", "linkedin_password"]:
+        if updates.get(secret_field) == "••••••••":
+            updates.pop(secret_field)
+    _save_overrides(updates)
+    return {"status": "saved", "updated_fields": list(updates.keys())}
+
+
+@router.post("/settings/test-connection")
+async def test_ai_connection(
+    payload: dict,
+    user=Depends(get_current_user),
+):
+    """Test if an AI provider API key is valid."""
+    provider = payload.get("provider", "groq")
+    api_key = payload.get("api_key", "")
+
+    if not api_key or api_key == "••••••••":
+        raise HTTPException(400, "No API key provided")
+
+    try:
+        if provider == "groq":
+            import httpx
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(
+                    "https://api.groq.com/openai/v1/models",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+            if r.status_code == 200:
+                return {"status": "ok", "message": "Groq API key is valid ✓"}
+            raise HTTPException(400, f"Groq rejected key: {r.status_code}")
+
+        elif provider == "openai":
+            import httpx
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+            if r.status_code == 200:
+                return {"status": "ok", "message": "OpenAI API key is valid ✓"}
+            raise HTTPException(400, f"OpenAI rejected key: {r.status_code}")
+
+        elif provider in ("anthropic", "claude"):
+            import httpx
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={"model": "claude-haiku-4-5-20251001", "max_tokens": 1, "messages": [{"role": "user", "content": "hi"}]},
+                )
+            if r.status_code in (200, 400):  # 400 = model error but key is valid
+                return {"status": "ok", "message": "Anthropic API key is valid ✓"}
+            raise HTTPException(400, f"Anthropic rejected key: {r.status_code}")
+
+        raise HTTPException(400, f"Unknown provider: {provider}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Connection test failed: {e}")
 
 
 # ── Resume Upload ────────────────────────────────────────────
