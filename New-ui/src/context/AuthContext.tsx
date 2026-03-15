@@ -35,12 +35,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const isDevSession = useRef(false)
 
-  const fetchUser = async () => {
-    try {
-      const res = await api.get('/auth/me')
-      setUser(res.data)
-    } catch {
-      setUser(null)
+  const fetchUser = async (retries = 2) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await api.get('/auth/me')
+        setUser(res.data)
+        return
+      } catch (err) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)))
+        } else {
+          console.error('fetchUser failed after retries:', err)
+          setUser(null)
+        }
+      }
     }
   }
 

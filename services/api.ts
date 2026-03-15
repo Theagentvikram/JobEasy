@@ -5,6 +5,7 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  timeout: 20000, // 20s — don't hang forever on cold starts
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,13 +28,15 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ detail?: string }>) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
-    const shouldRetry =
+
+    // Retry on 401 (token expired)
+    const shouldRetry401 =
       error.response?.status === 401 &&
       !!originalRequest &&
       !originalRequest._retry &&
       !!auth.currentUser;
 
-    if (shouldRetry) {
+    if (shouldRetry401) {
       originalRequest._retry = true;
       try {
         const freshToken = await auth.currentUser!.getIdToken(true);
@@ -45,8 +48,16 @@ api.interceptors.response.use(
       }
     }
 
+    // Retry on 504 (Render cold-start / gateway timeout) — wait 2s then retry once
+    if (error.response?.status === 504 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return api(originalRequest);
+    }
+
     return Promise.reject(error);
   }
 );
 
 export default api;
+

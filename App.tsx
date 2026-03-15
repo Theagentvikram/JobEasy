@@ -24,13 +24,20 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const fetchUserProfile = async () => {
-    try {
-      const { default: api } = await import('./services/api');
-      const response = await api.get('/auth/me');
-      setUserData(response.data);
-    } catch (error) {
-      console.error("Failed to fetch user profile:", error);
+  const fetchUserProfile = async (retries = 2) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const { default: api } = await import('./services/api');
+        const response = await api.get('/auth/me');
+        setUserData(response.data);
+        return;
+      } catch (error) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+        } else {
+          console.error("Failed to fetch user profile after retries:", error);
+        }
+      }
     }
   };
 

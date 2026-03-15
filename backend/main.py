@@ -49,6 +49,21 @@ app.include_router(autoapply.router)
 def health_check():
     return {"status": "healthy", "service": "JobEasy Backend"}
 
+
+@app.on_event("startup")
+async def warmup_firestore():
+    """Warm up Firestore gRPC connection on process start so first request isn't slow."""
+    import asyncio
+    try:
+        from services.firebase import get_db
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: list(get_db().collection("users").limit(1).get())
+        )
+        print("✅ Firestore warmup complete — gRPC channel is hot")
+    except Exception as e:
+        print(f"⚠️ Firestore warmup failed (non-fatal): {e}")
+
 @app.get("/")
 def root():
     return health_check()

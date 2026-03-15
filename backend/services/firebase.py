@@ -60,6 +60,14 @@ def get_db():
     return _db_instance
 
 
+# Eagerly init Firestore at module load so the first request doesn't pay cold-start cost
+try:
+    _db_instance = get_db()
+    print("Firestore client eagerly initialized at startup.")
+except Exception as _init_err:
+    print(f"Firestore eager init skipped (non-fatal): {_init_err}")
+
+
 def _get_today_str():
     """Returns today's date as YYYY-MM-DD string."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")

@@ -6,6 +6,7 @@ type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  timeout: 20000, // 20s — don't hang forever on cold starts
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -31,6 +32,8 @@ api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError<{ detail?: string }>) => {
     const req = error.config as RetryableConfig | undefined
+
+    // Retry on 401 (token expired)
     if (error.response?.status === 401 && req && !req._retry && auth.currentUser) {
       req._retry = true
       const token = await auth.currentUser.getIdToken(true)
@@ -38,6 +41,14 @@ api.interceptors.response.use(
       req.headers.Authorization = `Bearer ${token}`
       return api(req)
     }
+
+    // Retry on 504 (Render cold-start / gateway timeout) — wait 2s then retry once
+    if (error.response?.status === 504 && req && !req._retry) {
+      req._retry = true
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      return api(req)
+    }
+
     if (error.response?.status === 403) {
       const detail = error.response.data?.detail || "You've reached your plan limit. Upgrade to continue."
       toast(detail, 'error')
@@ -47,3 +58,4 @@ api.interceptors.response.use(
 )
 
 export default api
+

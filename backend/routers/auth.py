@@ -126,14 +126,33 @@ async def get_user_profile(user=Depends(get_current_user)):
         }
 
     loop = asyncio.get_event_loop()
-    try:
-        profile = await asyncio.wait_for(
-            loop.run_in_executor(None, _fetch_profile),
-            timeout=8.0,
-        )
-        return profile
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Profile fetch timed out — please retry")
+    last_err = None
+    for attempt in range(3):
+        try:
+            profile = await asyncio.wait_for(
+                loop.run_in_executor(None, _fetch_profile),
+                timeout=15.0,
+            )
+            return profile
+        except (asyncio.TimeoutError, Exception) as exc:
+            last_err = exc
+            print(f"/auth/me attempt {attempt + 1} failed: {exc}")
+            if attempt < 2:
+                await asyncio.sleep(0.5 * (attempt + 1))
+
+    # All retries failed — return a minimal profile so the user isn't stuck
+    print(f"Profile fetch failed after 3 attempts: {last_err}")
+    return {
+        "uid": user_id,
+        "scan_count": 0,
+        "resume_count": 0,
+        "resume_count_week": 0,
+        "plan": "free",
+        "plan_type": "free",
+        "plan_expires_at": None,
+        "settings": {"jobspy_enabled": False},
+        "_partial": True,
+    }
 
 
 @router.get("/settings")
