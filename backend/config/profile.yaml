@@ -1,0 +1,119 @@
+# ============================================================
+# YOUR PROFILE - Fill this out ONCE, system uses it everywhere
+# ============================================================
+
+personal:
+  name: "Your Full Name"
+  email: "your@email.com"
+  phone: "+91-XXXXXXXXXX"
+  location: "Hyderabad, India"
+  linkedin: "https://linkedin.com/in/yourprofile"
+  github: "https://github.com/yourusername"
+  portfolio: ""
+
+# What you're targeting
+job_preferences:
+  titles:
+    - "AI Engineer"
+    - "ML Engineer"
+    - "LLM Engineer"
+    - "GenAI Engineer"
+    - "Data Scientist"
+    - "NLP Engineer"
+    - "Computer Vision Engineer"
+    - "MLOps Engineer"
+    - "Deep Learning Engineer"
+    - "Full Stack AI Engineer"
+  locations:
+    - "Remote"
+    - "Hyderabad"
+    - "Bangalore"
+    - "Bengaluru"
+    - "Work from Home"
+  employment_types:
+    - "full-time"
+  min_salary: 2000000   # 20 LPA in INR
+  max_salary: 10000000  # 1 Cr in INR
+  relocation_willing: true
+  visa_sponsorship_needed: false
+
+  # Industries you prefer
+  preferred_industries:
+    - "AI/ML"
+    - "Technology"
+    - "SaaS"
+    - "FinTech"
+    - "HealthTech"
+    - "EdTech"
+
+  # Companies to NEVER apply to
+  blacklist:
+    - "TCS"
+    - "Infosys"
+    - "Wipro"
+    - "HCL"
+    - "Accenture"
+    - "Capgemini"
+    - "IBM"
+    - "Cognizant"
+    - "Tech Mahindra"
+    - "Mphasis"
+    - "Hexaware"
+
+# Your core skills (used for matching)
+skills:
+  programming_languages:
+    - Python
+    - JavaScript
+    - TypeScript
+  frameworks:
+    - FastAPI
+    - React
+    - Node.js
+    - LangChain
+    - PyTorch
+    - TensorFlow
+  databases:
+    - PostgreSQL
+    - Redis
+    - MongoDB
+    - Pinecone
+    - ChromaDB
+  cloud:
+    - AWS
+    - GCP
+    - Docker
+    - Kubernetes
+  other:
+    - REST APIs
+    - LLMs
+    - RAG
+    - Prompt Engineering
+    - MLOps
+    - CI/CD
+    - Git
+
+# Work history (for resume tailoring context)
+experience:
+  - company: "Your Company"
+    title: "Software Engineer"
+    duration: "2022 - Present"
+    highlights:
+      - "Built AI-powered features serving 100k+ users"
+      - "Implemented RAG pipeline with LangChain + Pinecone"
+      - "Reduced model inference latency by 60%"
+
+education:
+  - degree: "B.Tech Computer Science"
+    school: "Your University"
+    year: 2022
+
+# Cold email preferences
+cold_email:
+  enabled: false
+  tone: "startup-friendly"
+  focus_on: "AI/ML expertise and startup experience"
+  signature: |
+    Best,
+    Your Name
+    your@email.com | linkedin.com/in/you

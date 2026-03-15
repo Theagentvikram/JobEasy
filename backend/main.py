@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import resumes, ai, auth, ats, user_data, chat, referral, payment
+from routers import resumes, ai, auth, ats, user_data, chat, referral, payment, autoapply
 import os
 from dotenv import load_dotenv
 
@@ -22,6 +22,7 @@ origins = [
     "https://www.jobeasy.app",
     "http://localhost:5173", # Vite default
     "http://localhost:3000",
+    "http://localhost:5174",  # New-ui dev server
     "*" # For dev, ideally restrict in prod
 ]
 
@@ -42,6 +43,7 @@ app.include_router(ats.router)
 app.include_router(user_data.router)
 app.include_router(chat.router)
 app.include_router(referral.router)
+app.include_router(autoapply.router)
 
 @app.get("/health")
 def health_check():

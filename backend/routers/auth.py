@@ -1,9 +1,31 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
-from services.auth import get_current_user
+from services.auth import get_current_user, DEV_TOKEN, DEV_USER
 from services.firebase import get_db, ensure_effective_plan
+import os
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+@router.post("/dev-login")
+async def dev_login():
+    """Dev-only login bypass. Returns a token that skips Firebase auth."""
+    if os.getenv("DEV_MODE", "").lower() not in ("1", "true"):
+        raise HTTPException(403, "Dev login only available in DEV_MODE")
+    return {
+        "token": DEV_TOKEN,
+        "user": {
+            "uid": DEV_USER["uid"],
+            "email": DEV_USER["email"],
+            "displayName": DEV_USER["name"],
+            "photoURL": None,
+            "plan": "pro",
+            "plan_type": "lifetime",
+            "scan_count": 0,
+            "resume_count": 0,
+            "resume_count_week": 0,
+        },
+    }
 
 class CouponRequest(BaseModel):
     code: str
@@ -61,22 +83,37 @@ async def downgrade_plan(user=Depends(get_current_user)):
 
 @router.get("/me")
 async def get_user_profile(user=Depends(get_current_user)):
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
     user_id = user['uid']
-    db = get_db()
-    user_ref = db.collection('users').document(user_id)
-    doc = user_ref.get()
-    
-    if doc.exists:
-        profile = ensure_effective_plan(user_id, doc.to_dict())
-        settings = profile.get("settings") if isinstance(profile.get("settings"), dict) else {}
-        jobspy_enabled = bool(settings.get("jobspy_enabled", profile.get("jobspy_enabled", False)))
-        profile["settings"] = {
-            **settings,
-            "jobspy_enabled": jobspy_enabled,
+
+    # Dev user — return mock profile, skip Firestore
+    if user_id == DEV_USER["uid"]:
+        return {
+            "uid": DEV_USER["uid"],
+            "email": DEV_USER["email"],
+            "displayName": DEV_USER["name"],
+            "photoURL": None,
+            "plan": "pro",
+            "plan_type": "lifetime",
+            "plan_expires_at": None,
+            "scan_count": 0,
+            "resume_count": 0,
+            "resume_count_week": 0,
+            "settings": {"jobspy_enabled": True},
         }
-        return profile
-    else:
-        # Return default free profile if not exists
+
+    def _fetch_profile():
+        db = get_db()
+        user_ref = db.collection('users').document(user_id)
+        doc = user_ref.get()
+        if doc.exists:
+            profile = ensure_effective_plan(user_id, doc.to_dict())
+            settings = profile.get("settings") if isinstance(profile.get("settings"), dict) else {}
+            jobspy_enabled = bool(settings.get("jobspy_enabled", profile.get("jobspy_enabled", False)))
+            profile["settings"] = {**settings, "jobspy_enabled": jobspy_enabled}
+            return profile
         return {
             "scan_count": 0,
             "resume_count": 0,
@@ -85,10 +122,18 @@ async def get_user_profile(user=Depends(get_current_user)):
             "plan": "free",
             "plan_type": "free",
             "plan_expires_at": None,
-            "settings": {
-                "jobspy_enabled": False
-            }
+            "settings": {"jobspy_enabled": False}
         }
+
+    loop = asyncio.get_event_loop()
+    try:
+        profile = await asyncio.wait_for(
+            loop.run_in_executor(None, _fetch_profile),
+            timeout=8.0,
+        )
+        return profile
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Profile fetch timed out — please retry")
 
 
 @router.get("/settings")

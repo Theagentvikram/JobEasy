@@ -48,13 +48,13 @@ _db_instance = None
 def get_db():
     """Returns a Firestore client. Raises Exception if unavailable."""
     global _db_instance
-    
+
     if _db_instance:
         return _db_instance
-    
+
     if not firebase_admin._apps:
         raise Exception("Firebase Admin SDK not initialized. Cannot access Firestore.")
-    
+
     _db_instance = firestore.client()
     print("Firestore client created.")
     return _db_instance

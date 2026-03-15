@@ -58,6 +58,17 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userEmail, onLogout 
 
         {/* Auth / CTA */}
         <div className="flex items-center gap-4">
+          {/* UI Switcher */}
+          <button
+            onClick={() => {
+              localStorage.setItem('jobeasy_ui', 'new');
+              window.location.href = '/new/';
+            }}
+            className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+            title="Switch to the new UI"
+          >
+            <span>✨</span> New UI
+          </button>
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"

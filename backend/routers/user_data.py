@@ -15,14 +15,14 @@ class UserProfile(BaseModel):
     location: str
 
 class Experience(BaseModel):
-    id: int
+    id: str
     role: str
     company: str
     year: str
     description: str
 
 class Project(BaseModel):
-    id: int
+    id: str
     name: str
     tech: str
     description: str
