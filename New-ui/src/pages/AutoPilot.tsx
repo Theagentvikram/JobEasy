@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Search,
   MapPin,
@@ -363,12 +364,12 @@ function DeskEmptyState({ onSynced }: { onSynced: (text: string, name: string) =
         <Button size="sm" variant="secondary" onClick={syncFromResume} loading={syncing}>
           <RefreshCw size={13} /> Auto-collect from my resume
         </Button>
-        <a
-          href="/dashboard/desk"
+        <Link
+          to="/dashboard/desk"
           className="text-xs font-medium text-amber-700 dark:text-amber-400 underline underline-offset-2"
         >
           Fill in manually →
-        </a>
+        </Link>
       </div>
     </div>
   )
@@ -681,7 +682,7 @@ export default function AutoPilotPage() {
                       <p className="text-sm font-medium text-green-800 dark:text-green-300">Career Desk loaded{deskName ? ` · ${deskName}` : ''}</p>
                       <p className="text-xs text-green-600 dark:text-green-400">{resumeText.length} characters — AI will tailor per job</p>
                     </div>
-                    <a href="/dashboard/desk" className="text-xs text-green-700 dark:text-green-400 underline underline-offset-2 flex-shrink-0">Edit Desk</a>
+                    <Link to="/dashboard/desk" className="text-xs text-green-700 dark:text-green-400 underline underline-offset-2 flex-shrink-0">Edit Desk</Link>
                   </div>
                 ) : (
                   <DeskEmptyState onSynced={(text, name) => { setResumeText(text); setDeskLoaded(true); setDeskName(name) }} />
