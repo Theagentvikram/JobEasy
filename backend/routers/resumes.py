@@ -86,10 +86,17 @@ async def parse_resume(request: UploadRequest, user=Depends(get_current_user)):
         # Save to DB immediately so it persists
         if db:
             db.collection('resumes').document(resume.id).set(resume.model_dump())
-            
+
+        # Sync parsed data into Career Desk (merges, never overwrites existing)
+        try:
+            from routers.user_data import sync_resume_to_desk
+            sync_resume_to_desk(user_id, parsed_data)
+        except Exception as e:
+            print(f"Desk sync warning (non-fatal): {e}")
+
         # Increment usage for RESUME UPLOADS
         increment_scan_count(user_id, limit_type="resume_count")
-            
+
         return resume
     except Exception as e:
         print(f"Parsing error: {e}")
