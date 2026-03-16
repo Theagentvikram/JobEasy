@@ -51,7 +51,7 @@ def _get_storage_bucket():
     """Return Firebase Storage bucket (lazy init)."""
     try:
         from firebase_admin import storage
-        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "jobeasy-9.appspot.com")
+        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "jobeasy-9.firebasestorage.app")
         return storage.bucket(bucket_name)
     except Exception as e:
         print(f"[AutoPilot] Storage bucket error: {e}")

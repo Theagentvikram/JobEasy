@@ -27,6 +27,7 @@ import {
 import { autopilot, streamProgress, type AutoPilotJob, type AutoPilotSession, type ProgressEvent } from '../services/autopilot'
 import { Card, Button, Badge, Spinner, ScoreRing, cn } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
+import { auth } from '../firebase/config'
 import { toast } from '../lib/toast'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -324,7 +325,7 @@ function JobCard({ job }: { job: AutoPilotJob }) {
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function AutoPilotPage() {
-  const { user, getToken } = useAuth() as any
+  const { user } = useAuth()
   const [phase, setPhase] = useState<Phase>('search')
 
   // Search form
@@ -406,12 +407,10 @@ export default function AutoPilotPage() {
       const sid = res.data.session_id
       setSessionId(sid)
 
-      // Get auth token for SSE query param
-      let token = ''
-      try {
-        token = await getToken()
-      } catch {
-        token = localStorage.getItem('dev_token') || ''
+      // Get auth token for SSE query param (EventSource can't set headers)
+      let token = localStorage.getItem('dev_token') || ''
+      if (!token && auth.currentUser) {
+        try { token = await auth.currentUser.getIdToken() } catch { /* use empty */ }
       }
 
       // Open SSE stream
