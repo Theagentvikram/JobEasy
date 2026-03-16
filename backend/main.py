@@ -1,18 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import resumes, ai, auth, ats, user_data, chat, referral, payment, autoapply
+from routers import autopilot
 import os
 from dotenv import load_dotenv
 
 from pathlib import Path
 
-# Try strictly finding the .env file
-root_dir = Path(__file__).resolve().parent.parent
-env_path = root_dir / ".env"
-if not env_path.exists():
-    env_path = root_dir / ".env.local"
+# Load backend/.env first (highest priority), then fall back to root .env / .env.local
+backend_dir = Path(__file__).resolve().parent
+root_dir = backend_dir.parent
 
-load_dotenv(dotenv_path=env_path)
+backend_env = backend_dir / ".env"
+if backend_env.exists():
+    load_dotenv(dotenv_path=backend_env, override=True)
+
+root_env = root_dir / ".env"
+if not root_env.exists():
+    root_env = root_dir / ".env.local"
+load_dotenv(dotenv_path=root_env)
 
 app = FastAPI(title="JobEasy AI Backend")
 
@@ -44,6 +50,7 @@ app.include_router(user_data.router)
 app.include_router(chat.router)
 app.include_router(referral.router)
 app.include_router(autoapply.router)
+app.include_router(autopilot.router)
 
 @app.get("/health")
 def health_check():
@@ -51,9 +58,10 @@ def health_check():
 
 
 @app.on_event("startup")
-async def warmup_firestore():
-    """Warm up Firestore gRPC connection on process start so first request isn't slow."""
+async def startup():
     import asyncio
+
+    # Warm up Firestore gRPC connection
     try:
         from services.firebase import get_db
         loop = asyncio.get_event_loop()

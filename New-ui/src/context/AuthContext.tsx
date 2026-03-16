@@ -34,22 +34,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const isDevSession = useRef(false)
+  // Deduplicates concurrent fetchUser calls — only one in-flight at a time
+  const fetchPromise = useRef<Promise<void> | null>(null)
 
-  const fetchUser = async (retries = 2) => {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const res = await api.get('/auth/me')
-        setUser(res.data)
-        return
-      } catch (err) {
-        if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)))
-        } else {
-          console.error('fetchUser failed after retries:', err)
-          setUser(null)
+  const fetchUser = (): Promise<void> => {
+    if (fetchPromise.current) return fetchPromise.current
+
+    const run = async () => {
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        try {
+          const res = await api.get('/auth/me')
+          setUser(res.data)
+          return
+        } catch (err) {
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+          } else {
+            console.error('fetchUser failed after retries:', err)
+            setUser(null)
+          }
         }
       }
     }
+
+    fetchPromise.current = run().finally(() => {
+      fetchPromise.current = null
+    })
+    return fetchPromise.current
   }
 
   useEffect(() => {
@@ -84,24 +95,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
-    await fetchUser()
+    // onAuthStateChanged will fire and call fetchUser — no need to call it again
   }
 
   const signUp = async (name: string, email: string, password: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(cred.user, { displayName: name })
-    await fetchUser()
+    // onAuthStateChanged will fire and call fetchUser
   }
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider()
     await signInWithPopup(auth, provider)
-    await fetchUser()
+    // onAuthStateChanged will fire and call fetchUser
   }
 
   const guestLogin = async () => {
     await signInAnonymously(auth)
-    await fetchUser()
+    // onAuthStateChanged will fire and call fetchUser
   }
 
   const devLogin = async () => {
@@ -122,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshUser = async () => {
+    fetchPromise.current = null // force a fresh fetch
     await fetchUser()
   }
 

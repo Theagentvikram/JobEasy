@@ -6,7 +6,7 @@ type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-  timeout: 20000, // 20s — don't hang forever on cold starts
+  timeout: 35000, // 35s — covers Render cold start + Firebase token verify
   headers: { 'Content-Type': 'application/json' },
 })
 
