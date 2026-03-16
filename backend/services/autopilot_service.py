@@ -28,7 +28,7 @@ from services.firebase import get_db
 # (lives for the duration of an active search session)
 _sse_queues: dict[str, asyncio.Queue] = {}
 
-CONCURRENCY = 3  # parallel Groq calls
+CONCURRENCY = 1  # sequential to avoid Groq TPM rate limits on free tier
 MAX_JOBS_HARD_LIMIT = 10  # cap for testing
 
 
@@ -52,7 +52,7 @@ def _get_storage_bucket():
     """Return Firebase Storage bucket (lazy init)."""
     try:
         from firebase_admin import storage
-        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "jobeasy-9.firebasestorage.app")
+        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "jobeasy-9.appspot.com")
         return storage.bucket(bucket_name)
     except Exception as e:
         print(f"[AutoPilot] Storage bucket error: {e}")

@@ -28,7 +28,7 @@ MODELS = {
 
 # Fast/cheap model for simple tasks (parsing, classification)
 FAST_MODELS = {
-    "groq": os.getenv("AI_FAST_MODEL", "llama3-8b-8192"),       # 30k tokens/min free
+    "groq": os.getenv("AI_FAST_MODEL", "llama-3.1-8b-instant"),  # replaces decommissioned llama3-8b-8192
     "openai": os.getenv("AI_FAST_MODEL", "gpt-4o-mini"),
     "claude": os.getenv("AI_FAST_MODEL", "claude-haiku-4-5-20251001"),
     "openclaw": os.getenv("AI_FAST_MODEL", "gpt-4o-mini"),
@@ -71,20 +71,29 @@ async def chat(prompt: str, system: str = "You are a helpful assistant. Return v
     if AI_PROVIDER == "claude":
         return await client.chat(prompt, system, model)
 
-    try:
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=temperature,
-            max_tokens=4000,
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        logger.error(f"[LLM:{AI_PROVIDER}] Error: {e}")
-        raise
+    import asyncio as _asyncio
+    for attempt in range(3):
+        try:
+            response = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=temperature,
+                max_tokens=4000,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            err_str = str(e)
+            logger.error(f"[LLM:{AI_PROVIDER}] Error: {e}")
+            # Retry on rate limit with backoff
+            if "rate_limit_exceeded" in err_str and attempt < 2:
+                wait = 5 * (attempt + 1)
+                logger.info(f"[LLM] Rate limited, retrying in {wait}s...")
+                await _asyncio.sleep(wait)
+                continue
+            raise
 
 
 async def chat_json(prompt: str, system: str = "Return valid JSON only.",
