@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, User, Briefcase, Code, BookOpen, X, GraduationCap, Award } from 'lucide-react'
+import { Plus, Trash2, Save, User, Briefcase, Code, BookOpen, X, GraduationCap, Award, RefreshCw } from 'lucide-react'
 import api from '../services/api'
 import { Button, Input, Textarea, Card, Spinner, Badge } from '../components/ui'
 
@@ -36,6 +36,7 @@ export default function CareerDesk() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [skillInput, setSkillInput] = useState('')
 
   useEffect(() => {
@@ -65,6 +66,31 @@ export default function CareerDesk() {
       setTimeout(() => setSaved(false), 2000)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const syncFromResume = async () => {
+    setSyncing(true)
+    try {
+      await api.post('/user/desk/sync-from-resume')
+      const res = await api.get('/user/desk')
+      const d = res.data
+      if (d) {
+        setDesk({
+          profile: { ...emptyDesk.profile, ...(d.profile || {}) },
+          skills: Array.isArray(d.skills) ? d.skills : [],
+          experiences: Array.isArray(d.experiences) ? d.experiences : [],
+          education: Array.isArray(d.education) ? d.education : [],
+          projects: Array.isArray(d.projects) ? d.projects : [],
+          certifications: Array.isArray(d.certifications) ? d.certifications : [],
+        })
+      }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // ignore
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -110,8 +136,11 @@ export default function CareerDesk() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {saved && <Badge variant="success">Saved</Badge>}
-          <Button onClick={save} loading={saving}><Save size={14} /> Save all changes</Button>
+          {saved && <Badge variant="success">Synced</Badge>}
+          <Button variant="outline" onClick={syncFromResume} loading={syncing}>
+            <RefreshCw size={14} /> Import from resume
+          </Button>
+          <Button onClick={save} loading={saving}><Save size={14} /> Save</Button>
         </div>
       </div>
 

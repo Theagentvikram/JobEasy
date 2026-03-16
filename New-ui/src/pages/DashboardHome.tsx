@@ -95,8 +95,8 @@ export default function DashboardHome() {
           api.get('/resumes'),
           api.get('/ats/history'),
         ])
-        setResumes(resumeRes.data?.resumes || [])
-        setScans(scanRes.data?.scans || [])
+        setResumes(Array.isArray(resumeRes.data) ? resumeRes.data : resumeRes.data?.resumes || [])
+        setScans(Array.isArray(scanRes.data) ? scanRes.data : scanRes.data?.scans || [])
       } catch {
         // silently fail — show empty state
       } finally {

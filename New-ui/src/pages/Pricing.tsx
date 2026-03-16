@@ -94,6 +94,14 @@ function CouponBar({ onApply }: { onApply: (code: string, discount: number) => v
     setLoading(true)
     setMsg('')
     try {
+      // BOSS45 is a free Pro lifetime code — use redeem endpoint
+      if (code.trim().toUpperCase() === 'BOSS45') {
+        await api.post('/auth/redeem-coupon', { coupon_code: 'BOSS45' })
+        setMsg('🎉 Pro plan activated! Refresh the page.')
+        setSuccess(true)
+        onApply(code.trim(), 100)
+        return
+      }
       const res = await api.post('/payment/validate-coupon', { coupon_code: code.trim() })
       const discount = res.data.discount || 0
       onApply(code.trim(), discount)

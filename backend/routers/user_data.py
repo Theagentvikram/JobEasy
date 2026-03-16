@@ -80,6 +80,28 @@ async def update_career_desk(data: CareerDeskData, user=Depends(get_current_user
     return {"status": "success"}
 
 
+@router.post("/desk/sync-from-resume")
+async def sync_desk_from_latest_resume(user=Depends(get_current_user)):
+    """Re-sync Career Desk from the user's most recently uploaded resume."""
+    user_id = user['uid']
+    db = get_db()
+
+    # Find the user's most recent resume
+    docs = list(
+        db.collection('resumes')
+        .where('userId', '==', user_id)
+        .order_by('lastModified', direction='DESCENDING')
+        .limit(1)
+        .stream()
+    )
+    if not docs:
+        raise HTTPException(404, "No resumes found. Upload a resume first.")
+
+    parsed = docs[0].to_dict()
+    sync_resume_to_desk(user_id, parsed)
+    return {"status": "synced"}
+
+
 @router.get("/desk/text")
 async def get_desk_as_text(user=Depends(get_current_user)):
     """Return Desk as plain text for AutoPilot / AI features."""
