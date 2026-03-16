@@ -125,7 +125,7 @@ export default function CareerDesk() {
   const removeCert = (id: string) => setDesk((d) => ({ ...d, certifications: d.certifications.filter((c) => c.id !== id) }))
 
   if (loading) return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <div className="max-w-4xl mx-auto space-y-5">
       <div className="flex items-center justify-between mb-2">
         <div className="space-y-2"><Skeleton className="h-6 w-36" /><Skeleton className="h-4 w-64" /></div>
         <Skeleton className="h-9 w-40" />
@@ -135,7 +135,7 @@ export default function CareerDesk() {
   )
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Career Desk</h1>

@@ -21,7 +21,9 @@ export function DashboardLayout() {
     <div className="flex h-screen overflow-hidden bg-surface dark:bg-slate-950">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
-        <Outlet />
+        <div className="p-6 max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

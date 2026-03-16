@@ -119,7 +119,7 @@ export default function DashboardHome() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">

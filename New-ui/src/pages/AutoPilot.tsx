@@ -109,7 +109,7 @@ function KeywordChips({
       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
         Job Keywords
       </label>
-      <div className="flex flex-wrap gap-2 p-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 min-h-[48px]">
+      <div className="flex flex-wrap gap-2 p-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 min-h-[48px] focus-within:ring-2 focus-within:ring-brand-700 focus-within:border-transparent focus-within:bg-white dark:focus-within:bg-slate-800 transition-all">
         {keywords.map((kw) => (
           <span
             key={kw}
@@ -409,6 +409,7 @@ export default function AutoPilotPage() {
   const [loadingSessions, setLoadingSessions] = useState(false)
 
   const closeStreamRef = useRef<(() => void) | null>(null)
+  const sessionIdRef = useRef<string | null>(null)
 
   // Load desk text + past sessions on mount
   useEffect(() => {
@@ -472,6 +473,7 @@ export default function AutoPilotPage() {
 
       const sid = res.data.session_id
       setSessionId(sid)
+      sessionIdRef.current = sid
 
       // Get auth token for SSE query param (EventSource can't set headers)
       let token = localStorage.getItem('dev_token') || ''
@@ -552,18 +554,43 @@ export default function AutoPilotPage() {
   }
 
   async function fetchResults() {
-    if (!sessionId) return
+    const sid = sessionIdRef.current
+    if (!sid) return
     try {
-      const res = await autopilot.getSession(sessionId)
+      const res = await autopilot.getSession(sid)
       const allJobs = res.data.jobs
       allJobs.sort((a, b) => b.match_score - a.match_score)
       setJobs(allJobs)
+      // Save to job tracker (deduplicated by url)
+      saveJobsToTracker(allJobs)
       setPhase('results')
       loadSessions()
     } catch {
-      // Fall back to live jobs collected during streaming
-      setJobs(liveJobs)
+      setJobs((prev) => prev.length > 0 ? prev : liveJobs)
       setPhase('results')
+    }
+  }
+
+  async function saveJobsToTracker(jobs: AutoPilotJob[]) {
+    try {
+      // Fetch existing tracker jobs to deduplicate
+      const existing = await api.get('/jobs')
+      const existingUrls = new Set((existing.data || []).map((j: any) => j.apply_url || j.url))
+      const newJobs = jobs.filter((j) => j.status === 'ready' && !existingUrls.has(j.apply_url || j.url))
+      for (const job of newJobs) {
+        await api.post('/jobs', {
+          title: job.title,
+          company: job.company,
+          url: job.apply_url || job.url,
+          status: 'saved',
+          notes: `AutoPilot — Match ${job.match_score}% · ${job.match_tier} tier`,
+          salary: job.salary_min ? `$${Math.round(job.salary_min / 1000)}k${job.salary_max ? `–$${Math.round(job.salary_max / 1000)}k` : '+'}` : '',
+          location: job.location,
+          source: job.source,
+        })
+      }
+    } catch {
+      // Non-fatal — job tracker save is best-effort
     }
   }
 

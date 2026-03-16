@@ -453,7 +453,7 @@ export default function JobTracker() {
   }
 
   return (
-    <div className="p-6 max-w-full">
+    <div className="max-w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>

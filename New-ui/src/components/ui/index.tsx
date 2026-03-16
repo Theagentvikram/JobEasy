@@ -208,8 +208,8 @@ export function Input({ label, error, icon, className, id, ...props }: InputProp
           id={inputId}
           className={cn(
             'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400',
-            'bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent',
+            'bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
+            'focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent focus:bg-white dark:focus:bg-slate-800',
             'transition-colors duration-150',
             error && 'border-red-400 focus:ring-red-500',
             icon && 'pl-9',
@@ -245,8 +245,8 @@ export function Textarea({ label, error, className, id, ...props }: TextareaProp
         id={inputId}
         className={cn(
           'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400',
-          'bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
-          'focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent',
+          'bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
+          'focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent focus:bg-white dark:focus:bg-slate-800',
           'transition-colors duration-150 resize-y min-h-24',
           error && 'border-red-400',
           className
