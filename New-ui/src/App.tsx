@@ -18,6 +18,7 @@ import AIAssistant from './pages/AIAssistant'
 import Pricing from './pages/Pricing'
 import Settings from './pages/Settings'
 import AutoApplyPage from './pages/AutoApply'
+import AutoPilotPage from './pages/AutoPilot'
 
 export default function App() {
   // Use /new basename in production (served from /new/ subdirectory)
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="assistant" element={<AIAssistant />} />
               <Route path="plans" element={<Pricing />} />
               <Route path="autoapply" element={<AutoApplyPage />} />
+              <Route path="autopilot" element={<AutoPilotPage />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 

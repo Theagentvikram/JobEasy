@@ -7,6 +7,7 @@ import {
   Bot,
   User,
   Rocket,
+  Navigation,
   CreditCard,
   Settings,
   LogOut,
@@ -25,6 +26,7 @@ const nav = [
   { to: '/dashboard/desk', icon: User, label: 'Career Desk' },
   { to: '/dashboard/tracker', icon: BriefcaseBusiness, label: 'Job Tracker' },
   { to: '/dashboard/assistant', icon: Bot, label: 'AI Assistant' },
+  { to: '/dashboard/autopilot', icon: Navigation, label: 'Auto Pilot' },
   { to: '/dashboard/autoapply', icon: Rocket, label: 'AutoApply' },
 ]
 

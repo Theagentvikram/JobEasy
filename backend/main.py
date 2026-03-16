@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import resumes, ai, auth, ats, user_data, chat, referral, payment, autoapply
+from routers import autopilot
 import os
 from dotenv import load_dotenv
 
@@ -44,6 +45,7 @@ app.include_router(user_data.router)
 app.include_router(chat.router)
 app.include_router(referral.router)
 app.include_router(autoapply.router)
+app.include_router(autopilot.router)
 
 @app.get("/health")
 def health_check():
