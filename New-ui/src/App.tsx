@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { DashboardLayout } from './components/layout/DashboardLayout'
 import { Toaster } from './components/ui'
+import RouteProgressBar from './components/RouteProgressBar'
 
 // Pages
 import LandingPage from './pages/LandingPage'
@@ -28,6 +29,7 @@ export default function App() {
     <BrowserRouter basename={basename}>
       <ThemeProvider>
         <AuthProvider>
+          <RouteProgressBar />
           <Routes>
             {/* Public */}
             <Route path="/" element={<LandingPage />} />

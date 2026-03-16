@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import api from '../services/api'
 import type { Resume } from '../types'
-import { Button, Card, Badge, EmptyState, Spinner, Modal } from '../components/ui'
+import { Button, Card, Badge, EmptyState, Skeleton, Modal } from '../components/ui'
 import { cn } from '../components/ui'
 
 const TEMPLATES = [
@@ -386,8 +386,17 @@ export default function ResumeList() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Spinner />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <Skeleton className="h-36 rounded-none" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-8 w-full mt-3" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : resumes.length === 0 ? (
         <EmptyState

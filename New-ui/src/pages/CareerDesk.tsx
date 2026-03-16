@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save, User, Briefcase, Code, BookOpen, X, GraduationCap, Award, RefreshCw } from 'lucide-react'
 import api from '../services/api'
-import { Button, Input, Textarea, Card, Spinner, Badge } from '../components/ui'
+import { Button, Input, Textarea, Card, Skeleton, Badge } from '../components/ui'
 
 const uid = () => crypto.randomUUID()
 
@@ -124,7 +124,15 @@ export default function CareerDesk() {
   const patchCert = (id: string, u: Partial<DeskCert>) => setDesk((d) => ({ ...d, certifications: d.certifications.map((c) => c.id === id ? { ...c, ...u } : c) }))
   const removeCert = (id: string) => setDesk((d) => ({ ...d, certifications: d.certifications.filter((c) => c.id !== id) }))
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Spinner /></div>
+  if (loading) return (
+    <div className="p-6 max-w-4xl mx-auto space-y-5">
+      <div className="flex items-center justify-between mb-2">
+        <div className="space-y-2"><Skeleton className="h-6 w-36" /><Skeleton className="h-4 w-64" /></div>
+        <Skeleton className="h-9 w-40" />
+      </div>
+      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+    </div>
+  )
 
   return (
     <div className="p-6 max-w-4xl mx-auto">

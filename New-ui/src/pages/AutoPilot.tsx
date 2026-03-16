@@ -323,6 +323,57 @@ function JobCard({ job }: { job: AutoPilotJob }) {
   )
 }
 
+// ─── Desk empty state with auto-collect from resume ─────────────────────────
+
+function DeskEmptyState({ onSynced }: { onSynced: (text: string, name: string) => void }) {
+  const [syncing, setSyncing] = useState(false)
+
+  const syncFromResume = async () => {
+    setSyncing(true)
+    try {
+      await api.post('/user/desk/sync-from-resume')
+      const res = await api.get('/user/desk/text')
+      const text = res.data?.text || ''
+      const name = res.data?.desk?.profile?.name || ''
+      if (text.trim().length >= 50) {
+        onSynced(text, name)
+        toast.success('Career Desk populated from your resume!')
+      } else {
+        toast.warning('Resume parsed but not enough data. Fill in your Career Desk manually.')
+      }
+    } catch {
+      toast.error('No uploaded resume found. Upload one in My Resumes first.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4 flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Career Desk is empty</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+            Auto Pilot uses your Desk as the resume source. Populate it from your uploaded resume or fill it in manually.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pl-7">
+        <Button size="sm" variant="secondary" onClick={syncFromResume} loading={syncing}>
+          <RefreshCw size={13} /> Auto-collect from my resume
+        </Button>
+        <a
+          href="/dashboard/desk"
+          className="text-xs font-medium text-amber-700 dark:text-amber-400 underline underline-offset-2"
+        >
+          Fill in manually →
+        </a>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function AutoPilotPage() {
@@ -358,9 +409,20 @@ export default function AutoPilotPage() {
 
   const closeStreamRef = useRef<(() => void) | null>(null)
 
-  // Load past sessions on mount
+  // Load desk text + past sessions on mount
   useEffect(() => {
     loadSessions()
+    api.get('/user/desk/text')
+      .then((res) => {
+        const text = res.data?.text || ''
+        const name = res.data?.desk?.profile?.name || ''
+        if (text.trim().length >= 50) {
+          setResumeText(text)
+          setDeskLoaded(true)
+          setDeskName(name)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   async function loadSessions() {
@@ -619,17 +681,10 @@ export default function AutoPilotPage() {
                       <p className="text-sm font-medium text-green-800 dark:text-green-300">Career Desk loaded{deskName ? ` · ${deskName}` : ''}</p>
                       <p className="text-xs text-green-600 dark:text-green-400">{resumeText.length} characters — AI will tailor per job</p>
                     </div>
-                    <a href="/desk" className="text-xs text-green-700 dark:text-green-400 underline underline-offset-2 flex-shrink-0">Edit Desk</a>
+                    <a href="/dashboard/desk" className="text-xs text-green-700 dark:text-green-400 underline underline-offset-2 flex-shrink-0">Edit Desk</a>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <AlertCircle size={16} className="text-amber-600 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Career Desk is empty</p>
-                      <p className="text-xs text-amber-600 dark:text-amber-400">Upload a resume or fill in your Career Desk to continue</p>
-                    </div>
-                    <a href="/desk" className="text-xs font-medium text-amber-700 dark:text-amber-400 underline underline-offset-2 flex-shrink-0">Go to Desk →</a>
-                  </div>
+                  <DeskEmptyState onSynced={(text, name) => { setResumeText(text); setDeskLoaded(true); setDeskName(name) }} />
                 )}
               </div>
 

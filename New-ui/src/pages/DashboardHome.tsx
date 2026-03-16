@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import type { Resume, ATSScan } from '../types'
-import { Card, ScoreRing, Badge, Spinner } from '../components/ui'
+import { Card, ScoreRing, Badge, Skeleton, SkeletonCard } from '../components/ui'
 
 function StatCard({ label, value, sub, icon: Icon, color }: {
   label: string
@@ -150,9 +150,22 @@ export default function DashboardHome() {
 
       {/* Stats */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+          </div>
+          <div className="mb-8">
+            <Skeleton className="h-4 w-24 mb-3" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Skeleton className="h-28 rounded-xl" /><Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" /><Skeleton className="h-28 rounded-xl" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
+        </>
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
