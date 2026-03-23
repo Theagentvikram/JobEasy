@@ -497,6 +497,7 @@ export default function AutoPilotPage() {
         keywords,
         location,
         resume_text: resumeText,
+        desk_data: deskQuery.data?.desk ?? null,
         max_jobs: maxJobs,
         min_score: minScore,
       })

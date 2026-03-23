@@ -72,6 +72,7 @@ export const autopilot = {
     keywords: string[]
     location: string
     resume_text: string
+    desk_data?: Record<string, unknown> | null
     max_jobs?: number
     min_score?: number
   }) => api.post<{ session_id: string; status: string }>('/autopilot/search', payload),

@@ -84,6 +84,7 @@ async def run_autopilot_session(
     keywords: list[str],
     location: str,
     resume_text: str,
+    desk_data: Optional[dict] = None,
     max_jobs: int = 50,
     min_score: int = 60,
 ):
@@ -95,22 +96,25 @@ async def run_autopilot_session(
     session_ref = db.collection("autopilot_sessions").document(session_id)
     q = get_queue(session_id)
 
-    # Fetch user's most recent structured resume for tailored resume saving
-    base_resume_data = {}
-    try:
-        resume_docs = list(
-            db.collection("resumes")
-            .where("userId", "==", uid)
-            .limit(10)
-            .stream()
-        )
-        if resume_docs:
-            # Pick most recently modified
-            resume_dicts = [d.to_dict() for d in resume_docs]
-            resume_dicts.sort(key=lambda r: r.get("lastModified", ""), reverse=True)
-            base_resume_data = resume_dicts[0]
-    except Exception as e:
-        print(f"[AutoPilot] Could not fetch base resume: {e}")
+    # Build base_resume_data from the active CareerDesk profile.
+    # This guarantees tailored resumes belong to the correct person (not the most-recently-modified resume).
+    base_resume_data = _desk_data_to_resume(desk_data, uid) if desk_data else {}
+
+    # Fallback: if no desk_data was sent, use most-recently-modified resume
+    if not base_resume_data:
+        try:
+            resume_docs = list(
+                db.collection("resumes")
+                .where("userId", "==", uid)
+                .limit(10)
+                .stream()
+            )
+            if resume_docs:
+                resume_dicts = [d.to_dict() for d in resume_docs]
+                resume_dicts.sort(key=lambda r: r.get("lastModified", ""), reverse=True)
+                base_resume_data = resume_dicts[0]
+        except Exception as e:
+            print(f"[AutoPilot] Could not fetch base resume: {e}")
 
     async def emit(event: dict):
         """Push an SSE event to the queue (non-blocking)."""
@@ -439,6 +443,62 @@ def _save_top_tailored_resumes(db, session_id: str, uid: str, base_resume_data: 
         print(f"[AutoPilot] Saved tailored resume: {resume_doc['title']}")
 
     return saved_ids
+
+
+def _desk_data_to_resume(desk: dict, uid: str) -> dict:
+    """
+    Convert an active CareerDesk profile dict into the Resume Builder document
+    format used by _save_top_tailored_resumes.
+    This ensures tailored resumes always belong to the correct profile/person.
+    """
+    p = desk.get("profile") or {}
+    experiences = []
+    for e in (desk.get("experiences") or []):
+        experiences.append({
+            "id": e.get("id", str(uuid.uuid4())),
+            "role": e.get("role", ""),
+            "company": e.get("company", ""),
+            "startDate": e.get("startDate", ""),
+            "endDate": "Present" if e.get("current") else e.get("endDate", ""),
+            "description": e.get("description", ""),
+        })
+    education = []
+    for e in (desk.get("education") or []):
+        education.append({
+            "id": e.get("id", str(uuid.uuid4())),
+            "degree": e.get("degree", ""),
+            "school": e.get("school", ""),
+            "year": e.get("year", ""),
+        })
+    projects = []
+    for pr in (desk.get("projects") or []):
+        projects.append({
+            "id": pr.get("id", str(uuid.uuid4())),
+            "name": pr.get("name", ""),
+            "description": pr.get("description", ""),
+            "tech": pr.get("tech", ""),
+            "url": pr.get("url", ""),
+        })
+    return {
+        "userId": uid,
+        "personalInfo": {
+            "fullName": p.get("name", ""),
+            "email": p.get("email", ""),
+            "phone": p.get("phone", ""),
+            "location": p.get("location", ""),
+            "linkedin": p.get("linkedin", ""),
+            "website": p.get("website", ""),
+            "github": p.get("github", ""),
+            "title": p.get("role", ""),
+        },
+        "summary": p.get("summary", ""),
+        "experience": experiences,
+        "education": education,
+        "skills": list(desk.get("skills") or []),
+        "projects": projects,
+        "templateId": "modern",
+        "lastModified": _now(),
+    }
 
 
 def _now() -> str:

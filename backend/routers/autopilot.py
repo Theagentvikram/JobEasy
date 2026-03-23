@@ -63,6 +63,7 @@ class SearchRequest(BaseModel):
     keywords: list[str]
     location: str = "Remote"
     resume_text: str
+    desk_data: Optional[dict] = None  # active CareerDesk profile dict
     max_jobs: int = 50
     min_score: int = 60
 
@@ -116,6 +117,7 @@ async def start_search(
         keywords=req.keywords,
         location=req.location,
         resume_text=req.resume_text,
+        desk_data=req.desk_data,
         max_jobs=req.max_jobs,
         min_score=req.min_score,
     )
