@@ -12,3 +12,7 @@ venv
 backend/serviceAccountKey.json
 firebase/jobeasy-9-firebase-adminsdk-fbsvc-cfe4646b52.json
 
+# Runtime artifacts
+backend/autoapply.db
+backend/logs/
+
