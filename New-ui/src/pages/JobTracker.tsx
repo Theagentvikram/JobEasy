@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus,
   LayoutGrid,
@@ -97,7 +98,7 @@ function KanbanCard({ job, onStatusChange, onDelete, onDragStart }: {
                       job.status === s ? 'font-semibold text-brand-700 dark:text-brand-400' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
-                    {c.label}
+                    {STATUS_CONFIG[s]?.label ?? s}
                   </button>
                 ))}
                 <div className="border-t border-slate-100 dark:border-slate-700 mt-1">
@@ -459,58 +460,67 @@ function AddJobModal({ open, onClose, onAdd }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JobTracker() {
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(true)
+  const qc = useQueryClient()
   const [view, setView] = useState<'kanban' | 'table'>('kanban')
   const [showAdd, setShowAdd] = useState(false)
   const [filterStatus, setFilterStatus] = useState<JobStatus | 'all'>('all')
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/referral/jobs'),
-      api.get('/resumes'),
-    ]).then(([jobsRes, resumesRes]) => {
+  const { data: jobs = [], isLoading: loading } = useQuery({
+    queryKey: ['tracker-jobs'],
+    queryFn: async () => {
+      const [jobsRes, resumesRes] = await Promise.all([
+        api.get('/referral/jobs'),
+        api.get('/resumes'),
+      ])
       const rawJobs: Job[] = jobsRes.data?.jobs || jobsRes.data || []
-      const resumes: { id: string; title: string; autopilot_company?: string }[] =
-        resumesRes.data || []
-
-      // Build company → resume_id map from AutoPilot resumes
+      const resumes: { id: string; title: string; autopilot_company?: string }[] = resumesRes.data || []
       const autopilotMap: Record<string, string> = {}
       for (const r of resumes) {
         const company = (r.autopilot_company || '').toLowerCase().trim()
         if (company && r.title?.startsWith('[AutoPilot]')) {
-          // Keep the highest-scored one if multiple (titles end in "(score%)")
           if (!autopilotMap[company]) autopilotMap[company] = r.id
         }
       }
-
-      // Inject autopilot_resume_id for jobs that don't have one yet
-      const enriched = rawJobs.map((j) => {
+      return rawJobs.map((j) => {
         if (j.autopilot_resume_id) return j
         const key = (j.company || '').toLowerCase().trim()
         return autopilotMap[key] ? { ...j, autopilot_resume_id: autopilotMap[key] } : j
       })
+    },
+    staleTime: 2 * 60 * 1000,
+  })
 
-      setJobs(enriched)
-    }).finally(() => setLoading(false))
-  }, [])
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: JobStatus }) =>
+      api.patch(`/referral/jobs/${id}`, { status }),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ['tracker-jobs'] })
+      const prev = qc.getQueryData<Job[]>(['tracker-jobs'])
+      qc.setQueryData<Job[]>(['tracker-jobs'], (old = []) =>
+        old.map((j) => (j.id === id ? { ...j, status } : j))
+      )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['tracker-jobs'], ctx.prev)
+    },
+  })
 
-  const handleStatusChange = async (id: string, status: JobStatus) => {
-    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, status } : j)))
-    try {
-      await api.patch(`/referral/jobs/${id}`, { status })
-    } catch {
-      // revert optimistic update on failure
-      setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, status: j.status } : j)))
-    }
-  }
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/referral/jobs/${id}`),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['tracker-jobs'] })
+      const prev = qc.getQueryData<Job[]>(['tracker-jobs'])
+      qc.setQueryData<Job[]>(['tracker-jobs'], (old = []) => old.filter((j) => j.id !== id))
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['tracker-jobs'], ctx.prev)
+    },
+  })
 
-  const handleDelete = async (id: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id))
-    try {
-      await api.delete(`/referral/jobs/${id}`)
-    } catch { /* ignore */ }
-  }
+  const handleStatusChange = (id: string, status: JobStatus) => statusMutation.mutate({ id, status })
+  const handleDelete = (id: string) => deleteMutation.mutate(id)
 
   const filteredJobs = filterStatus === 'all'
     ? jobs
@@ -627,7 +637,9 @@ export default function JobTracker() {
       <AddJobModal
         open={showAdd}
         onClose={() => setShowAdd(false)}
-        onAdd={(job) => setJobs((prev) => [job, ...prev])}
+        onAdd={(job) => {
+          qc.setQueryData<Job[]>(['tracker-jobs'], (old = []) => [job, ...old])
+        }}
       />
     </div>
   )

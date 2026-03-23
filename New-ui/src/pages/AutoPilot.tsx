@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   Search,
@@ -407,53 +408,64 @@ export default function AutoPilotPage() {
   const [filterSource, setFilterSource] = useState('all')
   const [filterRemote, setFilterRemote] = useState(false)
 
-  // Past sessions
-  const [sessions, setSessions] = useState<AutoPilotSession[]>([])
-  const [loadingSessions, setLoadingSessions] = useState(false)
-
+  const qc = useQueryClient()
   const closeStreamRef = useRef<(() => void) | null>(null)
   const sessionIdRef = useRef<string | null>(null)
 
-  // Load desk text, settings, and past sessions on mount
-  useEffect(() => {
-    loadSessions(true)
-    api.get('/user/desk/text')
-      .then((res) => {
-        const text = res.data?.text || ''
-        const name = res.data?.desk?.profile?.name || ''
-        if (text.trim().length >= 50) {
-          setResumeText(text)
-          setDeskLoaded(true)
-          setDeskName(name)
-        }
-      })
-      .catch(() => {})
-    api.get('/auth/settings')
-      .then((res) => {
-        if (res.data?.autopilot_job_count) {
-          setMaxJobs(Number(res.data.autopilot_job_count))
-        }
-      })
-      .catch(() => {})
-  }, [])
+  // ── Cached queries ──────────────────────────────────────────────────────────
+  const deskQuery = useQuery({
+    queryKey: ['autopilot-desk-text'],
+    queryFn: () => api.get('/user/desk/text').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  })
 
-  async function loadSessions(autoRestore = false) {
-    setLoadingSessions(true)
-    try {
-      const res = await autopilot.listSessions()
-      setSessions(res.data)
-      // On initial mount, auto-restore the most recent completed session
-      if (autoRestore && res.data.length > 0) {
-        const latest = res.data.find((s: AutoPilotSession) => s.status === 'done')
-        if (latest) {
-          loadPastSession(latest.session_id)
-        }
+  const settingsQuery = useQuery({
+    queryKey: ['autopilot-settings'],
+    queryFn: () => api.get('/auth/settings').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  })
+
+  const sessionsQuery = useQuery({
+    queryKey: ['autopilot-sessions'],
+    queryFn: () => autopilot.listSessions().then(r => r.data as AutoPilotSession[]),
+    staleTime: 30 * 1000,
+  })
+
+  const sessions = sessionsQuery.data ?? []
+  const loadingSessions = sessionsQuery.isLoading
+
+  // Apply desk text when loaded
+  useEffect(() => {
+    if (deskQuery.data) {
+      const text = deskQuery.data.text || ''
+      const name = deskQuery.data.desk?.profile?.name || ''
+      if (text.trim().length >= 50) {
+        setResumeText(text)
+        setDeskLoaded(true)
+        setDeskName(name)
       }
-    } catch {
-      // silent fail
-    } finally {
-      setLoadingSessions(false)
     }
+  }, [deskQuery.data])
+
+  // Apply settings when loaded
+  useEffect(() => {
+    if (settingsQuery.data?.autopilot_job_count) {
+      setMaxJobs(Number(settingsQuery.data.autopilot_job_count))
+    }
+  }, [settingsQuery.data])
+
+  // Auto-restore latest completed session on first load
+  const restoredRef = useRef(false)
+  useEffect(() => {
+    if (!restoredRef.current && sessions.length > 0) {
+      restoredRef.current = true
+      const latest = sessions.find((s) => s.status === 'done')
+      if (latest) loadPastSession(latest.session_id)
+    }
+  }, [sessions])
+
+  function loadSessions() {
+    qc.invalidateQueries({ queryKey: ['autopilot-sessions'] })
   }
 
   function addLog(message: string, type: LogEntry['type'] = 'info') {
@@ -667,7 +679,7 @@ export default function AutoPilotPage() {
     e.stopPropagation()
     try {
       await autopilot.deleteSession(sid)
-      setSessions((prev) => prev.filter((s) => s.session_id !== sid))
+      qc.setQueryData<AutoPilotSession[]>(['autopilot-sessions'], (old = []) => old.filter((s) => s.session_id !== sid))
       if (sessionId === sid) setPhase('search')
       toast.success('Session deleted')
     } catch {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Rocket,
   Play,
@@ -1503,12 +1504,7 @@ function JobsTab({
 type TabId = 'overview' | 'jobs' | 'settings'
 
 export default function AutoApply() {
-  const [stats, setStats] = useState<AutoApplyStats | null>(null)
-  const [jobs, setJobs] = useState<AutoApplyJob[]>([])
-  const [history, setHistory] = useState<PipelineRun[]>([])
-  const [settings, setSettings] = useState<AutoApplySettings>(emptySettings())
-  const [loading, setLoading] = useState(true)
-  const [engineUp, setEngineUp] = useState<boolean | null>(null)
+  const qc = useQueryClient()
   const [running, setRunning] = useState(false)
   const [showProgress, setShowProgress] = useState(false)
   const [progressDryRun, setProgressDryRun] = useState(false)
@@ -1518,39 +1514,52 @@ export default function AutoApply() {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [settingsDirty, setSettingsDirty] = useState(false)
 
-  const fetchAll = async (silent = false) => {
-    if (!silent) setLoading(true)
-    setError('')
+  const healthQuery = useQuery({
+    queryKey: ['autoapply-health'],
+    queryFn: () => autoapply.health().then(() => true),
+    staleTime: 30 * 1000,
+    retry: false,
+  })
+  const engineUp = healthQuery.isSuccess
 
-    try {
-      await autoapply.health()
-      setEngineUp(true)
-    } catch {
-      setEngineUp(false)
-      // Still try to load settings from a cached/offline state if possible
-      setLoading(false)
-      return
-    }
+  const statsQuery = useQuery({
+    queryKey: ['autoapply-stats'],
+    queryFn: () => autoapply.getStats().then(r => r.data as AutoApplyStats),
+    staleTime: 60 * 1000,
+    enabled: engineUp,
+  })
+  const jobsQuery = useQuery({
+    queryKey: ['autoapply-jobs'],
+    queryFn: () => autoapply.getAllJobs(0, 200).then(r => r.data as AutoApplyJob[]),
+    staleTime: 2 * 60 * 1000,
+    enabled: engineUp,
+  })
+  const historyQuery = useQuery({
+    queryKey: ['autoapply-history'],
+    queryFn: () => autoapply.getPipelineHistory(10).then(r => r.data as PipelineRun[]),
+    staleTime: 60 * 1000,
+    enabled: engineUp,
+  })
+  const settingsQuery = useQuery({
+    queryKey: ['autoapply-settings'],
+    queryFn: () => autoapply.getSettings().then(r => r.data as AutoApplySettings).catch(() => emptySettings()),
+    staleTime: 5 * 60 * 1000,
+    enabled: engineUp,
+  })
 
-    try {
-      const [statsRes, jobsRes, historyRes, settingsRes] = await Promise.all([
-        autoapply.getStats(),
-        autoapply.getAllJobs(0, 200),   // pulls from autopilot sessions + pipeline
-        autoapply.getPipelineHistory(10),
-        autoapply.getSettings().catch(() => ({ data: null })),
-      ])
-      setStats(statsRes.data)
-      setJobs(jobsRes.data)
-      setHistory(historyRes.data)
-      if (settingsRes.data) setSettings(settingsRes.data)
-    } catch {
-      setError('Failed to load AutoApply data')
-    } finally {
-      setLoading(false)
-    }
+  const stats = statsQuery.data ?? null
+  const jobs = jobsQuery.data ?? []
+  const history = historyQuery.data ?? []
+  const settings = settingsQuery.data ?? emptySettings()
+  const loading = healthQuery.isLoading || (engineUp && (statsQuery.isLoading || jobsQuery.isLoading))
+
+  const refetchAll = () => {
+    qc.invalidateQueries({ queryKey: ['autoapply-health'] })
+    qc.invalidateQueries({ queryKey: ['autoapply-stats'] })
+    qc.invalidateQueries({ queryKey: ['autoapply-jobs'] })
+    qc.invalidateQueries({ queryKey: ['autoapply-history'] })
+    qc.invalidateQueries({ queryKey: ['autoapply-settings'] })
   }
-
-  useEffect(() => { fetchAll() }, [])
 
   const handleRun = async (dryRun: boolean, overrides?: Parameters<typeof autoapply.triggerPipeline>[1]) => {
     setRunning(true)
@@ -1612,7 +1621,7 @@ export default function AutoApply() {
     <PipelineProgressModal
       open={showProgress}
       dryRun={progressDryRun}
-      onClose={() => { setShowProgress(false); fetchAll(true) }}
+      onClose={() => { setShowProgress(false); refetchAll() }}
     />
     <QuickRunModal
       open={showQuickRun}
@@ -1644,7 +1653,7 @@ export default function AutoApply() {
             </span>
           )}
           <button
-            onClick={() => fetchAll()}
+            onClick={() => refetchAll()}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             title="Refresh"
           >
@@ -1664,7 +1673,7 @@ export default function AutoApply() {
               <code className="bg-amber-100 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono">./dev.sh</code>
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => fetchAll()}>
+          <Button variant="outline" size="sm" onClick={() => refetchAll()}>
             <RefreshCw size={12} /> Retry
           </Button>
         </div>
@@ -1715,7 +1724,7 @@ export default function AutoApply() {
             history={history}
             running={running}
             onOpenQuickRun={handleOpenQuickRun}
-            onRefresh={() => fetchAll(true)}
+            onRefresh={() => refetchAll()}
             sourceFilter={sourceFilter}
             setSourceFilter={setSourceFilter}
           />
@@ -1726,7 +1735,7 @@ export default function AutoApply() {
             jobs={jobs}
             sourceFilter={sourceFilter}
             setSourceFilter={setSourceFilter}
-            onRefresh={() => fetchAll(true)}
+            onRefresh={() => refetchAll()}
           />
         )}
 
@@ -1736,7 +1745,7 @@ export default function AutoApply() {
             engineUp={!!engineUp}
             onSaved={() => {
               setSettingsDirty(false)
-              fetchAll(true)
+              refetchAll()
             }}
           />
         )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Save, User, Briefcase, Code, BookOpen, X, GraduationCap, Award, RefreshCw, ChevronDown, Pencil, UserPlus, FileText, Clock } from 'lucide-react'
 import api from '../services/api'
 import { Button, Input, Textarea, Card, Skeleton, Badge } from '../components/ui'
@@ -45,8 +46,8 @@ function parseDesk(d: Record<string, unknown>): Desk {
 }
 
 export default function CareerDesk() {
+  const qc = useQueryClient()
   const [desk, setDesk] = useState<Desk>(emptyDesk)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -79,51 +80,64 @@ export default function CareerDesk() {
   }, [])
 
   // Load profiles + active desk
-  const loadProfiles = async () => {
-    const res = await api.get('/user/desk/profiles')
-    const { profiles: pl, activeProfileId: aid } = res.data
-    setProfiles(pl)
-    setActiveProfileId(aid)
-    return { profiles: pl, activeProfileId: aid }
-  }
+  const profilesQuery = useQuery({
+    queryKey: ['desk-profiles'],
+    queryFn: async () => {
+      const res = await api.get('/user/desk/profiles')
+      return res.data as { profiles: DeskProfile[]; activeProfileId: string }
+    },
+    staleTime: 5 * 60 * 1000,
+  })
 
-  const loadDeskForProfile = async (profileId: string) => {
-    const res = await api.get(`/user/desk/profiles/${profileId}`)
-    setDesk(parseDesk(res.data))
-  }
+  const activeId = profilesQuery.data?.activeProfileId ?? activeProfileId
+
+  const deskQuery = useQuery({
+    queryKey: ['desk-data', activeId],
+    queryFn: async () => {
+      try {
+        const res = await api.get(`/user/desk/profiles/${activeId}`)
+        return parseDesk(res.data)
+      } catch {
+        const res = await api.get('/user/desk')
+        return parseDesk(res.data)
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!activeId,
+  })
+
+  const loading = profilesQuery.isLoading || deskQuery.isLoading
 
   useEffect(() => {
-    setLoading(true)
-    loadProfiles()
-      .then(({ activeProfileId: aid }) => loadDeskForProfile(aid))
-      .catch(() => {
-        // Fallback: load legacy desk endpoint
-        return api.get('/user/desk').then(res => { if (res.data) setDesk(parseDesk(res.data)) })
-      })
-      .finally(() => setLoading(false))
-  }, [])
+    if (profilesQuery.data) {
+      setProfiles(profilesQuery.data.profiles)
+      setActiveProfileId(profilesQuery.data.activeProfileId)
+    }
+  }, [profilesQuery.data])
+
+  useEffect(() => {
+    if (deskQuery.data) setDesk(deskQuery.data)
+  }, [deskQuery.data])
+
+  const invalidateDesk = () => {
+    qc.invalidateQueries({ queryKey: ['desk-profiles'] })
+    qc.invalidateQueries({ queryKey: ['desk-data'] })
+  }
 
   const switchProfile = async (profileId: string) => {
     setProfileMenuOpen(false)
-    setLoading(true)
-    try {
-      const res = await api.post(`/user/desk/profiles/${profileId}/activate`)
-      setActiveProfileId(profileId)
-      setDesk(parseDesk(res.data))
-    } finally {
-      setLoading(false)
-    }
+    await api.post(`/user/desk/profiles/${profileId}/activate`)
+    setActiveProfileId(profileId)
+    invalidateDesk()
   }
 
   const createProfile = async () => {
     const name = newProfileName.trim() || 'New Profile'
     const res = await api.post('/user/desk/profiles', { name })
-    const newId = res.data.id
-    await loadProfiles()
-    await loadDeskForProfile(newId)
-    setActiveProfileId(newId)
+    setActiveProfileId(res.data.id)
     setCreatingProfile(false)
     setNewProfileName('')
+    invalidateDesk()
   }
 
   const renameProfile = async (profileId: string) => {
@@ -131,16 +145,14 @@ export default function CareerDesk() {
     await api.patch(`/user/desk/profiles/${profileId}/rename`, { name: renameValue.trim() })
     setProfiles(ps => ps.map(p => p.id === profileId ? { ...p, name: renameValue.trim() } : p))
     setRenamingId(null)
+    qc.invalidateQueries({ queryKey: ['desk-profiles'] })
   }
 
   const deleteProfile = async (profileId: string) => {
     if (!confirm('Delete this profile? This cannot be undone.')) return
     const res = await api.delete(`/user/desk/profiles/${profileId}`)
-    await loadProfiles()
-    if (res.data.activeProfileId) {
-      setActiveProfileId(res.data.activeProfileId)
-      await loadDeskForProfile(res.data.activeProfileId)
-    }
+    if (res.data.activeProfileId) setActiveProfileId(res.data.activeProfileId)
+    invalidateDesk()
   }
 
   const activeProfileName = profiles.find(p => p.id === activeProfileId)?.name ?? 'My Profile'
@@ -177,7 +189,7 @@ export default function CareerDesk() {
         ? `/user/desk/sync-from-resume?resume_id=${resumeId}`
         : '/user/desk/sync-from-resume'
       await api.post(url)
-      await loadDeskForProfile(activeProfileId)
+      qc.invalidateQueries({ queryKey: ['desk-data', activeProfileId] })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {

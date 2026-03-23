@@ -1,6 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 min default
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 import { DashboardLayout } from './components/layout/DashboardLayout'
 import { Toaster } from './components/ui'
 import RouteProgressBar from './components/RouteProgressBar'
@@ -27,6 +38,7 @@ export default function App() {
   const basename = '/new'
 
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter basename={basename}>
       <ThemeProvider>
         <AuthProvider>
@@ -62,5 +74,6 @@ export default function App() {
         <Toaster />
       </ThemeProvider>
     </BrowserRouter>
+    </QueryClientProvider>
   )
 }
