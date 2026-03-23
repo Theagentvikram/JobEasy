@@ -5,7 +5,7 @@ import { toast } from '../lib/toast'
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, ''),
   timeout: 35000, // 35s — covers Render cold start + Firebase token verify
   headers: { 'Content-Type': 'application/json' },
 })
@@ -57,7 +57,7 @@ api.interceptors.response.use(
   }
 )
 
-export const getApiBase = () => import.meta.env.VITE_API_URL || 'http://localhost:8000'
+export const getApiBase = () => (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
 export default api
 

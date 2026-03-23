@@ -104,8 +104,9 @@ export function streamProgress(
   token: string,
   onEvent: (event: ProgressEvent) => void,
 ): () => void {
-  const baseUrl =
+  const baseUrl = (
     (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:8000'
+  ).replace(/\/$/, '')
   const url = `${baseUrl}/autopilot/sessions/${sessionId}/stream?token=${encodeURIComponent(token)}`
 
   const es = new EventSource(url)
