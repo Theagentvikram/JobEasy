@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run build:new-ui",
-    "build:new-ui": "cd New-ui && npm run build",
+    "build:new-ui": "cd New-ui && npm install && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
