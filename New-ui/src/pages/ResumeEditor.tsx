@@ -250,12 +250,36 @@ export default function ResumeEditor() {
     setTailoring(true)
     setTailorResult(null)
     try {
-      const res = await api.post('/ai/tailor-resume', { resume_data: resume, job_description: tailorJD })
+      const res = await api.post('/ai/tailor-resume', {
+        resume_data: resume,
+        job_description: tailorJD,
+        job_title: resume.personalInfo?.title || '',
+        company: '',
+      })
       const data = res.data
-      // Apply tailored summary if provided
-      if (data.summary_statement) {
-        patch({ summary: data.summary_statement })
+      const updates: Partial<typeof resume> = {}
+
+      // Apply rewritten experience bullets parsed from resume_markdown
+      if (data.resume_markdown) {
+        const tailoredExp = parseExperienceFromMarkdown(data.resume_markdown, resume.experience)
+        if (tailoredExp.length > 0) updates.experience = tailoredExp
       }
+
+      // Apply tailored summary
+      if (data.summary_statement) {
+        updates.summary = data.summary_statement
+      }
+
+      // Auto-merge all ATS keywords into skills
+      if (data.updated_skills?.length) {
+        updates.skills = data.updated_skills
+      } else if (data.ats_keywords_added?.length) {
+        const merged = [...new Set([...resume.skills, ...data.ats_keywords_added])]
+        updates.skills = merged
+      }
+
+      if (Object.keys(updates).length > 0) patch(updates)
+
       setTailorResult({
         key_changes: data.key_changes || [],
         ats_keywords_added: data.ats_keywords_added || [],
@@ -263,6 +287,57 @@ export default function ResumeEditor() {
       })
     } catch { /* ignore */ }
     setTailoring(false)
+  }
+
+  /** Parse experience bullets out of the LLM's resume_markdown output */
+  function parseExperienceFromMarkdown(
+    markdown: string,
+    baseExp: typeof resume.experience
+  ): typeof resume.experience {
+    const expSection = markdown.match(/##\s*(?:Work\s+)?Experience\s*\n([\s\S]*?)(?=\n##\s|$)/i)
+    if (!expSection) return []
+
+    const jobBlocks = expSection[1].split(/\n(?=###\s)/)
+    const parsed: { role: string; company: string; description: string }[] = []
+
+    for (const block of jobBlocks) {
+      const lines = block.trim().split('\n')
+      if (!lines.length) continue
+      const header = lines[0].replace(/^###\s*/, '').trim()
+
+      // Strip trailing (dates)
+      const headerNoDates = header.replace(/\s*\([^)]+\)\s*$/, '').trim()
+      const sepMatch = headerNoDates.match(/\s+(?:[—–]|-(?!\d)|at|@)\s+/)
+      const role = sepMatch ? headerNoDates.slice(0, sepMatch.index).trim() : headerNoDates
+      const company = sepMatch ? headerNoDates.slice(sepMatch.index! + sepMatch[0].length).trim() : ''
+
+      const bullets = lines.slice(1)
+        .map(l => l.trim())
+        .filter(l => l.startsWith('- ') || l.startsWith('• ') || l.startsWith('* '))
+        .map(l => l.replace(/^[-•*]\s*/, '').trim())
+        .filter(Boolean)
+
+      if (bullets.length) {
+        parsed.push({ role, company, description: bullets.map(b => `- ${b}`).join('\n') })
+      }
+    }
+
+    if (!parsed.length) return []
+
+    const usedIds = new Set<string>()
+    return parsed.map(p => {
+      const base = baseExp?.find(b => {
+        if (usedIds.has(b.id)) return false
+        const bc = b.company.toLowerCase()
+        const pc = p.company.toLowerCase()
+        return bc && pc && (bc.includes(pc) || pc.includes(bc))
+      })
+      if (base) {
+        usedIds.add(base.id)
+        return { ...base, description: p.description, role: p.role || base.role }
+      }
+      return { ...p, id: crypto.randomUUID(), startDate: '', endDate: '' }
+    })
   }
 
   const addSkill = () => {
@@ -572,7 +647,7 @@ export default function ResumeEditor() {
           {/* Tailor to JD */}
           <Section title="Tailor to Job Description" defaultOpen={false}>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-              Paste a job description below. AI will rewrite your summary and suggest keyword improvements.
+              Paste a job description below. AI will rewrite your entire resume — summary, experience bullets, and skills — for a near-perfect ATS score.
             </p>
             <Textarea
               placeholder="Paste the job description here…"
@@ -606,21 +681,15 @@ export default function ResumeEditor() {
                 )}
                 {tailorResult.ats_keywords_added.length > 0 && (
                   <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1.5">ATS keywords to add</p>
+                    <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1.5">ATS keywords applied to skills</p>
                     <div className="flex flex-wrap gap-1">
                       {tailorResult.ats_keywords_added.map((kw) => (
-                        <button
+                        <span
                           key={kw}
-                          onClick={() => {
-                            if (resume && !resume.skills.includes(kw)) {
-                              patch({ skills: [...resume.skills, kw] })
-                            }
-                          }}
-                          className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 cursor-pointer transition-colors"
-                          title="Click to add to skills"
+                          className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-full"
                         >
-                          + {kw}
-                        </button>
+                          {kw}
+                        </span>
                       ))}
                     </div>
                   </div>

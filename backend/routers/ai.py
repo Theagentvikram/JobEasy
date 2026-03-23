@@ -39,6 +39,8 @@ class SummaryFromResumeReq(BaseModel):
 class TailorResumeRequest(BaseModel):
     resume_data: dict
     job_description: str
+    job_title: Optional[str] = ""
+    company: Optional[str] = ""
 
 @router.post("/analyze")
 async def analyze_resume(req: AnalyzeRequest, user=Depends(get_optional_user)):
@@ -105,14 +107,16 @@ async def generate_summary_api(req: SummaryFromResumeReq, user=Depends(get_curre
 
 @router.post("/tailor-resume")
 async def tailor_resume_to_jd(req: TailorResumeRequest, user=Depends(get_current_user)):
-    """Tailor a resume to a job description using AI."""
+    """Tailor a resume to a job description using AI for near-perfect ATS score."""
     try:
         from autoapply.ai.resume_tailor import tailor_resume
+        from autoapply.ai.job_matcher import score_job_match
         import json
 
-        # Convert resume_data dict to markdown text
         r = req.resume_data
         p = r.get("personalInfo", {})
+
+        # Convert resume_data dict to markdown text
         lines = [
             f"# {p.get('fullName', '')}",
             f"{p.get('email', '')} | {p.get('phone', '')} | {p.get('location', '')}",
@@ -138,12 +142,34 @@ async def tailor_resume_to_jd(req: TailorResumeRequest, user=Depends(get_current
 
         resume_text = "\n".join(lines)
 
+        # Pre-score to surface missing keywords so tailor_resume can inject them all
+        match_data = {}
+        try:
+            from services.autopilot_service import _resume_text_to_profile
+            profile = _resume_text_to_profile(resume_text)
+            match_data = await score_job_match(
+                job_title=req.job_title or "",
+                company=req.company or "",
+                description=req.job_description,
+                profile=profile,
+            )
+        except Exception as me:
+            print(f"[TailorResume] score_job_match skipped: {me}")
+
         result = await tailor_resume(
-            job_title="",
-            company="",
+            job_title=req.job_title or "",
+            company=req.company or "",
             job_description=req.job_description,
             base_resume_text=resume_text,
+            match_data=match_data,
         )
+
+        # Merge ATS keywords into skills so the resume builder saves them
+        ats_keywords = result.get("ats_keywords_added", [])
+        if ats_keywords:
+            existing = r.get("skills", [])
+            result["updated_skills"] = list(dict.fromkeys(existing + ats_keywords))
+
         return result
     except Exception as e:
         print(f"Tailor Error: {e}")
