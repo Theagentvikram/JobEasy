@@ -250,10 +250,13 @@ export default function ResumeEditor() {
     setTailoring(true)
     setTailorResult(null)
     try {
+      // Extract job title and company from the first two lines of the JD if present
+      const jdLines = tailorJD.trim().split('\n').map(l => l.trim()).filter(Boolean)
+      const inferredTitle = jdLines[0]?.length < 80 ? jdLines[0] : ''
       const res = await api.post('/ai/tailor-resume', {
         resume_data: resume,
         job_description: tailorJD,
-        job_title: resume.personalInfo?.title || '',
+        job_title: inferredTitle,
         company: '',
       })
       const data = res.data

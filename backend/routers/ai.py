@@ -145,8 +145,12 @@ async def tailor_resume_to_jd(req: TailorResumeRequest, user=Depends(get_current
         # Pre-score to surface missing keywords so tailor_resume can inject them all
         match_data = {}
         try:
-            from services.autopilot_service import _resume_text_to_profile
-            profile = _resume_text_to_profile(resume_text)
+            profile = {
+                "skills": {"general": []},
+                "experience": [],
+                "job_preferences": {"titles": [], "min_salary": 0, "visa_sponsorship_needed": False},
+                "_raw_resume": resume_text,
+            }
             match_data = await score_job_match(
                 job_title=req.job_title or "",
                 company=req.company or "",
