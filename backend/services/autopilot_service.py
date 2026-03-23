@@ -218,7 +218,15 @@ async def run_autopilot_session(
         except Exception as e:
             print(f"[AutoPilot] Failed to save tailored resumes: {e}")
 
-        # ── 4. Finish ─────────────────────────────────────────────────────
+        # ── 4. Push ready jobs into Job Tracker ───────────────────────────
+        try:
+            # Build resume_id lookup: job_id → resume_id
+            resume_id_by_job = {item["job_id"]: item["resume_id"] for item in saved_resume_ids if isinstance(item, dict)}
+            _push_jobs_to_tracker(db, uid, ready_jobs_data, resume_id_by_job)
+        except Exception as e:
+            print(f"[AutoPilot] Failed to push jobs to tracker: {e}")
+
+        # ── 5. Finish ─────────────────────────────────────────────────────
         session_ref.update({
             "status": "done",
             "processed": processed,
@@ -443,6 +451,62 @@ def _save_top_tailored_resumes(db, session_id: str, uid: str, base_resume_data: 
         print(f"[AutoPilot] Saved tailored resume: {resume_doc['title']}")
 
     return saved_ids
+
+
+def _push_jobs_to_tracker(db, uid: str, ready_jobs_data: list, resume_id_by_job: dict):
+    """
+    Write each AutoPilot-ready job into the top-level `jobs` collection
+    so it appears in Job Tracker immediately after a session completes.
+    Skips any job that already exists (same title + company) to avoid duplicates.
+    """
+    from routers.referral import list_user_jobs_raw, normalize_source
+
+    existing = list_user_jobs_raw(db, uid)
+    existing_keys = {
+        (r.get("title", "").strip().lower(), r.get("company", "").strip().lower())
+        for r in existing
+    }
+
+    for (job, match, job_id) in ready_jobs_data:
+        title = (job.title or "").strip()
+        company = (job.company or "").strip()
+        key = (title.lower(), company.lower())
+        if key in existing_keys:
+            print(f"[AutoPilot] Tracker: skipping duplicate '{title}' @ '{company}'")
+            continue
+
+        tracker_id = str(uuid.uuid4())
+        resume_id = resume_id_by_job.get(job_id, "")
+        now = _now()
+
+        doc = {
+            "id": tracker_id,
+            "userId": uid,
+            "title": title,
+            "company": company,
+            "location": job.location or "",
+            "link": job.apply_url or job.url or "",
+            "source": normalize_source(job.source or "autopilot"),
+            "jobType": (job.employment_type or "full-time").lower(),
+            "status": "saved",
+            "priority": 2 if match.get("score", 0) >= 80 else 1,
+            "dateDiscovered": now,
+            "createdAt": now,
+            "updatedAt": now,
+            "autoMoveDate": now,
+            "waitingPeriod": 7,
+            "outreach": [],
+            "outreachCount": 0,
+            "tags": ["autopilot"],
+            "notes": f"AutoPilot match: {match.get('score', 0)}%\n" + "\n".join(match.get("reasons", [])),
+            "jobDescription": (job.description or "")[:2000],
+            "sponsorshipRequired": False,
+            "autopilot_resume_id": resume_id,
+            "autopilot_session_job_id": job_id,
+        }
+        db.collection("jobs").document(tracker_id).set(doc)
+        existing_keys.add(key)
+        print(f"[AutoPilot] Tracker: added '{title}' @ '{company}' (score={match.get('score',0)}%)")
 
 
 def _desk_data_to_resume(desk: dict, uid: str) -> dict:

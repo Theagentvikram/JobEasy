@@ -574,6 +574,8 @@ export default function AutoPilotPage() {
           toast.success(`${event.saved_resume_ids.length} tailored resumes saved to Resume Builder!`)
         }
         addLog(`All done! Showing results…`, 'success')
+        // Invalidate Job Tracker so new jobs appear without manual refresh
+        qc.invalidateQueries({ queryKey: ['tracker-jobs'] })
         closeStreamRef.current?.()
         fetchResults(doneMap)
         break
@@ -581,6 +583,7 @@ export default function AutoPilotPage() {
 
       case 'already_done':
         addLog(`All done! Showing results…`, 'success')
+        qc.invalidateQueries({ queryKey: ['tracker-jobs'] })
         closeStreamRef.current?.()
         fetchResults()
         break
