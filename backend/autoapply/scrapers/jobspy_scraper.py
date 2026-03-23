@@ -66,13 +66,38 @@ class JobSpyScraper(BaseScraper):
         return location
 
     @staticmethod
+    def _country_indeed(location: str) -> str:
+        """Map location string to jobspy country_indeed value."""
+        loc = location.strip().lower()
+        mapping = [
+            (["south africa", "cape town", "johannesburg", "durban", "pretoria"], "South Africa"),
+            (["india", "bengaluru", "bangalore", "hyderabad", "mumbai", "delhi", "chennai", "pune"], "India"),
+            (["uk", "united kingdom", "london", "manchester", "birmingham"], "UK"),
+            (["canada", "toronto", "vancouver", "montreal"], "Canada"),
+            (["australia", "sydney", "melbourne", "brisbane"], "Australia"),
+            (["germany", "berlin", "munich", "frankfurt", "hamburg"], "Germany"),
+            (["netherlands", "amsterdam"], "Netherlands"),
+            (["singapore"], "Singapore"),
+            (["uae", "dubai", "abu dhabi"], "UAE"),
+            (["new zealand", "auckland"], "New Zealand"),
+            (["ireland", "dublin"], "Ireland"),
+            (["france", "paris"], "France"),
+            (["brazil", "são paulo", "rio"], "Brazil"),
+            (["remote"], "USA"),  # remote defaults to USA for widest coverage
+        ]
+        for keywords, country in mapping:
+            if any(k in loc for k in keywords):
+                return country
+        # Default USA for unrecognized / US cities
+        return "USA"
+
+    @staticmethod
     def _sites_for_location(location: str, disabled_sources: set) -> list:
-        """Return site list, excluding Glassdoor for non-US/UK/CA locations
-        and ZipRecruiter for non-US/UK/CA. Respects disabled_sources."""
+        """Return site list, excluding Glassdoor/ZipRecruiter for non-US/UK/CA locations."""
         loc_lower = location.lower()
         is_us_uk_ca = any(x in loc_lower for x in [
             "united states", "usa", "us", "uk", "united kingdom",
-            "canada", "remote",  # remote jobs work on Glassdoor for US/UK/CA searchers
+            "canada", "remote",
         ])
         all_sites = ["linkedin", "indeed", "glassdoor", "zip_recruiter"]
         sites = []
@@ -97,14 +122,16 @@ class JobSpyScraper(BaseScraper):
             sites = self._sites_for_location(location, disabled_sources)
             logger.info(f"[JobSpy] Searching '{title}' in '{location}'...")
 
+            country = self._country_indeed(location)
+            logger.info(f"[JobSpy] country_indeed={country} for location='{location}'")
             df = scrape_jobs(
                 site_name=sites,
                 search_term=title,
                 location=location,
                 results_wanted=results,
                 hours_old=hours_old,
-                country_indeed="USA",
-                linkedin_fetch_description=False,  # Fetching each page is slow (~30s extra per search)
+                country_indeed=country,
+                linkedin_fetch_description=False,
                 verbose=0,
             )
 

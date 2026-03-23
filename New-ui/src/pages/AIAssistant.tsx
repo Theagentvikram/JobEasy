@@ -208,8 +208,9 @@ export default function AIAssistant() {
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
+      let streamDone = false
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -217,9 +218,10 @@ export default function AIAssistant() {
         for (const line of chunk.split('\n')) {
           if (!line.startsWith('data: ')) continue
           const data = line.slice(6).trim()
-          if (data === '[DONE]') break
+          if (data === '[DONE]') { streamDone = true; break }
           try {
             const parsed = JSON.parse(data)
+            if (parsed.error) throw new Error(parsed.error)
             if (parsed.token) {
               fullReply += parsed.token
               setMessages((prev) => {
@@ -228,12 +230,13 @@ export default function AIAssistant() {
                 return updated
               })
             }
-          } catch { /* ignore parse errors */ }
+          } catch (e) { console.error('Chat parse error:', e) }
         }
       }
 
       setHistory([...newHistory, { role: 'assistant', content: fullReply }])
-    } catch {
+    } catch (e) {
+      console.error('Chat error:', e)
       setMessages((prev) => {
         const updated = [...prev]
         updated[updated.length - 1] = {

@@ -385,6 +385,7 @@ export default function AutoPilotPage() {
   // Search form
   const [keywords, setKeywords] = useState<string[]>([])
   const [location, setLocation] = useState('Remote')
+  const [locationOpen, setLocationOpen] = useState(false)
   const [resumeText, setResumeText] = useState('')
   const [deskLoaded, setDeskLoaded] = useState(false)
   const [deskName, setDeskName] = useState('')
@@ -735,37 +736,46 @@ export default function AutoPilotPage() {
                   <div className="relative">
                     <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
                     <input
-                      list="location-suggestions"
                       value={location}
-                      onChange={(e) => setLocation(e.target.value)}
+                      onChange={(e) => { setLocation(e.target.value); setLocationOpen(true) }}
+                      onFocus={() => setLocationOpen(true)}
+                      onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
                       placeholder="Remote, United States, etc."
                       className="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
                     />
-                    <datalist id="location-suggestions">
-                      <option value="Remote" />
-                      <option value="United States" />
-                      <option value="United Kingdom" />
-                      <option value="Canada" />
-                      <option value="Australia" />
-                      <option value="India" />
-                      <option value="Germany" />
-                      <option value="Netherlands" />
-                      <option value="Singapore" />
-                      <option value="New York, NY" />
-                      <option value="San Francisco, CA" />
-                      <option value="Austin, TX" />
-                      <option value="Seattle, WA" />
-                      <option value="Chicago, IL" />
-                      <option value="Boston, MA" />
-                      <option value="London, UK" />
-                      <option value="Toronto, Canada" />
-                      <option value="Bengaluru, India" />
-                      <option value="Hyderabad, India" />
-                      <option value="Mumbai, India" />
-                      <option value="Dubai, UAE" />
-                      <option value="Berlin, Germany" />
-                      <option value="Amsterdam, Netherlands" />
-                    </datalist>
+                    {locationOpen && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+                        {[
+                          { group: '🌍 Global', items: ['Remote', 'Worldwide'] },
+                          { group: '🇺🇸 United States', items: ['United States', 'New York, NY', 'San Francisco, CA', 'Seattle, WA', 'Austin, TX', 'Chicago, IL', 'Boston, MA'] },
+                          { group: '🇬🇧 UK & Europe', items: ['United Kingdom', 'London, UK', 'Germany', 'Berlin, Germany', 'Netherlands', 'Amsterdam, Netherlands', 'France', 'Ireland'] },
+                          { group: '🇨🇦 Canada & ANZ', items: ['Canada', 'Toronto, Canada', 'Australia', 'Sydney, Australia', 'New Zealand'] },
+                          { group: '🇮🇳 India', items: ['India', 'Bengaluru, India', 'Hyderabad, India', 'Mumbai, India', 'Delhi, India', 'Pune, India'] },
+                          { group: '🌏 Asia & Middle East', items: ['Singapore', 'Dubai, UAE', 'Abu Dhabi, UAE'] },
+                          { group: '🌍 Africa', items: ['South Africa', 'Cape Town, South Africa', 'Johannesburg, South Africa'] },
+                        ].map(({ group, items }) => {
+                          const filtered = items.filter(i => i.toLowerCase().includes(location.toLowerCase()) || location === '' || location === 'Remote')
+                          if (filtered.length === 0) return null
+                          return (
+                            <div key={group}>
+                              <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900/50 sticky top-0">{group}</div>
+                              {filtered.map(item => (
+                                <button
+                                  key={item}
+                                  onMouseDown={() => { setLocation(item); setLocationOpen(false) }}
+                                  className={cn(
+                                    'w-full text-left px-4 py-2 text-sm hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:text-brand-700 dark:hover:text-brand-400 transition-colors cursor-pointer',
+                                    location === item ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-400 font-medium' : 'text-slate-700 dark:text-slate-300'
+                                  )}
+                                >
+                                  {item}
+                                </button>
+                              ))}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 

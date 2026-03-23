@@ -240,7 +240,9 @@ function ResumeCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{resume.title}</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+              {resume.title?.replace(/^\[AutoPilot\]\s*/, '') || 'Untitled'}
+            </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
               <Clock size={10} />
               {new Date(resume.lastModified).toLocaleDateString()}
@@ -409,20 +411,51 @@ export default function ResumeList() {
             </Button>
           }
         />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {resumes.map((r) => (
-            <ResumeCard key={r.id} resume={r} onDelete={setDeleteId} />
-          ))}
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl h-full min-h-48 flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-500 hover:border-brand-300 dark:hover:border-brand-600 hover:text-brand-600 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 transition-all duration-200 cursor-pointer"
-          >
-            <Plus size={24} />
-            <span className="text-sm font-medium">New resume</span>
-          </button>
-        </div>
-      )}
+      ) : (() => {
+        const manual = resumes.filter(r => !r.title?.startsWith('[AutoPilot]'))
+        const autopilot = resumes.filter(r => r.title?.startsWith('[AutoPilot]'))
+        return (
+          <div className="space-y-8">
+            {/* Manual resumes */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={15} className="text-brand-700" />
+                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">My Resumes</h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500">({manual.length})</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {manual.map((r) => (
+                  <ResumeCard key={r.id} resume={r} onDelete={setDeleteId} />
+                ))}
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl h-full min-h-48 flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-500 hover:border-brand-300 dark:hover:border-brand-600 hover:text-brand-600 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 transition-all duration-200 cursor-pointer"
+                >
+                  <Plus size={24} />
+                  <span className="text-sm font-medium">New resume</span>
+                </button>
+              </div>
+            </div>
+
+            {/* AutoPilot tailored resumes */}
+            {autopilot.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Upload size={15} className="text-purple-600 dark:text-purple-400" />
+                  <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">AutoPilot Tailored</h2>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">({autopilot.length})</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">· AI-tailored per job application</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {autopilot.map((r) => (
+                    <ResumeCard key={r.id} resume={r} onDelete={setDeleteId} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       <Modal
         open={showNewModal}
