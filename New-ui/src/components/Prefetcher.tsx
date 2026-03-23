@@ -84,6 +84,19 @@ export default function Prefetcher() {
       queryFn: () => autoapply.getSettings().then(r => r.data).catch(() => null),
       staleTime: 5 * 60 * 1000,
     })
+
+    // Dashboard — prefetch resumes + scans so home loads instantly
+    qc.prefetchQuery({
+      queryKey: ['dashboard-resumes'],
+      queryFn: () => api.get('/resumes').then(r => Array.isArray(r.data) ? r.data : r.data?.resumes || []),
+      staleTime: 2 * 60 * 1000,
+    })
+
+    qc.prefetchQuery({
+      queryKey: ['dashboard-scans'],
+      queryFn: () => api.get('/ats/history').then(r => Array.isArray(r.data) ? r.data : r.data?.scans || []),
+      staleTime: 2 * 60 * 1000,
+    })
   }, [user?.uid])  // re-run only when user changes (login/logout)
 
   return null
