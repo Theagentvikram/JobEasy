@@ -38,33 +38,36 @@ async def score_job_match(job_title: str, company: str,
     experience = profile.get("experience", [])
     exp_summary = " | ".join(f"{e['title']} at {e['company']}" for e in experience[:3])
 
-    prompt = f"""Score this job match from 0-100.
+    # Build raw resume text if available
+    raw_resume = profile.get("_raw_resume", "")
+    resume_section = f"\nFull resume text:\n{raw_resume[:2000]}" if raw_resume else ""
 
-CANDIDATE:
-- Skills: {', '.join(all_skills[:25])}
-- Experience: {exp_summary}
-- Target roles: {', '.join(prefs.get('titles', []))}
-- Min salary: ${prefs.get('min_salary', 0):,}
-- Needs visa: {prefs.get('visa_sponsorship_needed', False)}
+    prompt = f"""You are an ATS scoring engine. Analyze how well this candidate matches the job and return a JSON score.
 
-JOB:
+CANDIDATE PROFILE:
+- Skills: {', '.join(all_skills[:25]) if all_skills else '(see resume below)'}
+- Experience: {exp_summary if exp_summary else '(see resume below)'}
+{resume_section}
+
+JOB POSTING:
 - Title: {job_title}
 - Company: {company}
-- Requirements: {', '.join((requirements or [])[:15])}
-- Description (first 1500 chars): {description[:1500]}
+- Description: {description[:2000]}
 
-Return JSON:
+Carefully read both the candidate profile and job description. Score based on actual skill overlap, experience level match, and role requirements.
+
+Return ONLY this JSON (no markdown, no explanation):
 {{
-  "score": 85,
-  "tier": "A",
-  "reasons": ["Strong Python match", "Remote OK"],
-  "keywords_matched": ["Python", "FastAPI"],
-  "keywords_missing": ["Kubernetes"],
-  "red_flags": [],
+  "score": <integer 0-100 reflecting true match quality>,
+  "tier": "<A if 80+, B if 65-79, C if 50-64, D if below 50>",
+  "reasons": ["<specific reason 1>", "<specific reason 2>"],
+  "keywords_matched": ["<skill found in both>"],
+  "keywords_missing": ["<important skill in JD but not in resume>"],
+  "red_flags": ["<any dealbreakers>"],
   "salary_likely_ok": true
 }}
 
-Scoring: 90-100=perfect, 70-89=good, 50-69=ok, <50=skip"""
+IMPORTANT: Do NOT use placeholder values. Score must reflect the actual match quality. A perfect DevOps engineer applying for a React role should score 20-30, not 85."""
 
     try:
         result = await chat_json(prompt, fast=True)  # Use fast model for scoring

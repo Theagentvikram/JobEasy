@@ -15,6 +15,7 @@ from autoapply.scrapers.jobspy_scraper import JobSpyScraper
 from autoapply.scrapers.wellfound_scraper import WellfoundScraper
 from autoapply.scrapers.naukri_scraper import NaukriScraper
 from autoapply.scrapers.yc_scraper import YCScraper
+from autoapply.scrapers.local_boards import LocalBoardsScraper
 from autoapply.scrapers.startup_filter import filter_startup_jobs
 from autoapply.scrapers.base import JobListing
 from autoapply.ai.job_matcher import score_job_match, load_profile
@@ -27,7 +28,59 @@ from autoapply.applicator.form_filler import GenericFormFiller
 from autoapply.outreach.gmail_client import send_cold_email, generate_cold_email
 
 
-async def run_full_pipeline(dry_run: bool = False) -> dict:
+def _load_user_settings(user_id: str | None) -> dict:
+    """Load per-user settings from Firestore (falls back to env defaults)."""
+    if not user_id:
+        return {}
+    try:
+        from services.firebase import get_db
+        doc = get_db().collection("autoapply_settings").document(user_id).get()
+        return doc.to_dict() if doc.exists else {}
+    except Exception as e:
+        logger.warning(f"Could not load user settings from Firestore: {e}")
+        return {}
+
+
+def _save_job_to_firestore(user_id: str, db_job, score: float, match: dict):
+    """Mirror a scored job into Firestore so the frontend can read it."""
+    if not user_id:
+        return
+    try:
+        from services.firebase import get_db
+        fs = get_db()
+        doc_ref = (
+            fs.collection("autoapply_jobs")
+            .document(user_id)
+            .collection("jobs")
+            .document(str(db_job.external_id))
+        )
+        doc_ref.set({
+            "external_id": db_job.external_id,
+            "source": db_job.source,
+            "url": db_job.url,
+            "apply_url": db_job.apply_url,
+            "title": db_job.title,
+            "company": db_job.company,
+            "company_domain": db_job.company_domain or "",
+            "location": db_job.location,
+            "is_remote": db_job.is_remote,
+            "salary_min": db_job.salary_min,
+            "salary_max": db_job.salary_max,
+            "match_score": score,
+            "match_reasons": match.get("reasons", []),
+            "keywords_matched": match.get("keywords_matched", []),
+            "keywords_missing": match.get("keywords_missing", []),
+            "status": db_job.status.value if hasattr(db_job.status, "value") else str(db_job.status),
+            "description": (db_job.description or "")[:1000],
+            "discovered_at": datetime.utcnow().isoformat(),
+            "applied_at": None,
+            "cold_email_sent": False,
+        }, merge=True)
+    except Exception as e:
+        logger.warning(f"[Firestore] Failed to mirror job {db_job.external_id}: {e}")
+
+
+async def run_full_pipeline(dry_run: bool = False, user_id: str | None = None, overrides: dict = None) -> dict:
     """
     Full daily pipeline:
     1. Scrape jobs from multiple sources (all free)
@@ -42,9 +95,31 @@ async def run_full_pipeline(dry_run: bool = False) -> dict:
 
     await init_db()
 
+    # Merge env defaults with per-user Firestore overrides
+    user_prefs = _load_user_settings(user_id)
+
+    overrides = overrides or {}
     profile = load_profile()
-    titles = settings.job_titles_list
-    locations = settings.job_locations_list
+    titles_str  = overrides.get("job_titles") or user_prefs.get("job_titles")  or settings.job_titles
+    locs_str    = overrides.get("job_locations") or user_prefs.get("job_locations") or settings.job_locations
+    titles    = [t.strip() for t in titles_str.split(",")  if t.strip()]
+    locations = [l.strip() for l in locs_str.split(",")    if l.strip()]
+
+    # How many results per title/location combo (user-configurable, default 15 for speed)
+    results_per_search = int(overrides.get("results_per_search") or user_prefs.get("results_per_search", 15))
+
+    # Source toggles from user prefs (default True if not set)
+    src_jobspy    = user_prefs.get("sources_jobspy",    True)
+    src_wellfound = user_prefs.get("sources_wellfound", True)
+    src_naukri    = user_prefs.get("sources_naukri",    True)
+    src_yc        = user_prefs.get("sources_yc",        True)
+
+    # Granular per-platform disabled list (comma-separated string or list)
+    _disabled_raw = overrides.get("disabled_sources") or user_prefs.get("disabled_sources", settings.disabled_sources)
+    if isinstance(_disabled_raw, list):
+        disabled_sources = set(_disabled_raw)
+    else:
+        disabled_sources = {s.strip().lower() for s in str(_disabled_raw).split(",") if s.strip()}
 
     stats = {"discovered": 0, "scored": 0, "applied": 0,
              "emails_sent": 0, "skipped": 0, "errors": 0,
@@ -52,6 +127,7 @@ async def run_full_pipeline(dry_run: bool = False) -> dict:
 
     logger.info("=" * 55)
     logger.info("AUTOAPPLY PIPELINE STARTING" + (" [DRY RUN]" if dry_run else ""))
+    logger.info(f"Titles: {titles} | Locations: {locations} | Results/search: {results_per_search}")
     logger.info("=" * 55)
 
     async with AsyncSessionLocal() as db:
@@ -60,61 +136,92 @@ async def run_full_pipeline(dry_run: bool = False) -> dict:
         await db.commit()
 
         try:
-            # ── 1. Scrape jobs from ALL sources ───────────────
-            all_jobs: List[JobListing] = []
+            # ── 1. Scrape jobs from ALL sources IN PARALLEL ────
+            logger.info("📡 Scraping all sources in parallel...")
 
-            # Source 1: JobSpy (LinkedIn, Indeed, Glassdoor, ZipRecruiter)
-            logger.info("📡 [1/4] Scraping via JobSpy (LinkedIn/Indeed/Glassdoor)...")
-            try:
-                jobspy = JobSpyScraper()
-                jobspy_jobs = await jobspy.search(
-                    titles=titles,
-                    locations=locations,
-                    hours_old=24,
-                    results_per_search=25,
-                )
-                all_jobs.extend(jobspy_jobs)
-                stats["by_source"]["jobspy"] = len(jobspy_jobs)
-                logger.info(f"   JobSpy: {len(jobspy_jobs)} jobs")
-            except Exception as e:
-                logger.error(f"   JobSpy failed: {e}")
-                stats["by_source"]["jobspy"] = 0
+            async def _scrape_jobspy():
+                if not src_jobspy:
+                    logger.info("  [JobSpy] skipped")
+                    return []
+                try:
+                    jobs = await JobSpyScraper().search(
+                        titles=titles, locations=locations,
+                        hours_old=24, results_per_search=results_per_search,
+                        disabled_sources=disabled_sources,
+                    )
+                    logger.info(f"  [JobSpy] {len(jobs)} jobs")
+                    return jobs
+                except Exception as e:
+                    logger.error(f"  [JobSpy] failed: {e}")
+                    return []
 
-            # Source 2: Wellfound (funded startups)
-            logger.info("📡 [2/4] Scraping Wellfound (AngelList — funded startups)...")
-            try:
-                wellfound = WellfoundScraper()
-                wf_jobs = await wellfound.search(titles=titles, locations=locations)
-                all_jobs.extend(wf_jobs)
-                stats["by_source"]["wellfound"] = len(wf_jobs)
-                logger.info(f"   Wellfound: {len(wf_jobs)} jobs")
-            except Exception as e:
-                logger.error(f"   Wellfound failed: {e}")
-                stats["by_source"]["wellfound"] = 0
+            async def _scrape_wellfound():
+                if not src_wellfound:
+                    logger.info("  [Wellfound] skipped")
+                    return []
+                try:
+                    jobs = await WellfoundScraper().search(titles=titles, locations=locations)
+                    logger.info(f"  [Wellfound] {len(jobs)} jobs")
+                    return jobs
+                except Exception as e:
+                    logger.error(f"  [Wellfound] failed: {e}")
+                    return []
 
-            # Source 3: Naukri (India — AI startups)
-            logger.info("📡 [3/4] Scraping Naukri.com (India AI startups)...")
-            try:
-                naukri = NaukriScraper()
-                naukri_jobs = await naukri.search(titles=titles, locations=locations)
-                all_jobs.extend(naukri_jobs)
-                stats["by_source"]["naukri"] = len(naukri_jobs)
-                logger.info(f"   Naukri: {len(naukri_jobs)} jobs")
-            except Exception as e:
-                logger.error(f"   Naukri failed: {e}")
-                stats["by_source"]["naukri"] = 0
+            async def _scrape_naukri():
+                if not src_naukri:
+                    logger.info("  [Naukri] skipped")
+                    return []
+                try:
+                    jobs = await NaukriScraper().search(titles=titles, locations=locations)
+                    logger.info(f"  [Naukri] {len(jobs)} jobs")
+                    return jobs
+                except Exception as e:
+                    logger.error(f"  [Naukri] failed: {e}")
+                    return []
 
-            # Source 4: YC Work at a Startup
-            logger.info("📡 [4/4] Scraping YC Work at a Startup...")
-            try:
-                yc = YCScraper()
-                yc_jobs = await yc.search(titles=titles, locations=locations)
-                all_jobs.extend(yc_jobs)
-                stats["by_source"]["yc"] = len(yc_jobs)
-                logger.info(f"   YC WAAS: {len(yc_jobs)} jobs")
-            except Exception as e:
-                logger.error(f"   YC WAAS failed: {e}")
-                stats["by_source"]["yc"] = 0
+            async def _scrape_yc():
+                if not src_yc:
+                    logger.info("  [YC WAAS] skipped")
+                    return []
+                try:
+                    jobs = await YCScraper().search(titles=titles, locations=locations)
+                    logger.info(f"  [YC WAAS] {len(jobs)} jobs")
+                    return jobs
+                except Exception as e:
+                    logger.error(f"  [YC WAAS] failed: {e}")
+                    return []
+
+            async def _scrape_local():
+                try:
+                    jobs = await LocalBoardsScraper().search(
+                        titles=titles, locations=locations,
+                        disabled_sources=disabled_sources,
+                    )
+                    logger.info(f"  [LocalBoards] {len(jobs)} jobs")
+                    return jobs
+                except Exception as e:
+                    logger.error(f"  [LocalBoards] failed: {e}")
+                    return []
+
+            # All 5 sources run simultaneously
+            results = await asyncio.gather(
+                _scrape_jobspy(),
+                _scrape_wellfound(),
+                _scrape_naukri(),
+                _scrape_yc(),
+                _scrape_local(),
+                return_exceptions=False,
+            )
+            jobspy_jobs, wf_jobs, naukri_jobs, yc_jobs, local_jobs = results
+            stats["by_source"] = {
+                "jobspy": len(jobspy_jobs),
+                "wellfound": len(wf_jobs),
+                "naukri": len(naukri_jobs),
+                "yc": len(yc_jobs),
+                "local_boards": len(local_jobs),
+            }
+            all_jobs: List[JobListing] = jobspy_jobs + wf_jobs + naukri_jobs + yc_jobs + local_jobs
+            logger.info(f"📡 Scraping complete — {len(all_jobs)} total jobs from all sources")
 
             # ── 1b. Apply startup filter ──────────────────────
             logger.info("🔍 Filtering for AI startup jobs...")
@@ -186,6 +293,9 @@ async def run_full_pipeline(dry_run: bool = False) -> dict:
                 db.add(db_job)
                 await db.commit()
                 await db.refresh(db_job)
+
+                # Mirror to Firestore so the frontend can read it
+                _save_job_to_firestore(user_id, db_job, score, match)
 
                 if score < settings.match_score_threshold:
                     stats["skipped"] += 1
@@ -263,6 +373,14 @@ async def run_full_pipeline(dry_run: bool = False) -> dict:
                             applications_today += 1
                             stats["applied"] += 1
                             logger.info(f"     ✅ Applied!")
+                            # Update Firestore status
+                            try:
+                                from services.firebase import get_db as _fs
+                                _fs().collection("autoapply_jobs").document(user_id).collection("jobs").document(
+                                    str(db_job.external_id)
+                                ).set({"status": "applied", "applied_at": datetime.utcnow().isoformat()}, merge=True)
+                            except Exception:
+                                pass
 
                         # Cold email
                         if settings.cold_email_enabled and stats["emails_sent"] < settings.daily_email_limit:
@@ -294,6 +412,27 @@ async def run_full_pipeline(dry_run: bool = False) -> dict:
             run_log.emails_sent = stats["emails_sent"]
             run_log.status = "completed"
             await db.commit()
+
+            # Save run to Firestore for pipeline history endpoint
+            if user_id:
+                try:
+                    from services.firebase import get_db as _fs
+                    import uuid as _uuid
+                    _fs().collection("autoapply_runs").document(user_id).collection("runs").document(
+                        str(_uuid.uuid4())
+                    ).set({
+                        "started_at": run_log.started_at.isoformat() if run_log.started_at else None,
+                        "finished_at": run_log.finished_at.isoformat(),
+                        "status": "completed",
+                        "dry_run": dry_run,
+                        "discovered": stats["discovered"],
+                        "scored": stats["scored"],
+                        "applied": stats["applied"],
+                        "emails_sent": stats["emails_sent"],
+                        "by_source": stats.get("by_source", {}),
+                    })
+                except Exception as e:
+                    logger.warning(f"[Firestore] Failed to save run log: {e}")
 
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")

@@ -27,8 +27,9 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { autoapply, type AutoApplyStats, type AutoApplyJob, type PipelineRun, type AutoApplySettings } from '../services/autoapply'
-import { Card, Button, Badge, Spinner, EmptyState } from '../components/ui'
+import { Card, Button, Badge, Spinner, EmptyState, Skeleton } from '../components/ui'
 import { toast } from '../lib/toast'
+import PipelineProgressModal from '../components/PipelineProgressModal'
 
 // ─── Source config ──────────────────────────────────────────────────────────
 
@@ -270,6 +271,55 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   )
 }
 
+// ─── Model selector component ─────────────────────────────────────────────────
+
+function ModelSelect({
+  value,
+  options,
+  onChange,
+}: {
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  const isCustom = value !== '' && !options.some(o => o.value === value)
+  const [showCustom, setShowCustom] = useState(isCustom)
+
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <select
+          value={isCustom || showCustom ? '__custom__' : value}
+          onChange={e => {
+            if (e.target.value === '__custom__') {
+              setShowCustom(true)
+            } else {
+              setShowCustom(false)
+              onChange(e.target.value)
+            }
+          }}
+          className="w-full appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-9 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
+        >
+          {options.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+          <option value="__custom__">Custom model ID…</option>
+        </select>
+        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
+      {(showCustom || isCustom) && (
+        <input
+          type="text"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder="e.g. llama3-8b-8192"
+          className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
+        />
+      )}
+    </div>
+  )
+}
+
 // ─── Settings form state ──────────────────────────────────────────────────────
 
 function emptySettings(): AutoApplySettings {
@@ -285,6 +335,9 @@ function emptySettings(): AutoApplySettings {
     groq_api_key: '',
     openai_api_key: '',
     anthropic_api_key: '',
+    ollama_host: 'http://192.168.31.246:11434',
+    ollama_model: 'gemma3:1b',
+    ollama_fast_model: 'qwen2.5:1.5b',
     cold_email_enabled: false,
     daily_email_limit: 10,
     email_delay_seconds: 30,
@@ -294,32 +347,320 @@ function emptySettings(): AutoApplySettings {
     linkedin_password: '',
     pipeline_hour: 9,
     pipeline_minute: 0,
+    sources_jobspy: true,
+    sources_wellfound: true,
+    sources_naukri: true,
+    sources_yc: true,
     sources: [],
+    results_per_search: 15,
   }
+}
+
+// ─── Quick Run Modal ──────────────────────────────────────────────────────────
+
+const QUICK_SOURCES = [
+  { key: 'linkedin',  label: 'LinkedIn' },
+  { key: 'indeed',    label: 'Indeed' },
+  { key: 'glassdoor', label: 'Glassdoor' },
+  { key: 'wellfound', label: 'Wellfound' },
+  { key: 'naukri',    label: 'Naukri' },
+  { key: 'yc_waas',   label: 'YC Startups' },
+]
+
+function QuickRunModal({
+  open,
+  settings,
+  onClose,
+  onRun,
+}: {
+  open: boolean
+  settings: AutoApplySettings
+  onClose: () => void
+  onRun: (dryRun: boolean, overrides: { job_titles?: string; job_locations?: string; results_per_search?: number; disabled_sources?: string }) => void
+}) {
+  const defaultTitles = tagsFromString(settings.job_titles)
+  const defaultLocations = tagsFromString(settings.job_locations)
+  const defaultEnabled = settings.sources && settings.sources.length > 0
+    ? settings.sources
+    : QUICK_SOURCES.map(s => s.key)
+
+  const [titles, setTitles] = useState<string[]>(defaultTitles)
+  const [locations, setLocations] = useState<string[]>(defaultLocations)
+  const [enabled, setEnabled] = useState<string[]>(defaultEnabled)
+  const [results, setResults] = useState(settings.results_per_search || 15)
+
+  // Reset when reopened
+  useEffect(() => {
+    if (open) {
+      setTitles(tagsFromString(settings.job_titles))
+      setLocations(tagsFromString(settings.job_locations))
+      setEnabled(settings.sources && settings.sources.length > 0 ? settings.sources : QUICK_SOURCES.map(s => s.key))
+      setResults(settings.results_per_search || 15)
+    }
+  }, [open, settings])
+
+  if (!open) return null
+
+  const toggleSource = (key: string) => {
+    setEnabled(prev => prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key])
+  }
+
+  const buildOverrides = () => {
+    const allKeys = QUICK_SOURCES.map(s => s.key)
+    const disabled = allKeys.filter(k => !enabled.includes(k))
+    return {
+      job_titles: titles.join(', '),
+      job_locations: locations.join(', '),
+      results_per_search: results,
+      disabled_sources: disabled.join(','),
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Configure this run</p>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 cursor-pointer"><X size={15} /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Roles */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job Titles</label>
+            <TagInput tags={titles} onChange={setTitles} placeholder="e.g. Software Engineer" />
+          </div>
+
+          {/* Locations */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Locations</label>
+            <TagInput tags={locations} onChange={setLocations} placeholder="e.g. Remote, New York" />
+          </div>
+
+          {/* Sources */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sources</label>
+            <div className="grid grid-cols-3 gap-2">
+              {QUICK_SOURCES.map(src => {
+                const on = enabled.includes(src.key)
+                return (
+                  <label key={src.key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${on ? 'border-brand-400 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-700' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
+                    <input type="checkbox" className="sr-only" checked={on} onChange={() => toggleSource(src.key)} />
+                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 ${on ? 'bg-brand-700 border-brand-700' : 'border-slate-300 dark:border-slate-500'}`}>
+                      {on && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </div>
+                    <span className={`text-xs font-medium ${on ? 'text-brand-700 dark:text-brand-400' : 'text-slate-500 dark:text-slate-400'}`}>{src.label}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Results per search */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Jobs per search — {results} <span className="normal-case font-normal text-slate-400">(lower = faster)</span>
+            </label>
+            <input
+              type="range" min={5} max={50} step={5}
+              value={results}
+              onChange={e => setResults(Number(e.target.value))}
+              className="w-full accent-brand-700 cursor-pointer h-1.5"
+            />
+            <div className="flex justify-between text-[10px] text-slate-400">
+              <span>5 (fast ~30s)</span>
+              <span>25 (balanced)</span>
+              <span>50 (thorough)</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 pb-5 flex gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={() => { onClose(); onRun(true, buildOverrides()) }}>
+            <Eye size={13} /> Dry Run
+          </Button>
+          <Button size="sm" onClick={() => { onClose(); onRun(false, buildOverrides()) }}>
+            <Rocket size={13} /> Run Pipeline
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const ALL_SOURCES = [
   {
-    key: 'jobspy',
-    label: 'LinkedIn / Indeed / Glassdoor (via JobSpy)',
-    desc: 'Scrapes the three biggest job boards using the JobSpy library',
+    key: 'linkedin',
+    label: 'LinkedIn',
+    desc: 'Scraped via JobSpy — works reliably for most searches.',
+    warning: null,
+  },
+  {
+    key: 'indeed',
+    label: 'Indeed',
+    desc: 'Scraped via JobSpy — generally stable across countries.',
+    warning: null,
+  },
+  {
+    key: 'glassdoor',
+    label: 'Glassdoor',
+    desc: 'Scraped via JobSpy — Glassdoor actively blocks scrapers. Expect failures ~70–80% of the time.',
+    warning: 'Glassdoor blocks automated scraping frequently. Disable if you see repeated errors.',
+  },
+  {
+    key: 'zip_recruiter',
+    label: 'ZipRecruiter',
+    desc: 'Scraped via JobSpy — US/Canada/UK only. Disabled automatically for other countries.',
+    warning: 'Only works for US, Canada, and UK locations. Ignored for other countries.',
   },
   {
     key: 'wellfound',
     label: 'Wellfound',
     desc: 'YC-backed startup jobs from Wellfound (formerly AngelList)',
+    warning: null,
   },
   {
     key: 'naukri',
     label: 'Naukri.com',
-    desc: 'India\'s largest job portal, best for Bangalore/Delhi/Hyderabad roles',
+    desc: 'India\'s largest job portal — best for Bangalore, Delhi, Hyderabad roles.',
+    warning: null,
   },
   {
     key: 'yc_waas',
     label: 'YC Work at a Startup',
-    desc: 'Direct listings from Y Combinator portfolio companies',
+    desc: 'Direct listings from Y Combinator portfolio companies.',
+    warning: null,
+  },
+  // ── Country-specific boards (auto-activated based on location) ──────────────
+  {
+    key: 'pnet',
+    label: 'PNet (South Africa)',
+    desc: 'South Africa\'s largest job portal. Auto-used when location is in South Africa.',
+    warning: null,
+  },
+  {
+    key: 'careerjunction',
+    label: 'CareerJunction (South Africa)',
+    desc: 'Popular SA job board covering Johannesburg, Cape Town, Durban & more.',
+    warning: null,
+  },
+  {
+    key: 'timesjobs',
+    label: 'TimesJobs (India)',
+    desc: 'Indian job board from the Times Group. Auto-used for Indian locations.',
+    warning: null,
+  },
+  {
+    key: 'reed',
+    label: 'Reed.co.uk (UK)',
+    desc: 'UK\'s largest job board. Auto-used for UK locations.',
+    warning: null,
+  },
+  {
+    key: 'jora_au',
+    label: 'Jora (Australia)',
+    desc: 'Australian job aggregator. Auto-used for AU locations.',
+    warning: null,
+  },
+  {
+    key: 'bayt',
+    label: 'Bayt (UAE / Middle East)',
+    desc: 'Middle East\'s largest job board. Auto-used for UAE/Dubai locations.',
+    warning: null,
+  },
+  {
+    key: 'mycareersfuture',
+    label: 'MyCareersFuture (Singapore)',
+    desc: 'Singapore government official job portal with public API.',
+    warning: null,
+  },
+  {
+    key: 'jobbank_ca',
+    label: 'Job Bank (Canada)',
+    desc: 'Canada\'s official government job board. Auto-used for Canadian locations.',
+    warning: null,
   },
 ]
+
+const PROVIDER_MODELS: Record<string, { value: string; label: string }[]> = {
+  groq: [
+    { value: '', label: 'Default (llama3-8b-8192)' },
+    { value: 'llama-3.3-70b-versatile', label: 'LLaMA 3.3 70B Versatile (best quality)' },
+    { value: 'llama3-8b-8192', label: 'LLaMA 3 8B (fast)' },
+    { value: 'llama3-70b-8192', label: 'LLaMA 3 70B' },
+    { value: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B (long context)' },
+    { value: 'gemma2-9b-it', label: 'Gemma 2 9B' },
+  ],
+  openai: [
+    { value: '', label: 'Default (gpt-4o-mini)' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini (fast & cheap)' },
+    { value: 'gpt-4o', label: 'GPT-4o (best quality)' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (cheapest)' },
+  ],
+  anthropic: [
+    { value: '', label: 'Default (claude-3-haiku-20240307)' },
+    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (fast & cheap)' },
+    { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (best quality)' },
+    { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+  ],
+  ollama: [
+    { value: '', label: 'Default (gemma3:1b)' },
+    { value: 'gemma3:1b', label: 'Gemma 3 1B (fast, Pi-friendly)' },
+    { value: 'gemma3:4b', label: 'Gemma 3 4B' },
+    { value: 'qwen2.5:1.5b', label: 'Qwen 2.5 1.5B (very fast)' },
+    { value: 'qwen2.5:3b', label: 'Qwen 2.5 3B' },
+    { value: 'llama3.2:1b', label: 'LLaMA 3.2 1B' },
+    { value: 'llama3.2:3b', label: 'LLaMA 3.2 3B' },
+    { value: 'phi3.5', label: 'Phi-3.5 (3.8B)' },
+  ],
+}
+
+// ─── Source row component ─────────────────────────────────────────────────────
+
+function SourceRow({
+  src,
+  enabled,
+  onToggle,
+}: {
+  src: { key: string; label: string; desc: string; warning: string | null }
+  enabled: boolean
+  onToggle: (key: string) => void
+}) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer group rounded-lg border border-slate-100 dark:border-slate-700 px-3 py-2.5 hover:border-brand-200 dark:hover:border-brand-800 transition-colors">
+      <div className="relative mt-0.5 flex-shrink-0">
+        <input type="checkbox" className="sr-only peer" checked={enabled} onChange={() => onToggle(src.key)} />
+        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-500 peer-checked:bg-brand-700 peer-checked:border-brand-700 transition-colors flex items-center justify-center">
+          {enabled && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
+              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className={`text-sm font-medium transition-colors ${enabled ? 'text-slate-800 dark:text-slate-200 group-hover:text-brand-700 dark:group-hover:text-brand-400' : 'text-slate-400 dark:text-slate-500 line-through'}`}>
+            {src.label}
+          </p>
+          {!enabled && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500">OFF</span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{src.desc}</p>
+        {src.warning && (
+          <div className="flex items-start gap-1.5 mt-1.5">
+            <AlertTriangle size={10} className="text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">{src.warning}</p>
+          </div>
+        )}
+      </div>
+    </label>
+  )
+}
 
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
 
@@ -351,6 +692,8 @@ function SettingsTab({
   const jobLocationTags = tagsFromString(form.job_locations)
   const blacklistTags = tagsFromString(form.blacklist_companies)
 
+  const isOllama = form.ai_provider === 'ollama'
+
   const activeApiKey = () => {
     if (form.ai_provider === 'groq') return form.groq_api_key
     if (form.ai_provider === 'openai') return form.openai_api_key
@@ -368,7 +711,16 @@ function SettingsTab({
     setSaving(true)
     setSaveError('')
     try {
-      await autoapply.updateSettings(form)
+      // Derive disabled_sources string from enabled sources array
+      const payload = { ...form }
+      if (form.sources && form.sources.length > 0) {
+        const allKnown = Object.keys(SOURCE_BOOL_KEYS)
+        const disabled = allKnown.filter(k => !form.sources!.includes(k))
+        payload.disabled_sources = disabled.join(',')
+      } else {
+        payload.disabled_sources = ''
+      }
+      await autoapply.updateSettings(payload)
       setDirty(false)
       toast('Settings saved', 'success')
       onSaved()
@@ -382,6 +734,21 @@ function SettingsTab({
   }
 
   const handleTestConnection = async () => {
+    if (isOllama) {
+      if (!form.ollama_host) { setTestMsg('Enter the Ollama host URL first'); setTestState('fail'); return }
+      setTestState('testing')
+      setTestMsg('')
+      try {
+        await autoapply.testConnection('ollama', '', form.ollama_host)
+        setTestState('ok')
+        setTestMsg('Connected to Ollama — models loaded from Pi')
+      } catch (err: unknown) {
+        setTestState('fail')
+        const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Cannot reach Ollama host'
+        setTestMsg(msg)
+      }
+      return
+    }
     const key = activeApiKey()
     if (!key) { setTestMsg('Enter an API key first'); setTestState('fail'); return }
     setTestState('testing')
@@ -397,18 +764,57 @@ function SettingsTab({
     }
   }
 
-  const toggleSource = (key: string) => {
+  const SOURCE_BOOL_KEYS: Record<string, keyof AutoApplySettings | undefined> = {
+    linkedin: 'sources_jobspy',
+    indeed: 'sources_jobspy',
+    glassdoor: 'sources_jobspy',
+    zip_recruiter: 'sources_jobspy',
+    wellfound: 'sources_wellfound',
+    naukri: 'sources_naukri',
+    yc_waas: 'sources_yc',
+    // Country-specific boards: tracked only in sources[] array
+    pnet: undefined,
+    careerjunction: undefined,
+    timesjobs: undefined,
+    reed: undefined,
+    jora_au: undefined,
+    bayt: undefined,
+    mycareersfuture: undefined,
+    jobbank_ca: undefined,
+  }
+
+  // For granular per-platform control we track enabled platforms in the `sources` array
+  // and also mirror to the coarse boolean fields for the backend
+  const isSourceEnabled = (key: string): boolean => {
     const current = form.sources || []
+    if (current.length === 0) return true // all on by default when nothing is set
+    return current.includes(key)
+  }
+
+  const toggleSource = (key: string) => {
+    // Start from "all enabled" if sources is empty
+    const current = form.sources && form.sources.length > 0
+      ? form.sources
+      : ALL_SOURCES.map(s => s.key)
     const updated = current.includes(key)
       ? current.filter(s => s !== key)
       : [...current, key]
     set('sources', updated)
+    // Mirror to coarse boolean fields for JobSpy-grouped sources
+    const boolKey = SOURCE_BOOL_KEYS[key]
+    if (boolKey && boolKey !== 'sources_jobspy') {
+      set(boolKey, updated.includes(key) as AutoApplySettings[typeof boolKey])
+    }
+    // sources_jobspy = true if any of the JobSpy-powered platforms is on
+    const jobspyOn = ['linkedin', 'indeed', 'glassdoor', 'zip_recruiter'].some(k => updated.includes(k))
+    set('sources_jobspy', jobspyOn)
   }
 
   const providerOptions = [
     { value: 'groq', label: 'Groq (Free)' },
     { value: 'openai', label: 'OpenAI' },
     { value: 'anthropic', label: 'Anthropic / Claude' },
+    { value: 'ollama', label: 'Ollama (Local / Raspberry Pi)' },
   ]
 
   return (
@@ -526,31 +932,26 @@ function SettingsTab({
 
       {/* Section 2: Sources */}
       <SectionCard title="Sources to Scrape" icon={Globe}>
-        <div className="space-y-3">
-          {ALL_SOURCES.map(src => (
-            <label key={src.key} className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative mt-0.5 flex-shrink-0">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={(form.sources || []).includes(src.key)}
-                  onChange={() => toggleSource(src.key)}
-                />
-                <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-500 peer-checked:bg-brand-700 peer-checked:border-brand-700 transition-colors flex items-center justify-center">
-                  {(form.sources || []).includes(src.key) && (
-                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors">
-                  {src.label}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{src.desc}</p>
-              </div>
-            </label>
+        <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 mb-3">
+          Toggle platforms on/off. Country-specific boards activate automatically based on your job locations.
+        </p>
+
+        {/* Global platforms */}
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Global Platforms</p>
+        <div className="space-y-2 mb-4">
+          {ALL_SOURCES.filter(s => ['linkedin','indeed','glassdoor','zip_recruiter','wellfound','naukri','yc_waas'].includes(s.key)).map(src => (
+            <SourceRow key={src.key} src={src} enabled={isSourceEnabled(src.key)} onToggle={toggleSource} />
+          ))}
+        </div>
+
+        {/* Country-specific platforms */}
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Country-Specific Boards</p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+          These activate automatically when your job locations include cities from that country.
+        </p>
+        <div className="space-y-2">
+          {ALL_SOURCES.filter(s => !['linkedin','indeed','glassdoor','zip_recruiter','wellfound','naukri','yc_waas'].includes(s.key)).map(src => (
+            <SourceRow key={src.key} src={src} enabled={isSourceEnabled(src.key)} onToggle={toggleSource} />
           ))}
         </div>
       </SectionCard>
@@ -572,23 +973,76 @@ function SettingsTab({
           </div>
         </Field>
 
-        <div className="flex gap-3 items-end">
-          <div className="flex-1">
-            <PasswordField
-              label={`${providerOptions.find(o => o.value === form.ai_provider)?.label ?? 'API'} Key`}
-              value={activeApiKey()}
-              onChange={setActiveApiKey}
-              placeholder="sk-…"
-              helper={
-                form.ai_provider === 'groq'
-                  ? <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-700">Get free Groq key →</a>
-                  : form.ai_provider === 'openai'
-                  ? <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-700">Get OpenAI key →</a>
-                  : <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-700">Get Anthropic key →</a>
-              }
-            />
+        {/* Ollama: host + model fields */}
+        {isOllama ? (
+          <div className="space-y-4 pt-1">
+            <div className="flex items-start gap-2 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50 rounded-lg px-3 py-2.5">
+              <span className="text-base flex-shrink-0">🥧</span>
+              <p className="text-xs text-violet-700 dark:text-violet-300">
+                Running AI locally on your Raspberry Pi — no API key needed, zero cost. Make sure Ollama is running on the Pi.
+              </p>
+            </div>
+            <Field label="Ollama Host" hint="URL of the machine running Ollama (e.g. your Raspberry Pi's IP)">
+              <input
+                type="text"
+                value={form.ollama_host}
+                onChange={e => set('ollama_host', e.target.value)}
+                placeholder="http://192.168.1.x:11434"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
+              />
+            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Main Model" hint="Used for resume scoring & cover letters">
+                <ModelSelect
+                  value={form.ollama_model}
+                  options={PROVIDER_MODELS.ollama}
+                  onChange={v => set('ollama_model', v)}
+                />
+              </Field>
+              <Field label="Fast Model" hint="Used for quick classification tasks">
+                <ModelSelect
+                  value={form.ollama_fast_model}
+                  options={PROVIDER_MODELS.ollama}
+                  onChange={v => set('ollama_fast_model', v)}
+                />
+              </Field>
+            </div>
           </div>
-          <div className="flex-shrink-0 pb-6">
+        ) : (
+          /* Cloud provider: API key field */
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <PasswordField
+                label={`${providerOptions.find(o => o.value === form.ai_provider)?.label ?? 'API'} Key`}
+                value={activeApiKey()}
+                onChange={setActiveApiKey}
+                placeholder="sk-…"
+                helper={
+                  form.ai_provider === 'groq'
+                    ? <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-700">Get free Groq key →</a>
+                    : form.ai_provider === 'openai'
+                    ? <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-700">Get OpenAI key →</a>
+                    : <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-700">Get Anthropic key →</a>
+                }
+              />
+            </div>
+            <div className="flex-shrink-0 pb-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConnection}
+                disabled={testState === 'testing' || !engineUp}
+                loading={testState === 'testing'}
+              >
+                Test
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Test connection for Ollama */}
+        {isOllama && (
+          <div className="flex justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -596,10 +1050,10 @@ function SettingsTab({
               disabled={testState === 'testing' || !engineUp}
               loading={testState === 'testing'}
             >
-              Test
+              Test connection
             </Button>
           </div>
-        </div>
+        )}
 
         {testState !== 'idle' && (
           <div className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
@@ -615,19 +1069,16 @@ function SettingsTab({
           </div>
         )}
 
-        <Field label="Model Override" hint="Leave blank to use the default model for the selected provider">
-          <input
-            type="text"
-            value={form.ai_model}
-            onChange={e => set('ai_model', e.target.value)}
-            placeholder={
-              form.ai_provider === 'groq' ? 'Default: llama3-8b-8192'
-              : form.ai_provider === 'openai' ? 'Default: gpt-4o-mini'
-              : 'Default: claude-3-haiku-20240307'
-            }
-            className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
-          />
-        </Field>
+        {/* Per-provider model selector */}
+        {!isOllama && (
+          <Field label="Model" hint="Choose a preset or leave on default">
+            <ModelSelect
+              value={form.ai_model}
+              options={PROVIDER_MODELS[form.ai_provider] ?? [{ value: '', label: 'Default' }]}
+              onChange={v => set('ai_model', v)}
+            />
+          </Field>
+        )}
       </SectionCard>
 
       {/* Section 4: Cold Email */}
@@ -785,7 +1236,7 @@ function OverviewTab({
   stats,
   history,
   running,
-  onRun,
+  onOpenQuickRun,
   onRefresh,
   sourceFilter,
   setSourceFilter,
@@ -793,7 +1244,7 @@ function OverviewTab({
   stats: AutoApplyStats | null
   history: PipelineRun[]
   running: boolean
-  onRun: (dry: boolean) => void
+  onOpenQuickRun: () => void
   onRefresh: () => void
   sourceFilter: string
   setSourceFilter: (s: string) => void
@@ -806,10 +1257,7 @@ function OverviewTab({
           AI-powered job discovery · runs automatically each day
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => onRun(true)} disabled={running}>
-            <Play size={14} /> Dry Run
-          </Button>
-          <Button size="sm" onClick={() => onRun(false)} disabled={running} loading={running}>
+          <Button size="sm" onClick={onOpenQuickRun} disabled={running} loading={running}>
             <Rocket size={14} /> Run Pipeline
           </Button>
         </div>
@@ -1062,6 +1510,9 @@ export default function AutoApply() {
   const [loading, setLoading] = useState(true)
   const [engineUp, setEngineUp] = useState<boolean | null>(null)
   const [running, setRunning] = useState(false)
+  const [showProgress, setShowProgress] = useState(false)
+  const [progressDryRun, setProgressDryRun] = useState(false)
+  const [showQuickRun, setShowQuickRun] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<TabId>('overview')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
@@ -1084,7 +1535,7 @@ export default function AutoApply() {
     try {
       const [statsRes, jobsRes, historyRes, settingsRes] = await Promise.all([
         autoapply.getStats(),
-        autoapply.getJobs(0, 100),
+        autoapply.getAllJobs(0, 200),   // pulls from autopilot sessions + pipeline
         autoapply.getPipelineHistory(10),
         autoapply.getSettings().catch(() => ({ data: null })),
       ])
@@ -1101,13 +1552,13 @@ export default function AutoApply() {
 
   useEffect(() => { fetchAll() }, [])
 
-  const handleRun = async (dryRun: boolean) => {
+  const handleRun = async (dryRun: boolean, overrides?: Parameters<typeof autoapply.triggerPipeline>[1]) => {
     setRunning(true)
     setError('')
     try {
-      await autoapply.triggerPipeline(dryRun)
-      toast(dryRun ? 'Dry run triggered — check logs' : 'Pipeline started!', 'success')
-      setTimeout(() => fetchAll(true), 3000)
+      await autoapply.triggerPipeline(dryRun, overrides)
+      setProgressDryRun(dryRun)
+      setShowProgress(true)
     } catch {
       setError('Failed to trigger pipeline')
       toast('Failed to trigger pipeline', 'error')
@@ -1116,10 +1567,26 @@ export default function AutoApply() {
     }
   }
 
+  const handleOpenQuickRun = () => setShowQuickRun(true)
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Spinner size={28} />
+      <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-6 w-28 rounded-full" />
+        </div>
+        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-px">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-9 w-24 rounded-t-lg" />)}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
       </div>
     )
   }
@@ -1141,6 +1608,18 @@ export default function AutoApply() {
   const currentTab = engineUp === false ? 'settings' : activeTab
 
   return (
+    <>
+    <PipelineProgressModal
+      open={showProgress}
+      dryRun={progressDryRun}
+      onClose={() => { setShowProgress(false); fetchAll(true) }}
+    />
+    <QuickRunModal
+      open={showQuickRun}
+      settings={settings || emptySettings()}
+      onClose={() => setShowQuickRun(false)}
+      onRun={(dry, overrides) => handleRun(dry, overrides)}
+    />
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       {/* Page header */}
       <div className="flex items-start justify-between">
@@ -1235,7 +1714,7 @@ export default function AutoApply() {
             stats={stats}
             history={history}
             running={running}
-            onRun={handleRun}
+            onOpenQuickRun={handleOpenQuickRun}
             onRefresh={() => fetchAll(true)}
             sourceFilter={sourceFilter}
             setSourceFilter={setSourceFilter}
@@ -1263,5 +1742,6 @@ export default function AutoApply() {
         )}
       </div>
     </div>
+    </>
   )
 }

@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     openclaw_api_key: str = ""
     openclaw_base_url: str = ""
 
+    # Ollama — local model server (Raspberry Pi or any machine running Ollama)
+    ollama_host: str = "http://192.168.31.246:11434"
+    ollama_model: str = "gemma3:1b"
+    ollama_fast_model: str = "qwen2.5:1.5b"
+
     # ── Email (Gmail SMTP - free) ─────────────────────────────
     gmail_sender_email: str = ""
     gmail_app_password: str = ""        # myaccount.google.com/apppasswords
@@ -45,6 +50,10 @@ class Settings(BaseSettings):
     cold_email_enabled: bool = True
     daily_email_limit: int = 15
     email_delay_seconds: int = 45
+
+    # ── Source toggles ────────────────────────────────────────
+    # Comma-separated list of source keys to DISABLE (empty = all enabled)
+    disabled_sources: str = ""
 
     # ── Schedule ──────────────────────────────────────────────
     pipeline_hour: int = 9             # Run daily at this hour (24h, UTC)

@@ -12,17 +12,26 @@ router = APIRouter(prefix="/referral", tags=["Referral Flow"])
 
 STATUS_ALIASES = {
     "waiting_for_referral": JobStatus.WAITING_REFERRAL,
+    # Legacy → new
+    "waitingReferral": JobStatus.SAVED,
+    "waiting_referral": JobStatus.SAVED,
+    "referral_received": JobStatus.SAVED,
+    "apply_today": JobStatus.SAVED,
+    "closed": JobStatus.REJECTED,
+    "withdrawn": JobStatus.REJECTED,
 }
 
 VALID_JOB_STATUSES = {
-    JobStatus.WAITING_REFERRAL,
-    JobStatus.REFERRAL_RECEIVED,
-    JobStatus.APPLY_TODAY,
+    JobStatus.SAVED,
     JobStatus.APPLIED,
     JobStatus.INTERVIEW,
     JobStatus.OFFER,
     JobStatus.REJECTED,
     JobStatus.WITHDRAWN,
+    # Legacy — kept so old docs can still be updated
+    JobStatus.WAITING_REFERRAL,
+    JobStatus.REFERRAL_RECEIVED,
+    JobStatus.APPLY_TODAY,
     JobStatus.CLOSED,
 }
 
@@ -51,6 +60,7 @@ TERMINAL_STATUSES = {
     JobStatus.REJECTED,
     JobStatus.WITHDRAWN,
     JobStatus.CLOSED,
+    JobStatus.OFFER,
 }
 
 
@@ -79,10 +89,10 @@ def parse_dt(value: Optional[str]) -> Optional[datetime]:
 
 
 def normalize_status(status: Optional[str]) -> str:
-    normalized = (status or JobStatus.WAITING_REFERRAL).strip().lower()
-    normalized = STATUS_ALIASES.get(normalized, normalized)
+    raw = (status or JobStatus.SAVED).strip()
+    normalized = STATUS_ALIASES.get(raw, STATUS_ALIASES.get(raw.lower(), raw.lower()))
     if normalized not in VALID_JOB_STATUSES:
-        return JobStatus.WAITING_REFERRAL
+        return JobStatus.SAVED
     return normalized
 
 

@@ -35,8 +35,8 @@ trap 'cleanup; exit' EXIT
 echo -e "${CYAN}Starting services...${NC}"
 
 # Frontend
-echo -e "${GREEN}▶ New-ui frontend → :5173${NC}"
-(cd "$NEWUI_DIR" && VITE_API_URL=http://localhost:8000 npx vite --port 5173 --host 2>&1 | sed "s/^/[frontend] /") &
+echo -e "${GREEN}▶ New-ui frontend → :5173/new/${NC}"
+(cd "$NEWUI_DIR" && VITE_API_URL=http://localhost:8000 npx vite --port 5173 --host --base /new/ 2>&1 | sed "s/^/[frontend] /") &
 PIDS+=($!)
 
 # Backend (with AutoApply integrated)
@@ -48,7 +48,7 @@ echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║           ${GREEN}JobEasy Dev Environment${CYAN}               ║${NC}"
 echo -e "${CYAN}╠══════════════════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║${NC}  Frontend:  ${GREEN}http://localhost:5173${NC}               ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  Frontend:  ${GREEN}http://localhost:5173/new/${NC}          ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  Backend:   ${GREEN}http://localhost:8000${NC}               ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  API Docs:  ${GREEN}http://localhost:8000/docs${NC}          ${CYAN}║${NC}"
 echo -e "${CYAN}╠══════════════════════════════════════════════════╣${NC}"

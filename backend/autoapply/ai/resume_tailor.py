@@ -54,34 +54,36 @@ async def tailor_resume(job_title: str, company: str,
     if not base_resume_text:
         base_resume_text = _profile_to_text(profile)
 
-    keywords = ""
-    if match_data:
-        keywords = f"Emphasize: {', '.join(match_data.get('keywords_matched', []))}"
+    keywords_present = match_data.get('keywords_matched', []) if match_data else []
+    keywords_missing = match_data.get('keywords_missing', []) if match_data else []
 
-    prompt = f"""Rewrite this resume to maximize ATS match for the job below.
+    prompt = f"""You are an expert resume writer. Rewrite the candidate's resume to maximise ATS score for the specific job below.
 
 JOB: {job_title} at {company}
-{keywords}
 
-JOB DESCRIPTION (key parts):
+JOB DESCRIPTION:
 {job_description[:2500]}
 
 CURRENT RESUME:
 {base_resume_text[:2500]}
 
-Rules:
-- Reorder bullet points to lead with most relevant experience
-- Use exact keywords from the job description naturally
-- Keep all facts TRUE - only reframe, never fabricate
-- Quantify achievements where possible
+KEYWORDS ALREADY PRESENT: {', '.join(keywords_present[:15]) if keywords_present else 'see resume'}
+KEYWORDS TO ADD (missing from resume but required by JD): {', '.join(keywords_missing[:15]) if keywords_missing else 'extract from JD'}
 
-Return JSON:
+Rules:
+- Rewrite EVERY bullet point to be more relevant to this specific job
+- Naturally weave in ALL missing keywords where truthfully applicable
+- Lead each bullet with a strong action verb + metric where possible
+- Keep all facts TRUE — only reframe, never fabricate
+- Reorder experience bullets to put most relevant ones first
+- Update the summary to directly address this role
+
+Return ONLY valid JSON (no markdown fences):
 {{
-  "resume_markdown": "# Full Name\\n...(complete tailored resume)...",
-  "summary_statement": "2-sentence tailored professional summary",
-  "key_changes": ["Moved AWS experience to top", "Added microservices keyword"],
-  "ats_keywords_added": ["distributed systems", "CI/CD"],
-  "cover_letter_hooks": ["your focus on ML infra matches my experience at X"]
+  "resume_markdown": "# Full Name\\n...(complete rewritten resume in markdown)...",
+  "summary_statement": "2-3 sentence tailored professional summary targeting this specific role",
+  "key_changes": ["Added Kubernetes keyword to DevOps bullet", "Reordered AWS experience to top"],
+  "ats_keywords_added": ["keyword1", "keyword2"]
 }}"""
 
     try:

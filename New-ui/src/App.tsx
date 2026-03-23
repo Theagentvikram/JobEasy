@@ -20,10 +20,11 @@ import Pricing from './pages/Pricing'
 import Settings from './pages/Settings'
 import AutoApplyPage from './pages/AutoApply'
 import AutoPilotPage from './pages/AutoPilot'
+import AutopilotCommand from './pages/AutopilotCommand'
 
 export default function App() {
-  // Use /new basename in production (served from /new/ subdirectory)
-  const basename = import.meta.env.PROD ? '/new' : '/'
+  // /new basename always — proxied via root Vite in dev, served from /new/ in prod
+  const basename = '/new'
 
   return (
     <BrowserRouter basename={basename}>
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="plans" element={<Pricing />} />
               <Route path="autoapply" element={<AutoApplyPage />} />
               <Route path="autopilot" element={<AutoPilotPage />} />
+              <Route path="command" element={<AutopilotCommand />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 

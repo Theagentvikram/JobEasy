@@ -76,48 +76,78 @@ class WellfoundScraper(BaseScraper):
         return unique
 
     async def _search_wellfound(self, query: str, location: str) -> List[JobListing]:
-        """Hit Wellfound's search page and parse results."""
+        """Use python-jobspy's built-in wellfound site (most reliable) with HTML fallback."""
         jobs = []
+
+        # Primary: use jobspy which handles Wellfound scraping correctly
         try:
-            # Use the public job search URL (HTML scraping fallback)
-            location_slug = location.lower().replace(" ", "-").replace(",", "")
-            search_url = f"https://wellfound.com/role/l/{location_slug}/r/software-engineer"
+            import asyncio as _asyncio
+            loop = _asyncio.get_event_loop()
+            df = await loop.run_in_executor(None, lambda: self._jobspy_wellfound(query, location))
+            if df is not None and not df.empty:
+                for _, row in df.iterrows():
+                    try:
+                        title = str(row.get("title", "") or "").strip()
+                        company = str(row.get("company", "") or "").strip()
+                        url = str(row.get("job_url", "") or "").strip()
+                        if not title or not company or not url:
+                            continue
+                        jobs.append(JobListing(
+                            external_id=f"wellfound_{hash(url)}",
+                            source="wellfound",
+                            url=url,
+                            apply_url=str(row.get("job_url_direct", url) or url),
+                            title=title,
+                            company=company,
+                            location=str(row.get("location", "") or ""),
+                            is_remote=bool(row.get("is_remote", False)),
+                            salary_min=self._safe_int(row.get("min_amount")),
+                            salary_max=self._safe_int(row.get("max_amount")),
+                            description=str(row.get("description", "") or "")[:500],
+                        ))
+                    except Exception:
+                        continue
+                if jobs:
+                    return jobs
+        except Exception as e:
+            logger.debug(f"[Wellfound] jobspy path failed: {e}")
 
+        # Fallback: HTTP scrape
+        try:
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.9",
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Accept": "text/html,application/xhtml+xml",
             }
-
             async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
-                # Try the API endpoint first
-                api_url = "https://wellfound.com/api/search"
-                params = {
-                    "query": query,
-                    "location": location,
-                    "role": "engineering",
-                    "page": 1,
-                }
-                try:
-                    resp = await client.get(api_url, params=params, headers=headers)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        jobs.extend(self._parse_api_response(data))
-                        if jobs:
-                            return jobs
-                except Exception:
-                    pass
-
-                # Fallback: scrape the HTML search page
                 search_url = f"https://wellfound.com/jobs?query={query}&location={location}"
                 resp = await client.get(search_url, headers=headers)
                 if resp.status_code == 200:
                     jobs.extend(self._parse_html_listings(resp.text, query))
-
         except Exception as e:
             logger.error(f"[Wellfound] Search error: {e}")
 
         return jobs
+
+    def _jobspy_wellfound(self, query: str, location: str):
+        """Sync jobspy call for wellfound only."""
+        try:
+            from jobspy import scrape_jobs
+            return scrape_jobs(
+                site_name=["wellfound"],
+                search_term=query,
+                location=location or "Remote",
+                results_wanted=25,
+                hours_old=48,
+                verbose=0,
+            )
+        except Exception:
+            return None
+
+    def _safe_int(self, val) -> "int | None":
+        try:
+            return int(float(val)) if val and str(val) not in ("nan", "None", "") else None
+        except Exception:
+            return None
 
     def _parse_api_response(self, data: dict) -> List[JobListing]:
         """Parse Wellfound API JSON response."""

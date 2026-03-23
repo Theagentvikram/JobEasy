@@ -61,7 +61,7 @@ function Toggle({ checked, onChange, label, description }: {
 export default function Settings() {
   const { user, logout } = useAuth()
   const { isDark, toggle } = useTheme()
-  const [settings, setSettings] = useState({ jobspy_enabled: false })
+  const [settings, setSettings] = useState({ jobspy_enabled: false, autopilot_job_count: 3 })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -70,7 +70,7 @@ export default function Settings() {
 
   useEffect(() => {
     api.get('/auth/settings').then((res) => {
-      if (res.data) setSettings(res.data)
+      if (res.data) setSettings((prev) => ({ ...prev, ...res.data }))
     }).finally(() => setLoading(false))
   }, [])
 
@@ -186,6 +186,26 @@ export default function Settings() {
                 checked={settings.jobspy_enabled}
                 onChange={(v) => setSettings((s) => ({ ...s, jobspy_enabled: v }))}
               />
+              <div className="flex items-center justify-between gap-4 py-2">
+                <div>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Auto Pilot job count</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">How many jobs Auto Pilot finds and tailors per run (1–10)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={settings.autopilot_job_count}
+                    onChange={(e) => setSettings((s) => ({ ...s, autopilot_job_count: Number(e.target.value) }))}
+                    className="w-24 accent-brand-700"
+                  />
+                  <span className="text-sm font-bold text-brand-700 dark:text-brand-400 w-4 text-right">
+                    {settings.autopilot_job_count}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </SectionCard>

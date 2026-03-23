@@ -33,6 +33,7 @@ class CouponRequest(BaseModel):
 
 class SettingsRequest(BaseModel):
     jobspy_enabled: bool
+    autopilot_job_count: int = 3
 
 @router.post("/redeem-coupon")
 async def redeem_coupon(req: CouponRequest, user=Depends(get_current_user)):
@@ -163,7 +164,8 @@ async def get_settings(user=Depends(get_current_user)):
     data = doc.to_dict() if doc.exists else {}
     settings = data.get("settings") if isinstance(data.get("settings"), dict) else {}
     jobspy_enabled = bool(settings.get("jobspy_enabled", data.get("jobspy_enabled", False)))
-    return {"jobspy_enabled": jobspy_enabled}
+    autopilot_job_count = int(settings.get("autopilot_job_count", 3))
+    return {"jobspy_enabled": jobspy_enabled, "autopilot_job_count": autopilot_job_count}
 
 
 @router.put("/settings")
@@ -172,17 +174,20 @@ async def update_settings(req: SettingsRequest, user=Depends(get_current_user)):
     db = get_db()
     user_ref = db.collection("users").document(user_id)
 
+    job_count = max(1, min(10, int(req.autopilot_job_count)))  # clamp 1–10
+
     user_ref.set({
         "settings": {
-            "jobspy_enabled": bool(req.jobspy_enabled)
+            "jobspy_enabled": bool(req.jobspy_enabled),
+            "autopilot_job_count": job_count,
         },
-        # Keep flat alias for compatibility with older reads.
         "jobspy_enabled": bool(req.jobspy_enabled),
     }, merge=True)
 
     return {
         "status": "success",
         "settings": {
-            "jobspy_enabled": bool(req.jobspy_enabled)
+            "jobspy_enabled": bool(req.jobspy_enabled),
+            "autopilot_job_count": job_count,
         }
     }

@@ -72,7 +72,13 @@ class Resume(BaseModel):
     volunteering: List[GenericItem] = []
     custom: List[CustomSection] = []
     sourceHash: Optional[str] = None
-    userId: Optional[str] = None # Added for ownership
+    userId: Optional[str] = None
+    # AutoPilot metadata
+    autopilot_company: Optional[str] = None
+    autopilot_score: Optional[int] = None
+    autopilot_session: Optional[str] = None
+    autopilot_job_id: Optional[str] = None
+    autopilot_apply_url: Optional[str] = None
 
 class ATSScan(BaseModel):
     id: Optional[str] = None
@@ -133,14 +139,16 @@ class SummaryRequest(BaseModel):
 # --- Referral Flow Models ---
 
 class JobStatus(str):
-    WAITING_REFERRAL = "waiting_referral"
-    REFERRAL_RECEIVED = "referral_received"
-    APPLY_TODAY = "apply_today"
+    SAVED = "saved"
     APPLIED = "applied"
     INTERVIEW = "interview"
     OFFER = "offer"
     REJECTED = "rejected"
     WITHDRAWN = "withdrawn"
+    # Legacy values kept for existing Firestore docs
+    WAITING_REFERRAL = "waiting_referral"
+    REFERRAL_RECEIVED = "referral_received"
+    APPLY_TODAY = "apply_today"
     CLOSED = "closed"
 
 class OutreachStatus(str):
@@ -201,6 +209,8 @@ class Job(BaseModel):
     dateClosed: Optional[str] = None
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
+    # AutoPilot fields
+    autopilot_resume_id: Optional[str] = None
     # Computed on read (Option C style virtual status)
     effectiveStatus: Optional[str] = None
     daysUntilApply: Optional[int] = None

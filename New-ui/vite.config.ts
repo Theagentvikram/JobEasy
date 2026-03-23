@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  // Build to /new/ so it can be served from jobeasy.app/new/
-  base: process.env.NODE_ENV === 'production' ? '/new/' : '/',
+  // Always /new/ — proxied from root :3000 in dev, deployed path in prod
+  base: '/new/',
   plugins: [react()],
   resolve: {
     alias: {

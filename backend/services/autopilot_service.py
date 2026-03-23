@@ -28,8 +28,9 @@ from services.firebase import get_db
 # (lives for the duration of an active search session)
 _sse_queues: dict[str, asyncio.Queue] = {}
 
-CONCURRENCY = 1  # sequential to avoid Groq TPM rate limits on free tier
-MAX_JOBS_HARD_LIMIT = 10  # cap for testing
+CONCURRENCY = 1          # sequential to avoid Groq TPM rate limits on free tier
+MAX_JOBS_HARD_LIMIT = 30 # how many raw scraped jobs to consider
+TARGET_READY_JOBS = 3    # stop tailoring once we have this many ready (high-score) jobs
 
 
 def get_queue(session_id: str) -> Optional[asyncio.Queue]:
@@ -52,7 +53,7 @@ def _get_storage_bucket():
     """Return Firebase Storage bucket (lazy init)."""
     try:
         from firebase_admin import storage
-        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "jobeasy-9.appspot.com")
+        bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "jobeasy-9.firebasestorage.app")
         return storage.bucket(bucket_name)
     except Exception as e:
         print(f"[AutoPilot] Storage bucket error: {e}")
@@ -94,6 +95,23 @@ async def run_autopilot_session(
     session_ref = db.collection("autopilot_sessions").document(session_id)
     q = get_queue(session_id)
 
+    # Fetch user's most recent structured resume for tailored resume saving
+    base_resume_data = {}
+    try:
+        resume_docs = list(
+            db.collection("resumes")
+            .where("userId", "==", uid)
+            .limit(10)
+            .stream()
+        )
+        if resume_docs:
+            # Pick most recently modified
+            resume_dicts = [d.to_dict() for d in resume_docs]
+            resume_dicts.sort(key=lambda r: r.get("lastModified", ""), reverse=True)
+            base_resume_data = resume_dicts[0]
+    except Exception as e:
+        print(f"[AutoPilot] Could not fetch base resume: {e}")
+
     async def emit(event: dict):
         """Push an SSE event to the queue (non-blocking)."""
         if q:
@@ -109,112 +127,107 @@ async def run_autopilot_session(
             titles=keywords,
             locations=[location] if location else ["Remote", "United States"],
             hours_old=72,
-            results_per_search=max(25, max_jobs // max(len(keywords), 1)),
+            results_per_search=MAX_JOBS_HARD_LIMIT,
         )
 
-        # Cap at max_jobs (hard limit for testing)
-        jobs = raw_jobs[:min(max_jobs, MAX_JOBS_HARD_LIMIT)]
-        total = len(jobs)
-
-        if total == 0:
+        if not raw_jobs:
             await emit({"type": "error", "message": "No jobs found. Try different keywords."})
-            session_ref.update({"status": "done", "total_jobs": 0,
-                                "finished_at": _now()})
+            session_ref.update({"status": "done", "total_jobs": 0, "finished_at": _now()})
             return
 
-        await emit({"type": "found", "total": total,
-                    "message": f"Found {total} jobs! Starting analysis…"})
+        target = max(1, min(max_jobs, TARGET_READY_JOBS))  # user setting, capped at constant
 
-        session_ref.update({"total_jobs": total, "status": "processing"})
+        await emit({"type": "found", "total": len(raw_jobs),
+                    "message": f"Found {len(raw_jobs)} jobs! Picking best {target}…"})
+        session_ref.update({"total_jobs": len(raw_jobs), "status": "processing"})
 
-        # ── 2. Process jobs concurrently ──────────────────────────────────
-        semaphore = asyncio.Semaphore(CONCURRENCY)
+        # ── 2. Score → stop at target, then tailor those ──────────────────
         processed = 0
+        ready_jobs_data = []  # list of (job, match, job_id)
 
-        async def process_job(idx: int, job):
-            nonlocal processed
-            async with semaphore:
-                job_id = str(uuid.uuid4())
-                title = job.title
-                company = job.company
+        for idx, job in enumerate(raw_jobs):
+            if len(ready_jobs_data) >= target:
+                break
 
-                await emit({"type": "scoring", "current": idx + 1, "total": total,
-                            "message": f"Scoring: {title} @ {company}"})
+            job_id = str(uuid.uuid4())
+            title = job.title or "Unknown Role"
+            company = job.company or "Unknown Company"
+            processed += 1
 
-                # Score
-                match = await score_job_match(
-                    job_title=title,
-                    company=company,
-                    description=job.description or "",
-                    profile=_resume_text_to_profile(resume_text),
-                )
-                score = match.get("score", 0)
+            await emit({"type": "scoring", "current": processed, "total": len(raw_jobs),
+                        "message": f"Scoring {processed}: {title} @ {company}"})
 
-                if score < min_score:
-                    processed += 1
-                    session_ref.update({"processed": processed})
-                    await emit({"type": "skipped", "current": processed, "total": total,
-                                "message": f"Skipped {title} @ {company} (score: {score})"})
-                    # Still save to Firestore as skipped so frontend can show full list
-                    _save_job_firestore(db, session_id, uid, job_id, job, match, None, None, "skipped")
-                    return
+            match = await score_job_match(
+                job_title=title,
+                company=company,
+                description=job.description or "",
+                profile=_resume_text_to_profile(resume_text),
+            )
+            score = match.get("score", 0)
 
-                await emit({"type": "tailoring", "current": idx + 1, "total": total,
-                            "message": f"Tailoring resume for {title} @ {company}…"})
-
-                # Tailor resume
-                tailor_result = await tailor_resume(
-                    job_title=title,
-                    company=company,
-                    job_description=job.description or "",
-                    base_resume_text=resume_text,
-                    match_data=match,
-                )
-                tailored_md = tailor_result.get("resume_markdown", resume_text)
-
-                # Generate + upload PDF
-                pdf_url = None
-                try:
-                    with tempfile.TemporaryDirectory() as tmp_dir:
-                        pdf_path = generate_resume_pdf(
-                            markdown_text=tailored_md,
-                            output_dir=tmp_dir,
-                            filename=f"{job_id}.pdf",
-                        )
-                        with open(pdf_path, "rb") as f:
-                            pdf_bytes = f.read()
-
-                    blob_path = f"autopilot/{uid}/{session_id}/{job_id}.pdf"
-                    pdf_url = _upload_pdf_bytes(pdf_bytes, blob_path)
-                except Exception as e:
-                    print(f"[AutoPilot] PDF gen error for {title}: {e}")
-
-                processed += 1
+            if score < min_score:
+                await emit({"type": "skipped", "current": processed, "total": len(raw_jobs),
+                            "message": f"Skip ({score}%): {title} @ {company}"})
+                _save_job_firestore(db, session_id, uid, job_id, job, match, None, None, "skipped")
                 session_ref.update({"processed": processed})
+                continue
 
-                job_doc = _save_job_firestore(
-                    db, session_id, uid, job_id, job, match,
-                    tailor_result, pdf_url, "ready"
-                )
+            ready_jobs_data.append((job, match, job_id))
 
-                await emit({
-                    "type": "job_ready",
-                    "current": processed,
-                    "total": total,
-                    "job": job_doc,
-                    "message": f"Ready: {title} @ {company} — {score}% match",
-                })
+        # Tailor the qualifying jobs one by one
+        ready_count = 0
+        for (job, match, job_id) in ready_jobs_data:
+            title = job.title or "Unknown Role"
+            company = job.company or "Unknown Company"
+            score = match.get("score", 0)
 
-        await asyncio.gather(*[process_job(i, j) for i, j in enumerate(jobs)])
+            await emit({"type": "tailoring", "current": ready_count + 1, "total": target,
+                        "message": f"Tailoring resume for {title} @ {company}…"})
 
-        # ── 3. Finish ─────────────────────────────────────────────────────
+            tailor_result = await tailor_resume(
+                job_title=title,
+                company=company,
+                job_description=job.description or "",
+                base_resume_text=resume_text,
+                match_data=match,
+            )
+
+            job_doc = _save_job_firestore(
+                db, session_id, uid, job_id, job, match,
+                tailor_result, None, "ready"
+            )
+            ready_count += 1
+            session_ref.update({"processed": processed})
+
+            await emit({
+                "type": "job_ready",
+                "current": ready_count,
+                "total": TARGET_READY_JOBS,
+                "job": job_doc,
+                "message": f"✓ Ready: {title} @ {company} — {score}% match",
+            })
+
+        # ── 3. Save tailored resumes to Resume Builder ────────────────────
+        saved_resume_ids = []
+        try:
+            saved_resume_ids = _save_top_tailored_resumes(db, session_id, uid, base_resume_data, top_n=target)
+        except Exception as e:
+            print(f"[AutoPilot] Failed to save tailored resumes: {e}")
+
+        # ── 4. Finish ─────────────────────────────────────────────────────
         session_ref.update({
             "status": "done",
             "processed": processed,
+            "ready_jobs": ready_count,
             "finished_at": _now(),
         })
-        await emit({"type": "done", "total": total, "processed": processed,
-                    "message": f"Done! {processed} jobs ready to review."})
+        await emit({
+            "type": "done",
+            "total": len(raw_jobs),
+            "processed": ready_count,
+            "saved_resume_ids": saved_resume_ids,
+            "message": f"Done! {ready_count} jobs ready with tailored resumes saved to Resume Builder.",
+        })
 
     except Exception as e:
         print(f"[AutoPilot] Session {session_id} crashed: {e}")
@@ -228,6 +241,205 @@ async def run_autopilot_session(
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────
+
+def _parse_experience_from_markdown(markdown: str, base_experience: list) -> list:
+    """
+    Parse experience entries from tailored resume markdown back into
+    the Resume Builder's structured Experience format:
+    [{id, role, company, startDate, endDate, description}]
+
+    The LLM outputs sections like:
+      ### Software Engineer — Acme Corp (Jan 2022 – Present)
+      - Built X with Y
+      - Led Z initiative
+
+    We match each parsed entry to a base entry by company name (fuzzy) so we
+    preserve the original startDate/endDate/id when possible, and only replace
+    the description (bullets) with the tailored version.
+    """
+    import re
+
+    # Find the ## Experience section
+    exp_section_match = re.search(
+        r'##\s*(?:Work\s+)?Experience\s*\n(.*?)(?=\n##\s|\Z)',
+        markdown, re.DOTALL | re.IGNORECASE
+    )
+    if not exp_section_match:
+        return base_experience  # no experience section found, keep original
+
+    exp_text = exp_section_match.group(1)
+
+    # Split into individual job blocks on ### headers
+    job_blocks = re.split(r'\n(?=###\s)', exp_text.strip())
+
+    parsed_entries = []
+    for block in job_blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        lines = block.split('\n')
+        header = lines[0].lstrip('#').strip()
+
+        # Extract role and company from "Role — Company (dates)" or "Role at Company (dates)"
+        role, company_name, start_date, end_date = "", "", "", ""
+        date_match = re.search(r'\(([^)]+)\)\s*$', header)
+        if date_match:
+            date_str = date_match.group(1)
+            # Parse date range like "Jan 2022 – Present" or "2020 - 2022"
+            parts = re.split(r'\s*[–—-]\s*', date_str, maxsplit=1)
+            start_date = parts[0].strip() if parts else ""
+            end_date = parts[1].strip() if len(parts) > 1 else "Present"
+            header_no_dates = header[:date_match.start()].strip()
+        else:
+            header_no_dates = header
+
+        # Split on " — " (em dash), " – " (en dash), " - ", " at ", " @ "
+        sep_match = re.search(r'\s+(?:[—–]|-(?!\d)|at|@)\s+', header_no_dates)
+        if sep_match:
+            role = header_no_dates[:sep_match.start()].strip()
+            company_name = header_no_dates[sep_match.end():].strip()
+        else:
+            role = header_no_dates
+            company_name = ""
+
+        # Collect bullet lines as the description
+        bullet_lines = []
+        for line in lines[1:]:
+            stripped = line.strip()
+            # Handle any bullet prefix: - / • / * / ** (bold marker)
+            if stripped.startswith(('- ', '• ', '* ', '** ')):
+                bullet_lines.append(stripped.lstrip('*•- ').strip())
+            elif stripped and not stripped.startswith('#'):
+                bullet_lines.append(stripped)
+
+        description = '\n'.join(f'- {b}' for b in bullet_lines if b)
+
+        parsed_entries.append({
+            "role": role,
+            "company": company_name,
+            "startDate": start_date,
+            "endDate": end_date,
+            "description": description,
+        })
+
+    if not parsed_entries:
+        return base_experience
+
+    # Match parsed entries to base entries by company name to preserve IDs and dates
+    result = []
+    used_base_ids = set()
+
+    for parsed in parsed_entries:
+        # Try to find matching base entry by company name (case-insensitive)
+        matched_base = None
+        for base in base_experience:
+            base_id = base.get("id", "")
+            if base_id in used_base_ids:
+                continue
+            base_company = base.get("company", "").lower().strip()
+            parsed_company = parsed["company"].lower().strip()
+            if base_company and parsed_company and (
+                base_company in parsed_company or parsed_company in base_company
+            ):
+                matched_base = base
+                used_base_ids.add(base_id)
+                break
+
+        if matched_base:
+            # Keep original id/dates, replace description with tailored bullets
+            entry = dict(matched_base)
+            entry["description"] = parsed["description"] if parsed["description"] else matched_base.get("description", "")
+            # Update role if LLM refined it
+            if parsed["role"]:
+                entry["role"] = parsed["role"]
+        else:
+            # New entry from LLM — assign a fresh ID
+            entry = {
+                "id": str(uuid.uuid4()),
+                "role": parsed["role"],
+                "company": parsed["company"],
+                "startDate": parsed["startDate"],
+                "endDate": parsed["endDate"],
+                "description": parsed["description"],
+            }
+        result.append(entry)
+
+    # If we got fewer entries than original (LLM dropped some), append the unmatched originals
+    for base in base_experience:
+        if base.get("id", "") not in used_base_ids:
+            result.append(base)
+
+    return result
+
+
+def _save_top_tailored_resumes(db, session_id: str, uid: str, base_resume_data: dict, top_n: int = 3) -> list[str]:
+    """
+    After pipeline completes, save top N tailored resumes as Resume Builder documents.
+    Returns list of saved resume IDs.
+    """
+    jobs_ref = (
+        db.collection("autopilot_sessions").document(session_id)
+        .collection("jobs")
+    )
+    job_docs = [d.to_dict() for d in jobs_ref.stream()]
+    ready_jobs = [j for j in job_docs if j.get("status") == "ready"]
+    ready_jobs.sort(key=lambda j: j.get("match_score", 0), reverse=True)
+    top_jobs = ready_jobs[:top_n]
+
+    saved_ids = []
+    for job in top_jobs:
+        tailored_summary = job.get("tailored_summary", "")
+        tailored_md = job.get("tailored_resume_md", "")
+        title = job.get("title", "Job")
+        company = job.get("company", "")
+        score = job.get("match_score", 0)
+        ats_keywords = job.get("ats_keywords_added", [])
+        key_changes = job.get("key_changes", [])
+
+        # Start from the base resume structure
+        resume_doc = dict(base_resume_data) if base_resume_data else {}
+        resume_doc["id"] = str(uuid.uuid4())
+        resume_doc["userId"] = uid
+        resume_doc["title"] = f"[AutoPilot] {title} @ {company} ({score}%)"
+        resume_doc["templateId"] = resume_doc.get("templateId", "modern")
+        resume_doc["lastModified"] = _now()
+        resume_doc["autopilot_session"] = session_id
+        resume_doc["autopilot_job_id"] = job.get("job_id", "")
+        resume_doc["autopilot_apply_url"] = job.get("apply_url", "") or job.get("url", "")
+        resume_doc["autopilot_company"] = company
+        resume_doc["autopilot_score"] = score
+        resume_doc["autopilot_key_changes"] = key_changes
+
+        # Apply tailored summary
+        if tailored_summary:
+            resume_doc["summary"] = tailored_summary
+
+        # Parse and apply tailored experience bullets from markdown
+        if tailored_md:
+            base_experience = base_resume_data.get("experience", [])
+            tailored_experience = _parse_experience_from_markdown(tailored_md, base_experience)
+            if tailored_experience:
+                resume_doc["experience"] = tailored_experience
+                print(f"[AutoPilot] Applied {len(tailored_experience)} tailored experience entries for {title}")
+
+        # Merge ATS keywords into skills (deduplicated)
+        if ats_keywords:
+            existing_skills = resume_doc.get("skills", [])
+            resume_doc["skills"] = list(dict.fromkeys(existing_skills + ats_keywords))
+
+        db.collection("resumes").document(resume_doc["id"]).set(resume_doc)
+        job_id = job.get("job_id", "")
+        saved_ids.append({"resume_id": resume_doc["id"], "job_id": job_id})
+        # Write resume_id back onto the job doc so it can be restored on page reload
+        if job_id:
+            db.collection("autopilot_sessions").document(session_id) \
+              .collection("jobs").document(job_id) \
+              .update({"resume_id": resume_doc["id"]})
+        print(f"[AutoPilot] Saved tailored resume: {resume_doc['title']}")
+
+    return saved_ids
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()

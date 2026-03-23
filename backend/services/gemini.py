@@ -268,18 +268,14 @@ async def parse_resume_to_json(file_content: str) -> str:
 async def chat_with_context(message: str, history: List[Dict[str, str]], system_instruction: str = "") -> str:
     if not API_KEY:
         raise Exception("Groq API Key not configured")
-        
+
     messages = []
     if system_instruction:
         messages.append({"role": "system", "content": system_instruction})
-        
-    # Add history
     for msg in history:
         messages.append(msg)
-        
-    # Add current message
     messages.append({"role": "user", "content": message})
-    
+
     try:
         completion = client.chat.completions.create(
           model=MODEL_NAME,
@@ -288,6 +284,33 @@ async def chat_with_context(message: str, history: List[Dict[str, str]], system_
         return completion.choices[0].message.content
     except Exception as e:
         print(f"Chat generation error: {e}")
+        traceback.print_exc()
+        raise e
+
+async def stream_chat_with_context(message: str, history: List[Dict[str, str]], system_instruction: str = ""):
+    """Yields tokens one by one using Groq streaming."""
+    if not API_KEY:
+        raise Exception("Groq API Key not configured")
+
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+    for msg in history:
+        messages.append(msg)
+    messages.append({"role": "user", "content": message})
+
+    try:
+        stream = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=messages,
+            stream=True,
+        )
+        for chunk in stream:
+            token = chunk.choices[0].delta.content
+            if token:
+                yield token
+    except Exception as e:
+        print(f"Chat stream error: {e}")
         traceback.print_exc()
         raise e
 

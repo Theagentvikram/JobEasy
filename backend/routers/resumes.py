@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi.responses import Response
 from typing import List, Optional
 from pydantic import BaseModel
 from models import Resume
@@ -9,7 +10,8 @@ from services.resume_parser import extract_resume_data
 import json
 import uuid
 import hashlib
-from datetime import datetime
+import os
+import tempfile
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
@@ -193,3 +195,99 @@ async def delete_resume(resume_id: str, user=Depends(get_current_user)):
         
     doc_ref.delete()
     return {"status": "success", "id": resume_id}
+
+
+@router.get("/{resume_id}/pdf")
+async def get_resume_pdf_url(resume_id: str, user=Depends(get_current_user)):
+    """
+    Generate a PDF for a resume and return a short-lived signed URL (15 min).
+    PDF is generated from the stored resume data using reportlab.
+    """
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    doc = db.collection('resumes').document(resume_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    data = doc.to_dict()
+    if data.get('userId') != user['uid']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Build markdown text from resume data
+    personal = data.get('personalInfo') or data.get('personal_info') or {}
+    lines = []
+    name = personal.get('fullName') or personal.get('name') or 'Resume'
+    lines.append(f"# {name}")
+    contact_parts = [p for p in [
+        personal.get('email'), personal.get('phone'),
+        personal.get('location'), personal.get('linkedin'), personal.get('website')
+    ] if p]
+    if contact_parts:
+        lines.append(' | '.join(contact_parts))
+
+    if data.get('summary'):
+        lines += ['', '## Summary', data['summary']]
+
+    experience = data.get('experience') or []
+    if experience:
+        lines += ['', '## Experience']
+        for exp in experience:
+            role = exp.get('role') or exp.get('title') or ''
+            company = exp.get('company') or ''
+            start = exp.get('startDate') or ''
+            end = exp.get('endDate') or 'Present'
+            lines.append(f"### {role} — {company} ({start} – {end})")
+            desc = exp.get('description') or ''
+            for line in desc.split('\n'):
+                if line.strip():
+                    lines.append(line.strip())
+
+    education = data.get('education') or []
+    if education:
+        lines += ['', '## Education']
+        for edu in education:
+            degree = edu.get('degree') or ''
+            school = edu.get('school') or ''
+            year = edu.get('year') or ''
+            lines.append(f"**{degree}** — {school} ({year})")
+
+    skills = data.get('skills') or []
+    if skills:
+        lines += ['', '## Skills']
+        if isinstance(skills, list):
+            lines.append(', '.join(str(s) for s in skills))
+        elif isinstance(skills, dict):
+            for cat, items in skills.items():
+                lines.append(f"**{cat}**: {', '.join(items)}")
+
+    projects = data.get('projects') or []
+    if projects:
+        lines += ['', '## Projects']
+        for proj in projects:
+            pname = proj.get('name') or ''
+            pdesc = proj.get('description') or ''
+            lines.append(f"### {pname}")
+            if pdesc:
+                lines.append(pdesc)
+
+    markdown_text = '\n'.join(lines)
+
+    # Generate PDF and stream directly — no Storage upload needed
+    try:
+        from autoapply.resume.pdf_generator import generate_resume_pdf
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pdf_path = generate_resume_pdf(markdown_text, output_dir=tmpdir, filename=f"{resume_id}.pdf")
+            with open(pdf_path, 'rb') as f:
+                pdf_bytes = f.read()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+
+    safe_title = data.get('title', 'resume').replace('[AutoPilot] ', '').replace('/', '-')[:60]
+    filename = f"{safe_title}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )

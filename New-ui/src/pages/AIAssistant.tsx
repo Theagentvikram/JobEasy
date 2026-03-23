@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, RefreshCw, Sparkles } from 'lucide-react'
-import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { Button, Spinner } from '../components/ui'
+import { Button } from '../components/ui'
 import { cn } from '../components/ui'
+import { getApiBase } from '../services/api'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -183,22 +183,65 @@ export default function AIAssistant() {
 
     const newHistory = [...history, { role: 'user', content }]
 
+    // Add empty assistant message that we'll stream into
+    const assistantMsg: Message = { role: 'assistant', content: '', timestamp: new Date() }
+    setMessages((prev) => [...prev, assistantMsg])
+
+    let fullReply = ''
+
     try {
-      const res = await api.post('/chat', {
-        message: content,
-        history: newHistory,
+      const { auth } = await import('../firebase/config')
+      const token = auth.currentUser
+        ? await auth.currentUser.getIdToken()
+        : localStorage.getItem('dev_token') || ''
+
+      const res = await fetch(`${getApiBase()}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: content, history: newHistory }),
       })
-      const reply = res.data.response || res.data.message || "I couldn't generate a response. Please try again."
-      const assistantMsg: Message = { role: 'assistant', content: reply, timestamp: new Date() }
-      setMessages((prev) => [...prev, assistantMsg])
-      setHistory([...newHistory, { role: 'assistant', content: reply }])
-    } catch {
-      const errMsg: Message = {
-        role: 'assistant',
-        content: 'Sorry, something went wrong. Please try again.',
-        timestamp: new Date(),
+
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') break
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.token) {
+              fullReply += parsed.token
+              setMessages((prev) => {
+                const updated = [...prev]
+                updated[updated.length - 1] = { ...updated[updated.length - 1], content: fullReply }
+                return updated
+              })
+            }
+          } catch { /* ignore parse errors */ }
+        }
       }
-      setMessages((prev) => [...prev, errMsg])
+
+      setHistory([...newHistory, { role: 'assistant', content: fullReply }])
+    } catch {
+      setMessages((prev) => {
+        const updated = [...prev]
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          content: 'Sorry, something went wrong. Please try again.',
+        }
+        return updated
+      })
     } finally {
       setLoading(false)
       inputRef.current?.focus()
@@ -264,7 +307,7 @@ export default function AIAssistant() {
             {messages.map((msg, i) => (
               <MessageBubble key={i} msg={msg} />
             ))}
-            {loading && <TypingIndicator />}
+            {loading && messages[messages.length - 1]?.content === '' && <TypingIndicator />}
             <div ref={bottomRef} />
           </>
         )}

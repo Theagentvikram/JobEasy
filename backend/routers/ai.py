@@ -33,6 +33,13 @@ class SummaryReq(BaseModel):
     role: str
     skills: List[str]
 
+class SummaryFromResumeReq(BaseModel):
+    resume_data: dict
+
+class TailorResumeRequest(BaseModel):
+    resume_data: dict
+    job_description: str
+
 @router.post("/analyze")
 async def analyze_resume(req: AnalyzeRequest, user=Depends(get_optional_user)):
     # If authenticated, check usage limits
@@ -81,7 +88,66 @@ async def generate_bullets_api(req: BulletsRequest, user=Depends(get_current_use
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/generate-summary")
+async def generate_summary_api(req: SummaryFromResumeReq, user=Depends(get_current_user)):
+    try:
+        r = req.resume_data
+        role = r.get("personalInfo", {}).get("title", "") or r.get("title", "Professional")
+        skills = r.get("skills", [])
+        raw = await generate_summary(role, skills)
+        if isinstance(raw, str):
+            return {"summary": raw}
+        return {"summary": str(raw)}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/tailor-resume")
+async def tailor_resume_to_jd(req: TailorResumeRequest, user=Depends(get_current_user)):
+    """Tailor a resume to a job description using AI."""
+    try:
+        from autoapply.ai.resume_tailor import tailor_resume
+        import json
+
+        # Convert resume_data dict to markdown text
+        r = req.resume_data
+        p = r.get("personalInfo", {})
+        lines = [
+            f"# {p.get('fullName', '')}",
+            f"{p.get('email', '')} | {p.get('phone', '')} | {p.get('location', '')}",
+        ]
+        if r.get("summary"):
+            lines += ["", "## Summary", r["summary"]]
+        if r.get("experience"):
+            lines += ["", "## Experience"]
+            for e in r["experience"]:
+                lines.append(f"### {e.get('role','')} — {e.get('company','')} ({e.get('startDate','')} – {e.get('endDate','')})")
+                if e.get("description"):
+                    lines.append(e["description"])
+        if r.get("skills"):
+            lines += ["", "## Skills", ", ".join(r["skills"])]
+        if r.get("education"):
+            lines += ["", "## Education"]
+            for e in r["education"]:
+                lines.append(f"{e.get('degree','')} — {e.get('school','')} ({e.get('year','')})")
+        if r.get("projects"):
+            lines += ["", "## Projects"]
+            for proj in r["projects"]:
+                lines.append(f"**{proj.get('name','')}**: {proj.get('description','')}")
+
+        resume_text = "\n".join(lines)
+
+        result = await tailor_resume(
+            job_title="",
+            company="",
+            job_description=req.job_description,
+            base_resume_text=resume_text,
+        )
+        return result
+    except Exception as e:
+        print(f"Tailor Error: {e}")
+        import traceback; traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

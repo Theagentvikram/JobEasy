@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          // Proxy /new/* to the New-ui Vite dev server (port 5173)
+          '/new': {
+            target: 'http://localhost:5173',
+            changeOrigin: true,
+          },
+        },
       },
       plugins: [react()],
       define: {

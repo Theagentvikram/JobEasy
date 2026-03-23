@@ -36,6 +36,7 @@ export interface AutoPilotJob {
   pdf_url: string
   status: 'ready' | 'skipped'
   created_at: string
+  resume_id?: string
 }
 
 export interface AutoPilotSession {
@@ -59,7 +60,7 @@ export type ProgressEvent =
   | { type: 'tailoring'; current: number; total: number; message: string }
   | { type: 'skipped'; current: number; total: number; message: string }
   | { type: 'job_ready'; current: number; total: number; job: AutoPilotJob; message: string }
-  | { type: 'done'; total: number; processed: number; message: string }
+  | { type: 'done'; total: number; processed: number; saved_resume_ids: { resume_id: string; job_id: string }[]; message: string }
   | { type: 'error'; message: string }
   | { type: 'already_done'; status: string; total: number; processed: number }
 

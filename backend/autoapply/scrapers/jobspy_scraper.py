@@ -25,22 +25,26 @@ class JobSpyScraper(BaseScraper):
 
     async def search(self, titles: List[str], locations: List[str],
                      hours_old: int = 24, results_per_search: int = 30,
-                     **kwargs) -> List[JobListing]:
+                     disabled_sources: set = None, **kwargs) -> List[JobListing]:
         """
         Search jobs across all platforms using JobSpy.
         Runs synchronously in thread pool to avoid blocking.
+        disabled_sources: set of source names to skip (e.g. {'glassdoor'})
         """
         jobs = []
         for title in titles:
             for location in locations:
                 found = await asyncio.get_event_loop().run_in_executor(
                     None,
-                    self._scrape_sync,
-                    title, location, hours_old, results_per_search
+                    lambda t=title, l=location: self._scrape_sync(
+                        t, l, hours_old, results_per_search,
+                        disabled_sources or set()
+                    )
                 )
                 jobs.extend(found)
-                # Small delay between searches to be respectful
-                await asyncio.sleep(2)
+                # Small delay between title/location combos only
+                if len(titles) * len(locations) > 1:
+                    await asyncio.sleep(0.5)
 
         # Deduplicate by URL
         seen = set()
@@ -53,21 +57,54 @@ class JobSpyScraper(BaseScraper):
         logger.info(f"[JobSpy] Found {len(unique)} unique jobs")
         return unique
 
+    @staticmethod
+    def _normalize_location(location: str) -> str:
+        """Normalize WFH/remote variants to 'Remote'."""
+        loc = location.strip().lower()
+        if loc in ("work from home", "wfh", "work-from-home", "remote work"):
+            return "Remote"
+        return location
+
+    @staticmethod
+    def _sites_for_location(location: str, disabled_sources: set) -> list:
+        """Return site list, excluding Glassdoor for non-US/UK/CA locations
+        and ZipRecruiter for non-US/UK/CA. Respects disabled_sources."""
+        loc_lower = location.lower()
+        is_us_uk_ca = any(x in loc_lower for x in [
+            "united states", "usa", "us", "uk", "united kingdom",
+            "canada", "remote",  # remote jobs work on Glassdoor for US/UK/CA searchers
+        ])
+        all_sites = ["linkedin", "indeed", "glassdoor", "zip_recruiter"]
+        sites = []
+        for s in all_sites:
+            if s in disabled_sources:
+                continue
+            if s == "glassdoor" and not is_us_uk_ca:
+                continue
+            if s == "zip_recruiter" and not is_us_uk_ca:
+                continue
+            sites.append(s)
+        return sites or ["linkedin", "indeed"]
+
     def _scrape_sync(self, title: str, location: str,
-                     hours_old: int, results: int) -> List[JobListing]:
+                     hours_old: int, results: int,
+                     disabled_sources: set = None) -> List[JobListing]:
         """Synchronous jobspy call (runs in thread executor)."""
         try:
             from jobspy import scrape_jobs
+            disabled_sources = disabled_sources or set()
+            location = self._normalize_location(location)
+            sites = self._sites_for_location(location, disabled_sources)
             logger.info(f"[JobSpy] Searching '{title}' in '{location}'...")
 
             df = scrape_jobs(
-                site_name=["linkedin", "indeed", "glassdoor", "zip_recruiter"],
+                site_name=sites,
                 search_term=title,
                 location=location,
                 results_wanted=results,
                 hours_old=hours_old,
                 country_indeed="USA",
-                linkedin_fetch_description=True,   # Get full job description
+                linkedin_fetch_description=False,  # Fetching each page is slow (~30s extra per search)
                 verbose=0,
             )
 

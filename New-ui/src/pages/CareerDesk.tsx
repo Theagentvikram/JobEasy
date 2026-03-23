@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, User, Briefcase, Code, BookOpen, X, GraduationCap, Award, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Plus, Trash2, Save, User, Briefcase, Code, BookOpen, X, GraduationCap, Award, RefreshCw, ChevronDown, Pencil, UserPlus, FileText, Clock } from 'lucide-react'
 import api from '../services/api'
 import { Button, Input, Textarea, Card, Skeleton, Badge } from '../components/ui'
 
@@ -31,6 +31,19 @@ function SectionHeader({ icon: Icon, title, action }: { icon: React.ElementType;
   )
 }
 
+interface DeskProfile { id: string; name: string }
+
+function parseDesk(d: Record<string, unknown>): Desk {
+  return {
+    profile: { ...emptyDesk.profile, ...((d.profile as Record<string, string>) || {}) },
+    skills: Array.isArray(d.skills) ? d.skills as string[] : [],
+    experiences: Array.isArray(d.experiences) ? d.experiences as DeskExp[] : [],
+    education: Array.isArray(d.education) ? d.education as DeskEdu[] : [],
+    projects: Array.isArray(d.projects) ? d.projects as DeskProject[] : [],
+    certifications: Array.isArray(d.certifications) ? d.certifications as DeskCert[] : [],
+  }
+}
+
 export default function CareerDesk() {
   const [desk, setDesk] = useState<Desk>(emptyDesk)
   const [loading, setLoading] = useState(true)
@@ -39,29 +52,103 @@ export default function CareerDesk() {
   const [syncing, setSyncing] = useState(false)
   const [skillInput, setSkillInput] = useState('')
 
+  // ── Resume picker state ──────────────────────────────────────
+  const [showResumePicker, setShowResumePicker] = useState(false)
+  const [resumeList, setResumeList] = useState<{ id: string; name: string; lastModified: string; role: string }[]>([])
+  const [loadingResumes, setLoadingResumes] = useState(false)
+
+  // ── Multi-profile state ──────────────────────────────────────
+  const [profiles, setProfiles] = useState<DeskProfile[]>([])
+  const [activeProfileId, setActiveProfileId] = useState<string>('default')
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [creatingProfile, setCreatingProfile] = useState(false)
+  const [newProfileName, setNewProfileName] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
   useEffect(() => {
-    api.get('/user/desk')
-      .then((res) => {
-        const d = res.data
-        if (d) {
-          setDesk({
-            profile: { ...emptyDesk.profile, ...(d.profile || {}) },
-            skills: Array.isArray(d.skills) ? d.skills : [],
-            experiences: Array.isArray(d.experiences) ? d.experiences : [],
-            education: Array.isArray(d.education) ? d.education : [],
-            projects: Array.isArray(d.projects) ? d.projects : [],
-            certifications: Array.isArray(d.certifications) ? d.certifications : [],
-          })
-        }
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Load profiles + active desk
+  const loadProfiles = async () => {
+    const res = await api.get('/user/desk/profiles')
+    const { profiles: pl, activeProfileId: aid } = res.data
+    setProfiles(pl)
+    setActiveProfileId(aid)
+    return { profiles: pl, activeProfileId: aid }
+  }
+
+  const loadDeskForProfile = async (profileId: string) => {
+    const res = await api.get(`/user/desk/profiles/${profileId}`)
+    setDesk(parseDesk(res.data))
+  }
+
+  useEffect(() => {
+    setLoading(true)
+    loadProfiles()
+      .then(({ activeProfileId: aid }) => loadDeskForProfile(aid))
+      .catch(() => {
+        // Fallback: load legacy desk endpoint
+        return api.get('/user/desk').then(res => { if (res.data) setDesk(parseDesk(res.data)) })
       })
-      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const switchProfile = async (profileId: string) => {
+    setProfileMenuOpen(false)
+    setLoading(true)
+    try {
+      const res = await api.post(`/user/desk/profiles/${profileId}/activate`)
+      setActiveProfileId(profileId)
+      setDesk(parseDesk(res.data))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createProfile = async () => {
+    const name = newProfileName.trim() || 'New Profile'
+    const res = await api.post('/user/desk/profiles', { name })
+    const newId = res.data.id
+    await loadProfiles()
+    await loadDeskForProfile(newId)
+    setActiveProfileId(newId)
+    setCreatingProfile(false)
+    setNewProfileName('')
+  }
+
+  const renameProfile = async (profileId: string) => {
+    if (!renameValue.trim()) return
+    await api.patch(`/user/desk/profiles/${profileId}/rename`, { name: renameValue.trim() })
+    setProfiles(ps => ps.map(p => p.id === profileId ? { ...p, name: renameValue.trim() } : p))
+    setRenamingId(null)
+  }
+
+  const deleteProfile = async (profileId: string) => {
+    if (!confirm('Delete this profile? This cannot be undone.')) return
+    const res = await api.delete(`/user/desk/profiles/${profileId}`)
+    await loadProfiles()
+    if (res.data.activeProfileId) {
+      setActiveProfileId(res.data.activeProfileId)
+      await loadDeskForProfile(res.data.activeProfileId)
+    }
+  }
+
+  const activeProfileName = profiles.find(p => p.id === activeProfileId)?.name ?? 'My Profile'
 
   const save = async () => {
     setSaving(true)
     try {
-      await api.put('/user/desk', desk)
+      await api.put(`/user/desk/profiles/${activeProfileId}`, desk)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } finally {
@@ -69,22 +156,28 @@ export default function CareerDesk() {
     }
   }
 
-  const syncFromResume = async () => {
+  const openResumePicker = async () => {
+    setShowResumePicker(true)
+    setLoadingResumes(true)
+    try {
+      const res = await api.get('/user/desk/resumes')
+      setResumeList(res.data || [])
+    } catch {
+      setResumeList([])
+    } finally {
+      setLoadingResumes(false)
+    }
+  }
+
+  const syncFromResume = async (resumeId?: string) => {
+    setShowResumePicker(false)
     setSyncing(true)
     try {
-      await api.post('/user/desk/sync-from-resume')
-      const res = await api.get('/user/desk')
-      const d = res.data
-      if (d) {
-        setDesk({
-          profile: { ...emptyDesk.profile, ...(d.profile || {}) },
-          skills: Array.isArray(d.skills) ? d.skills : [],
-          experiences: Array.isArray(d.experiences) ? d.experiences : [],
-          education: Array.isArray(d.education) ? d.education : [],
-          projects: Array.isArray(d.projects) ? d.projects : [],
-          certifications: Array.isArray(d.certifications) ? d.certifications : [],
-        })
-      }
+      const url = resumeId
+        ? `/user/desk/sync-from-resume?resume_id=${resumeId}`
+        : '/user/desk/sync-from-resume'
+      await api.post(url)
+      await loadDeskForProfile(activeProfileId)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {
@@ -135,17 +228,161 @@ export default function CareerDesk() {
   )
 
   return (
+    <>
+    {/* ── Resume picker modal ───────────────────────────────── */}
+    {showResumePicker && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowResumePicker(false)} />
+        <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Pick a Resume to Import</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                The selected resume's data will fill your Career Desk profile.
+              </p>
+            </div>
+            <button onClick={() => setShowResumePicker(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 cursor-pointer">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="p-3 max-h-80 overflow-y-auto">
+            {loadingResumes ? (
+              <div className="space-y-2 p-2">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+              </div>
+            ) : resumeList.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-sm text-slate-500">No resumes uploaded yet.</p>
+                <p className="text-xs text-slate-400 mt-1">Upload a resume first from My Resumes.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {resumeList.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => syncFromResume(r.id)}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50/50 dark:hover:bg-brand-950/20 transition-all text-left cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-950 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-brand-100 dark:group-hover:bg-brand-900 transition-colors">
+                      <FileText size={14} className="text-brand-700 dark:text-brand-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{r.name}</p>
+                      {r.role && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{r.role}</p>}
+                      {r.lastModified && (
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Clock size={10} />
+                          {new Date(r.lastModified).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs text-brand-600 dark:text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity self-center font-medium">
+                      Import →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Career Desk</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Your master profile — powers Resume Builder, AutoPilot, and ATS Scanner.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {saved && <Badge variant="success">Synced</Badge>}
-          <Button variant="outline" onClick={syncFromResume} loading={syncing}>
+        <div className="flex items-center gap-2 flex-wrap">
+          {saved && <Badge variant="success">Saved</Badge>}
+
+          {/* Profile switcher */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setProfileMenuOpen(v => !v)}
+              className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <User size={13} />
+              <span className="max-w-[120px] truncate">{activeProfileName}</span>
+              <ChevronDown size={13} className={`transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {profileMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Switch Profile</p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {profiles.map(p => (
+                    <div key={p.id} className={`flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 ${p.id === activeProfileId ? 'bg-brand-50 dark:bg-brand-950/40' : ''}`}>
+                      {renamingId === p.id ? (
+                        <input
+                          className="flex-1 text-sm border border-brand-400 rounded px-2 py-0.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 focus:outline-none"
+                          value={renameValue}
+                          autoFocus
+                          onChange={e => setRenameValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') renameProfile(p.id); if (e.key === 'Escape') setRenamingId(null) }}
+                          onBlur={() => renameProfile(p.id)}
+                        />
+                      ) : (
+                        <button
+                          className={`flex-1 text-left text-sm truncate ${p.id === activeProfileId ? 'font-semibold text-brand-700 dark:text-brand-400' : 'text-slate-700 dark:text-slate-200'}`}
+                          onClick={() => switchProfile(p.id)}
+                        >
+                          {p.name}
+                          {p.id === activeProfileId && <span className="ml-1.5 text-[10px] text-brand-500">Active</span>}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { setRenamingId(p.id); setRenameValue(p.name) }}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title="Rename"
+                      >
+                        <Pencil size={11} />
+                      </button>
+                      {profiles.length > 1 && (
+                        <button
+                          onClick={() => deleteProfile(p.id)}
+                          className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500"
+                          title="Delete"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-slate-100 dark:border-slate-700 p-2">
+                  {creatingProfile ? (
+                    <div className="flex gap-2">
+                      <input
+                        className="flex-1 text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
+                        placeholder="Profile name (e.g. 'Mom', 'Dev Role')"
+                        value={newProfileName}
+                        autoFocus
+                        onChange={e => setNewProfileName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') createProfile(); if (e.key === 'Escape') setCreatingProfile(false) }}
+                      />
+                      <button onClick={createProfile} className="px-2 py-1 bg-brand-700 text-white rounded-lg text-sm hover:bg-brand-800 transition-colors">Add</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setCreatingProfile(true)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 rounded-lg transition-colors"
+                    >
+                      <UserPlus size={13} /> New profile (family member / different role)
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Button variant="outline" onClick={openResumePicker} loading={syncing}>
             <RefreshCw size={14} /> Import from resume
           </Button>
           <Button onClick={save} loading={saving}><Save size={14} /> Save</Button>
@@ -290,5 +527,6 @@ export default function CareerDesk() {
         </Card>
       </div>
     </div>
+    </>
   )
 }

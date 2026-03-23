@@ -47,11 +47,16 @@ export interface AutoApplySettings {
   blacklist_companies: string
 
   // AI provider
-  ai_provider: string        // 'groq' | 'openai' | 'anthropic'
+  ai_provider: string        // 'groq' | 'openai' | 'anthropic' | 'ollama'
   ai_model: string
   groq_api_key: string
   openai_api_key: string
   anthropic_api_key: string
+
+  // Ollama — local model server (Raspberry Pi)
+  ollama_host: string        // e.g. http://192.168.31.246:11434
+  ollama_model: string       // e.g. gemma3:1b
+  ollama_fast_model: string  // e.g. qwen2.5:1.5b
 
   // Email / outreach
   cold_email_enabled: boolean
@@ -76,13 +81,19 @@ export interface AutoApplySettings {
 
   // Sources (display only)
   sources: string[]
+
+  // Scrape volume (lower = faster)
+  results_per_search: number
 }
 
 export const autoapply = {
   health: () => api.get('/autoapply/health'),
 
-  triggerPipeline: (dryRun = false) =>
-    api.post(`/autoapply/pipeline/run?dry_run=${dryRun}`),
+  triggerPipeline: (dryRun = false, overrides?: { job_titles?: string; job_locations?: string; results_per_search?: number; disabled_sources?: string }) =>
+    api.post(`/autoapply/pipeline/run?dry_run=${dryRun}`, overrides || {}),
+
+  getPipelineStatus: () =>
+    api.get('/autoapply/pipeline/status'),
 
   getPipelineHistory: (limit = 10) =>
     api.get<PipelineRun[]>(`/autoapply/pipeline/history?limit=${limit}`),
@@ -92,6 +103,10 @@ export const autoapply = {
 
   getJobs: (minScore = 0, limit = 50) =>
     api.get<AutoApplyJob[]>(`/autoapply/jobs?min_score=${minScore}&limit=${limit}`),
+
+  // Unified: aggregates from AutoPilot sessions + pipeline runs
+  getAllJobs: (minScore = 0, limit = 200) =>
+    api.get<AutoApplyJob[]>(`/autoapply/all-jobs?min_score=${minScore}&limit=${limit}`),
 
   getJob: (id: number) =>
     api.get<AutoApplyJob>(`/autoapply/jobs/${id}`),
@@ -105,6 +120,10 @@ export const autoapply = {
   updateSettings: (data: Partial<AutoApplySettings>) =>
     api.put('/autoapply/settings', data),
 
-  testConnection: (provider: string, apiKey: string) =>
-    api.post('/autoapply/settings/test-connection', { provider, api_key: apiKey }),
+  testConnection: (provider: string, apiKey: string, ollamaHost?: string) =>
+    api.post('/autoapply/settings/test-connection', {
+      provider,
+      api_key: apiKey,
+      ollama_host: ollamaHost,
+    }),
 }

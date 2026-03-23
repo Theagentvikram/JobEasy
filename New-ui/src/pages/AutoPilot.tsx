@@ -184,7 +184,7 @@ function LiveFeed({ log }: { log: LogEntry[] }) {
   )
 }
 
-function JobCard({ job }: { job: AutoPilotJob }) {
+function JobCard({ job, resumeId }: { job: AutoPilotJob; resumeId?: string }) {
   const [expanded, setExpanded] = useState(false)
   const salaryText = formatSalary(job.salary_min, job.salary_max)
   const srcColor = SOURCE_COLORS[job.source] ?? SOURCE_COLORS.default
@@ -280,8 +280,8 @@ function JobCard({ job }: { job: AutoPilotJob }) {
           {job.description && (
             <div>
               <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Job Description:</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line line-clamp-10">
-                {job.description.slice(0, 800)}{job.description.length > 800 ? '…' : ''}
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+                {job.description}
               </p>
             </div>
           )}
@@ -300,25 +300,25 @@ function JobCard({ job }: { job: AutoPilotJob }) {
 
         <div className="flex-1" />
 
-        {job.pdf_url && (
-          <a
-            href={job.pdf_url}
-            target="_blank"
-            rel="noopener noreferrer"
+        {resumeId && (
+          <Link
+            to={`/dashboard/resumes/${resumeId}/edit`}
             className="flex items-center gap-1.5 text-xs font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200 transition-colors"
           >
-            <Download size={13} /> Tailored Resume
-          </a>
+            <FileText size={13} /> Tailored Resume
+          </Link>
         )}
 
-        <a
-          href={job.apply_url || job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs font-semibold bg-brand-700 hover:bg-brand-800 text-white px-3 py-1.5 rounded-lg transition-colors"
-        >
-          Apply <ExternalLink size={11} />
-        </a>
+        {(job.apply_url || job.url) && (
+          <a
+            href={job.apply_url || job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-semibold bg-brand-700 hover:bg-brand-800 text-white px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Apply <ExternalLink size={11} />
+          </a>
+        )}
       </div>
     </Card>
   )
@@ -387,7 +387,7 @@ export default function AutoPilotPage() {
   const [resumeText, setResumeText] = useState('')
   const [deskLoaded, setDeskLoaded] = useState(false)
   const [deskName, setDeskName] = useState('')
-  const [maxJobs] = useState(10)
+  const [maxJobs, setMaxJobs] = useState(3)
   const [minScore, setMinScore] = useState(60)
 
   // Loading state
@@ -397,6 +397,9 @@ export default function AutoPilotPage() {
   const [log, setLog] = useState<LogEntry[]>([])
   const [liveJobs, setLiveJobs] = useState<AutoPilotJob[]>([])
   const logIdRef = useRef(0)
+
+  // job_id → resume_id mapping from last run
+  const [jobResumeMap, setJobResumeMap] = useState<Record<string, string>>({})
 
   // Results state
   const [jobs, setJobs] = useState<AutoPilotJob[]>([])
@@ -411,9 +414,9 @@ export default function AutoPilotPage() {
   const closeStreamRef = useRef<(() => void) | null>(null)
   const sessionIdRef = useRef<string | null>(null)
 
-  // Load desk text + past sessions on mount
+  // Load desk text, settings, and past sessions on mount
   useEffect(() => {
-    loadSessions()
+    loadSessions(true)
     api.get('/user/desk/text')
       .then((res) => {
         const text = res.data?.text || ''
@@ -425,13 +428,27 @@ export default function AutoPilotPage() {
         }
       })
       .catch(() => {})
+    api.get('/auth/settings')
+      .then((res) => {
+        if (res.data?.autopilot_job_count) {
+          setMaxJobs(Number(res.data.autopilot_job_count))
+        }
+      })
+      .catch(() => {})
   }, [])
 
-  async function loadSessions() {
+  async function loadSessions(autoRestore = false) {
     setLoadingSessions(true)
     try {
       const res = await autopilot.listSessions()
       setSessions(res.data)
+      // On initial mount, auto-restore the most recent completed session
+      if (autoRestore && res.data.length > 0) {
+        const latest = res.data.find((s: AutoPilotSession) => s.status === 'done')
+        if (latest) {
+          loadPastSession(latest.session_id)
+        }
+      }
     } catch {
       // silent fail
     } finally {
@@ -535,11 +552,22 @@ export default function AutoPilotPage() {
         break
       }
 
-      case 'done':
+      case 'done': {
+        const doneMap: Record<string, string> = {}
+        if (event.saved_resume_ids?.length) {
+          event.saved_resume_ids.forEach((r) => { doneMap[r.job_id] = r.resume_id })
+          setJobResumeMap(doneMap)
+          toast.success(`${event.saved_resume_ids.length} tailored resumes saved to Resume Builder!`)
+        }
+        addLog(`All done! Showing results…`, 'success')
+        closeStreamRef.current?.()
+        fetchResults(doneMap)
+        break
+      }
+
       case 'already_done':
         addLog(`All done! Showing results…`, 'success')
         closeStreamRef.current?.()
-        // Fetch full results from API
         fetchResults()
         break
 
@@ -553,7 +581,7 @@ export default function AutoPilotPage() {
     }
   }
 
-  async function fetchResults() {
+  async function fetchResults(resumeMap: Record<string, string> = {}) {
     const sid = sessionIdRef.current
     if (!sid) return
     try {
@@ -562,7 +590,7 @@ export default function AutoPilotPage() {
       allJobs.sort((a, b) => b.match_score - a.match_score)
       setJobs(allJobs)
       // Save to job tracker (deduplicated by url)
-      saveJobsToTracker(allJobs)
+      saveJobsToTracker(allJobs, resumeMap)
       setPhase('results')
       loadSessions()
     } catch {
@@ -571,26 +599,50 @@ export default function AutoPilotPage() {
     }
   }
 
-  async function saveJobsToTracker(jobs: AutoPilotJob[]) {
+  async function saveJobsToTracker(jobs: AutoPilotJob[], resumeMap: Record<string, string> = {}) {
     try {
-      // Fetch existing tracker jobs to deduplicate
-      const existing = await api.get('/jobs')
-      const existingUrls = new Set((existing.data || []).map((j: any) => j.apply_url || j.url))
-      const newJobs = jobs.filter((j) => j.status === 'ready' && !existingUrls.has(j.apply_url || j.url))
-      for (const job of newJobs) {
-        await api.post('/jobs', {
-          title: job.title,
-          company: job.company,
-          url: job.apply_url || job.url,
-          status: 'saved',
-          notes: `AutoPilot — Match ${job.match_score}% · ${job.match_tier} tier`,
-          salary: job.salary_min ? `$${Math.round(job.salary_min / 1000)}k${job.salary_max ? `–$${Math.round(job.salary_max / 1000)}k` : '+'}` : '',
-          location: job.location,
-          source: job.source,
-        })
+      const readyJobs = jobs.filter((j) => j.status === 'ready')
+      if (readyJobs.length === 0) return
+
+      // Fetch existing to deduplicate by title+company (server also deduplicates)
+      const existing = await api.get('/referral/jobs')
+      const existingKeys = new Set(
+        (existing.data || []).map((j: any) => `${(j.title || '').toLowerCase()}|${(j.company || '').toLowerCase()}`)
+      )
+
+      for (const job of readyJobs) {
+        const key = `${job.title.toLowerCase()}|${job.company.toLowerCase()}`
+        if (existingKeys.has(key)) continue
+        existingKeys.add(key) // prevent dupes within this batch
+
+        // Validate link — must be a full URL
+        const rawLink = job.apply_url || job.url || ''
+        const link = rawLink.startsWith('http') ? rawLink : ''
+
+        try {
+          await api.post('/referral/jobs', {
+            title: job.title,
+            company: job.company,
+            link,
+            status: 'saved',
+            source: job.source || 'other',
+            location: job.location || '',
+            jobDescription: job.description?.slice(0, 2000) || '',
+            salaryRange: job.salary_min
+              ? `$${Math.round(job.salary_min / 1000)}k${job.salary_max ? `–$${Math.round(job.salary_max / 1000)}k` : '+'}`
+              : '',
+            notes: `AutoPilot — ${job.match_score}% match · ${job.match_tier} tier\nKeywords matched: ${job.keywords_matched.slice(0, 5).join(', ')}`,
+            tags: ['autopilot'],
+            priority: job.match_score >= 75 ? 2 : job.match_score >= 60 ? 1 : 0,
+            autopilot_resume_id: resumeMap[job.job_id] || null,
+          })
+        } catch {
+          // 409 = already exists, skip silently
+        }
       }
+      toast.success(`${readyJobs.length} jobs saved to Job Tracker!`)
     } catch {
-      // Non-fatal — job tracker save is best-effort
+      // Non-fatal
     }
   }
 
@@ -601,6 +653,10 @@ export default function AutoPilotPage() {
       allJobs.sort((a, b) => b.match_score - a.match_score)
       setJobs(allJobs)
       setSessionId(sid)
+      // Rebuild jobResumeMap from job docs (resume_id stored on each job)
+      const map: Record<string, string> = {}
+      allJobs.forEach((j) => { if (j.resume_id) map[j.job_id] = j.resume_id })
+      setJobResumeMap(map)
       setPhase('results')
     } catch {
       toast.error('Failed to load session')
@@ -645,7 +701,7 @@ export default function AutoPilotPage() {
           Auto Pilot
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Enter keywords → get 10 jobs with curated, tailored resumes and match scores. Ready to apply in one click.
+          Enter keywords → get 3 best-match jobs, each with a tailored resume and direct apply link. Saved to your Job Tracker automatically.
         </p>
       </div>
 
@@ -665,13 +721,39 @@ export default function AutoPilotPage() {
                     Location
                   </label>
                   <div className="relative">
-                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
                     <input
+                      list="location-suggestions"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Remote, New York, etc."
+                      placeholder="Remote, United States, etc."
                       className="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
                     />
+                    <datalist id="location-suggestions">
+                      <option value="Remote" />
+                      <option value="United States" />
+                      <option value="United Kingdom" />
+                      <option value="Canada" />
+                      <option value="Australia" />
+                      <option value="India" />
+                      <option value="Germany" />
+                      <option value="Netherlands" />
+                      <option value="Singapore" />
+                      <option value="New York, NY" />
+                      <option value="San Francisco, CA" />
+                      <option value="Austin, TX" />
+                      <option value="Seattle, WA" />
+                      <option value="Chicago, IL" />
+                      <option value="Boston, MA" />
+                      <option value="London, UK" />
+                      <option value="Toronto, Canada" />
+                      <option value="Bengaluru, India" />
+                      <option value="Hyderabad, India" />
+                      <option value="Mumbai, India" />
+                      <option value="Dubai, UAE" />
+                      <option value="Berlin, Germany" />
+                      <option value="Amsterdam, Netherlands" />
+                    </datalist>
                   </div>
                 </div>
 
@@ -723,7 +805,7 @@ export default function AutoPilotPage() {
                 disabled={keywords.length === 0 || !deskLoaded}
               >
                 <Zap size={16} />
-                Launch Auto Pilot — Search {maxJobs} Jobs
+                Launch Auto Pilot — Find {maxJobs} Best Jobs
               </Button>
             </Card>
           </div>
@@ -861,7 +943,7 @@ export default function AutoPilotPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {liveJobs.slice(0, 6).map((job) => (
-                  <JobCard key={job.job_id} job={job} />
+                  <JobCard key={job.job_id} job={job} resumeId={jobResumeMap[job.job_id]} />
                 ))}
               </div>
               {liveJobs.length > 6 && (
@@ -975,7 +1057,7 @@ export default function AutoPilotPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredJobs.map((job) => (
-                <JobCard key={job.job_id} job={job} />
+                <JobCard key={job.job_id} job={job} resumeId={jobResumeMap[job.job_id]} />
               ))}
             </div>
           )}

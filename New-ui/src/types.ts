@@ -106,14 +106,16 @@ export interface ATSScan {
 // ─── Job Tracker ─────────────────────────────────────────────────────────────
 
 export type JobStatus =
-  | 'waiting_referral'
-  | 'referral_received'
-  | 'apply_today'
+  | 'saved'
   | 'applied'
   | 'interview'
   | 'offer'
   | 'rejected'
   | 'withdrawn'
+  // legacy — kept for existing Firestore docs
+  | 'waiting_referral'
+  | 'referral_received'
+  | 'apply_today'
   | 'closed'
 
 export interface Outreach {
@@ -146,6 +148,7 @@ export interface Job {
   tags: string[]
   dateApplied?: string
   dateClosed?: string
+  autopilot_resume_id?: string
 }
 
 // ─── Career Desk ─────────────────────────────────────────────────────────────

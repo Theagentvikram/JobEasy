@@ -26,12 +26,16 @@ async def get_ats_history(user=Depends(get_current_user)):
     db = get_db()
     user_id = user['uid']
     
-    docs = db.collection('ats_scans').where('userId', '==', user_id).order_by('createdAt', direction='DESCENDING').limit(20).stream()
-    
+    # Avoid composite index requirement by sorting in Python
+    docs = db.collection('ats_scans').where('userId', '==', user_id).limit(50).stream()
     scans = []
     for doc in docs:
-        scans.append(ATSScan(**doc.to_dict()))
-    return scans
+        try:
+            scans.append(ATSScan(**doc.to_dict()))
+        except Exception:
+            pass
+    scans.sort(key=lambda s: s.createdAt or "", reverse=True)
+    return scans[:20]
 
 @router.get("/scan/{scan_id}", response_model=ATSScan)
 async def get_ats_scan(scan_id: str, user=Depends(get_current_user)):
