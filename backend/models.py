@@ -21,7 +21,7 @@ class ProjectItem(BaseModel):
     id: str
     name: str
     description: str
-    link: str
+    link: str = ""
 
 class CertificationItem(BaseModel):
     id: str
