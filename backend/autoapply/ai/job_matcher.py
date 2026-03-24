@@ -2,6 +2,8 @@
 Job matching engine - uses Groq (free) by default.
 Scores how well a job matches the user's profile (0-100).
 """
+from typing import Optional
+
 import yaml
 from pathlib import Path
 from autoapply.utils.logger import logger
@@ -31,7 +33,8 @@ async def score_job_match(job_title: str, company: str,
 
     if company.lower() in blacklist:
         return {"score": 0, "tier": "F", "reasons": ["Blacklisted company"],
-                "keywords_matched": [], "keywords_missing": [], "red_flags": ["blacklisted"]}
+                "keywords_matched": [], "keywords_missing": [], "red_flags": ["blacklisted"],
+                "scoring_failed": False}
 
     skills = profile.get("skills", {})
     all_skills = [s for group in skills.values() for s in group]
@@ -73,8 +76,65 @@ IMPORTANT: Do NOT use placeholder values. Score must reflect the actual match qu
         result = await chat_json(prompt, fast=True)  # Use fast model for scoring
         if not isinstance(result, dict):
             raise ValueError("Expected dict")
+        result.setdefault("scoring_failed", False)
         return result
     except Exception as e:
         logger.error(f"[Matcher] Error scoring {job_title} at {company}: {e}")
         return {"score": 50, "tier": "C", "reasons": ["Scoring failed"],
-                "keywords_matched": [], "keywords_missing": [], "red_flags": []}
+                "keywords_matched": [], "keywords_missing": [], "red_flags": [],
+                "scoring_failed": True}
+
+
+def build_resume_profile_from_text(resume_text: str) -> dict:
+    """
+    Wrap raw resume text into the minimal profile dict expected by score_job_match.
+    We don't have parsed YAML here, so we pass raw text as a special key.
+    """
+    return {
+        "skills": {"general": _extract_skill_keywords(resume_text)},
+        "experience": [],
+        "job_preferences": {"titles": [], "min_salary": 0, "visa_sponsorship_needed": False},
+        "_raw_resume": resume_text,
+    }
+
+
+def _extract_skill_keywords(text: str) -> list[str]:
+    """Heuristic keyword extraction for profile building."""
+    common_skills = [
+        "Python", "JavaScript", "TypeScript", "React", "Node.js", "FastAPI", "Django",
+        "SQL", "PostgreSQL", "MongoDB", "Redis", "AWS", "GCP", "Azure", "Docker",
+        "Kubernetes", "CI/CD", "Machine Learning", "TensorFlow", "PyTorch", "LLM",
+        "REST", "GraphQL", "Git", "Java", "Go", "Rust", "C++", "Swift", "Kotlin",
+        "Flutter", "Vue", "Angular", "Next.js", "Tailwind", "CSS", "HTML",
+        "Data Analysis", "Pandas", "Spark", "Hadoop", "Tableau", "Power BI",
+        "Product Management", "Agile", "Scrum", "Figma", "UX", "SEO",
+    ]
+    text_lower = text.lower()
+    return [s for s in common_skills if s.lower() in text_lower]
+
+
+async def rescore_tailored_resume(
+    job_title: str,
+    company: str,
+    description: str,
+    tailored_resume_text: Optional[str],
+    previous_match: dict,
+    requirements: Optional[list] = None,
+) -> tuple[dict, bool]:
+    """
+    Re-score a tailored resume against the JD and return the final match payload.
+    Falls back to the previous match if the tailored resume is empty or re-scoring fails.
+    """
+    if not tailored_resume_text or not tailored_resume_text.strip():
+        return previous_match, False
+
+    tailored_match = await score_job_match(
+        job_title=job_title,
+        company=company,
+        description=description,
+        requirements=requirements,
+        profile=build_resume_profile_from_text(tailored_resume_text),
+    )
+    if tailored_match.get("scoring_failed"):
+        return previous_match, False
+    return tailored_match, True

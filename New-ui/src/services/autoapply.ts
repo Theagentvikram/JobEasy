@@ -84,6 +84,43 @@ export interface AutoApplySettings {
 
   // Scrape volume (lower = faster)
   results_per_search: number
+
+  // Google Sheets
+  google_sheets_enabled: boolean
+  google_sheets_spreadsheet_id: string
+  google_sheets_job_tracker_tab: string
+  google_sheets_autoapply_tab: string
+}
+
+export interface GoogleSheetsStatus {
+  enabled: boolean
+  spreadsheet_id: string
+  job_tracker_tab_base: string
+  autoapply_tab_base: string
+  job_tracker_sheet_title: string
+  autoapply_sheet_title: string
+  service_account_email: string
+  credentials_source: string
+  service_account_ready: boolean
+  spreadsheet_accessible: boolean
+  spreadsheet_title: string
+  available_sheets: string[]
+}
+
+export interface GoogleSheetsTestResponse {
+  status: string
+  spreadsheet_id: string
+  spreadsheet_title: string
+  sheet_titles: string[]
+  service_account_email: string
+}
+
+export interface GoogleSheetsSyncResponse {
+  status: string
+  scope: 'tracker' | 'autoapply' | 'all'
+  spreadsheet_id?: string
+  tracker?: { sheet_title: string; rows_written: number }
+  autoapply?: { sheet_title: string; rows_written: number }
 }
 
 export const autoapply = {
@@ -119,6 +156,15 @@ export const autoapply = {
 
   updateSettings: (data: Partial<AutoApplySettings>) =>
     api.put('/autoapply/settings', data),
+
+  getGoogleSheetsStatus: () =>
+    api.get<GoogleSheetsStatus>('/autoapply/google-sheets/status'),
+
+  testGoogleSheets: () =>
+    api.post<GoogleSheetsTestResponse>('/autoapply/google-sheets/test'),
+
+  syncGoogleSheets: (scope: 'tracker' | 'autoapply' | 'all' = 'all') =>
+    api.post<GoogleSheetsSyncResponse>('/autoapply/google-sheets/sync', { scope }),
 
   testConnection: (provider: string, apiKey: string, ollamaHost?: string) =>
     api.post('/autoapply/settings/test-connection', {

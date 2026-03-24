@@ -226,6 +226,14 @@ def list_user_jobs_raw(db, user_id: str) -> List[Dict[str, Any]]:
     return [doc.to_dict() for doc in docs]
 
 
+def sync_tracker_sheet_for_user(db, user_id: str):
+    try:
+        from services.google_sheets import sync_job_tracker_sheet
+        sync_job_tracker_sheet(db, user_id)
+    except Exception as exc:
+        print(f"[Referral] Google Sheets sync failed for user {user_id}: {exc}")
+
+
 def assert_job_ownership_or_404(db, job_id: str, user_id: str):
     doc_ref = db.collection("jobs").document(job_id)
     doc = doc_ref.get()
@@ -390,6 +398,7 @@ async def create_job(payload: Dict[str, Any] = Body(...), user=Depends(get_curre
 
     job = build_job(payload)
     db.collection("jobs").document(job.id).set(job.model_dump())
+    sync_tracker_sheet_for_user(db, user_id)
     return with_effective_fields(job)
 
 
@@ -417,6 +426,7 @@ async def update_job(job_id: str, payload: Dict[str, Any] = Body(...), user=Depe
 
     job = build_job(merged)
     doc_ref.set(job.model_dump())
+    sync_tracker_sheet_for_user(db, user_id)
     return with_effective_fields(job)
 
 
@@ -425,6 +435,7 @@ async def delete_job(job_id: str, user=Depends(get_current_user)):
     db = get_db()
     doc_ref, _ = assert_job_ownership_or_404(db, job_id, user["uid"])
     doc_ref.delete()
+    sync_tracker_sheet_for_user(db, user["uid"])
     return {"status": "success", "id": job_id}
 
 
@@ -456,6 +467,7 @@ async def add_contact(
 
     job.updatedAt = now_iso()
     doc_ref.set(job.model_dump())
+    sync_tracker_sheet_for_user(db, user["uid"])
     return with_effective_fields(job)
 
 
@@ -490,6 +502,7 @@ async def update_contact(
     job.outreachCount = len(job.outreach)
     job.updatedAt = now_iso()
     doc_ref.set(job.model_dump())
+    sync_tracker_sheet_for_user(db, user["uid"])
     return with_effective_fields(job)
 
 
@@ -507,6 +520,7 @@ async def delete_contact(job_id: str, contact_id: str, user=Depends(get_current_
     job.outreachCount = len(job.outreach)
     job.updatedAt = now_iso()
     doc_ref.set(job.model_dump())
+    sync_tracker_sheet_for_user(db, user["uid"])
     return with_effective_fields(job)
 
 

@@ -354,6 +354,10 @@ function emptySettings(): AutoApplySettings {
     sources_yc: true,
     sources: [],
     results_per_search: 15,
+    google_sheets_enabled: false,
+    google_sheets_spreadsheet_id: '',
+    google_sheets_job_tracker_tab: 'Job Tracker',
+    google_sheets_autoapply_tab: 'AutoApply Jobs',
   }
 }
 

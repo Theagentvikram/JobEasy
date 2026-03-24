@@ -18,11 +18,16 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from autoapply.ai.job_matcher import score_job_match
+from autoapply.ai.job_matcher import (
+    build_resume_profile_from_text,
+    rescore_tailored_resume,
+    score_job_match,
+)
 from autoapply.ai.resume_tailor import tailor_resume
 from autoapply.resume.pdf_generator import generate_resume_pdf
 from autoapply.scrapers.jobspy_scraper import JobSpyScraper
 from services.firebase import get_db
+from services.google_sheets import sync_autoapply_jobs_sheet, sync_job_tracker_sheet
 
 # In-memory SSE queues: session_id → asyncio.Queue
 # (lives for the duration of an active search session)
@@ -147,7 +152,7 @@ async def run_autopilot_session(
 
         # ── 2. Score → stop at target, then tailor those ──────────────────
         processed = 0
-        ready_jobs_data = []  # list of (job, match, job_id)
+        ready_jobs_data = []  # list of {"job": job, "match": match, "job_id": job_id}
 
         for idx, job in enumerate(raw_jobs):
             if len(ready_jobs_data) >= target:
@@ -165,7 +170,7 @@ async def run_autopilot_session(
                 job_title=title,
                 company=company,
                 description=job.description or "",
-                profile=_resume_text_to_profile(resume_text),
+                profile=build_resume_profile_from_text(resume_text),
             )
             score = match.get("score", 0)
 
@@ -176,11 +181,15 @@ async def run_autopilot_session(
                 session_ref.update({"processed": processed})
                 continue
 
-            ready_jobs_data.append((job, match, job_id))
+            ready_jobs_data.append({"job": job, "match": match, "job_id": job_id})
 
         # Tailor the qualifying jobs one by one
         ready_count = 0
-        for (job, match, job_id) in ready_jobs_data:
+        finalized_ready_jobs = []
+        for item in ready_jobs_data:
+            job = item["job"]
+            match = item["match"]
+            job_id = item["job_id"]
             title = job.title or "Unknown Role"
             company = job.company or "Unknown Company"
             score = match.get("score", 0)
@@ -196,17 +205,50 @@ async def run_autopilot_session(
                 match_data=match,
             )
 
+            tailored_md = tailor_result.get("resume_markdown", "")
+            rescored = False
+            if tailored_md and tailored_md != resume_text:
+                await emit({"type": "scoring", "current": ready_count + 1, "total": target,
+                            "message": f"Re-scoring tailored resume for {title} @ {company}…"})
+                match, rescored = await rescore_tailored_resume(
+                    job_title=title,
+                    company=company,
+                    description=job.description or "",
+                    tailored_resume_text=tailored_md,
+                    previous_match=match,
+                )
+                score = match.get("score", 0)
+
+            if score < min_score:
+                _save_job_firestore(
+                    db, session_id, uid, job_id, job, match,
+                    tailor_result, None, "skipped"
+                )
+                await emit({
+                    "type": "skipped",
+                    "current": ready_count + 1,
+                    "total": target,
+                    "message": (
+                        f"Skip after tailoring ({score}%): {title} @ {company}"
+                        if rescored else f"Skip ({score}%): {title} @ {company}"
+                    ),
+                })
+                session_ref.update({"processed": processed})
+                continue
+
             job_doc = _save_job_firestore(
                 db, session_id, uid, job_id, job, match,
                 tailor_result, None, "ready"
             )
+            item["match"] = match
+            finalized_ready_jobs.append(item)
             ready_count += 1
             session_ref.update({"processed": processed})
 
             await emit({
                 "type": "job_ready",
                 "current": ready_count,
-                "total": TARGET_READY_JOBS,
+                "total": target,
                 "job": job_doc,
                 "message": f"✓ Ready: {title} @ {company} — {score}% match",
             })
@@ -222,9 +264,14 @@ async def run_autopilot_session(
         try:
             # Build resume_id lookup: job_id → resume_id
             resume_id_by_job = {item["job_id"]: item["resume_id"] for item in saved_resume_ids if isinstance(item, dict)}
-            _push_jobs_to_tracker(db, uid, ready_jobs_data, resume_id_by_job)
+            _push_jobs_to_tracker(db, uid, finalized_ready_jobs, resume_id_by_job)
         except Exception as e:
             print(f"[AutoPilot] Failed to push jobs to tracker: {e}")
+
+        try:
+            sync_autoapply_jobs_sheet(db, uid)
+        except Exception as e:
+            print(f"[AutoPilot] Failed to sync AutoApply jobs sheet: {e}")
 
         # ── 5. Finish ─────────────────────────────────────────────────────
         session_ref.update({
@@ -467,7 +514,10 @@ def _push_jobs_to_tracker(db, uid: str, ready_jobs_data: list, resume_id_by_job:
         for r in existing
     }
 
-    for (job, match, job_id) in ready_jobs_data:
+    for item in ready_jobs_data:
+        job = item["job"]
+        match = item["match"]
+        job_id = item["job_id"]
         title = (job.title or "").strip()
         company = (job.company or "").strip()
         key = (title.lower(), company.lower())
@@ -507,6 +557,8 @@ def _push_jobs_to_tracker(db, uid: str, ready_jobs_data: list, resume_id_by_job:
         db.collection("jobs").document(tracker_id).set(doc)
         existing_keys.add(key)
         print(f"[AutoPilot] Tracker: added '{title}' @ '{company}' (score={match.get('score',0)}%)")
+
+    sync_job_tracker_sheet(db, uid)
 
 
 def _desk_data_to_resume(desk: dict, uid: str) -> dict:
@@ -567,35 +619,6 @@ def _desk_data_to_resume(desk: dict, uid: str) -> dict:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _resume_text_to_profile(resume_text: str) -> dict:
-    """
-    Wrap raw resume text into the minimal profile dict expected by score_job_match.
-    We don't have parsed YAML here, so we pass raw text as a special key.
-    The job_matcher prompt will receive it via description substitution.
-    """
-    return {
-        "skills": {"general": _extract_skill_keywords(resume_text)},
-        "experience": [],
-        "job_preferences": {"titles": [], "min_salary": 0, "visa_sponsorship_needed": False},
-        "_raw_resume": resume_text,
-    }
-
-
-def _extract_skill_keywords(text: str) -> list[str]:
-    """Heuristic keyword extraction for profile building."""
-    common_skills = [
-        "Python", "JavaScript", "TypeScript", "React", "Node.js", "FastAPI", "Django",
-        "SQL", "PostgreSQL", "MongoDB", "Redis", "AWS", "GCP", "Azure", "Docker",
-        "Kubernetes", "CI/CD", "Machine Learning", "TensorFlow", "PyTorch", "LLM",
-        "REST", "GraphQL", "Git", "Java", "Go", "Rust", "C++", "Swift", "Kotlin",
-        "Flutter", "Vue", "Angular", "Next.js", "Tailwind", "CSS", "HTML",
-        "Data Analysis", "Pandas", "Spark", "Hadoop", "Tableau", "Power BI",
-        "Product Management", "Agile", "Scrum", "Figma", "UX", "SEO",
-    ]
-    text_lower = text.lower()
-    return [s for s in common_skills if s.lower() in text_lower]
 
 
 def _save_job_firestore(

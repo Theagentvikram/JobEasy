@@ -33,6 +33,7 @@ import Settings from './pages/Settings'
 import AutoApplyPage from './pages/AutoApply'
 import AutoPilotPage from './pages/AutoPilot'
 import AutopilotCommand from './pages/AutopilotCommand'
+import GoogleSheetsPage from './pages/GoogleSheets'
 
 export default function App() {
   // /new basename always — proxied via root Vite in dev, served from /new/ in prod
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="autoapply" element={<AutoApplyPage />} />
               <Route path="autopilot" element={<AutoPilotPage />} />
               <Route path="command" element={<AutopilotCommand />} />
+              <Route path="sheets" element={<GoogleSheetsPage />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 

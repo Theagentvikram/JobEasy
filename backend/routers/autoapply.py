@@ -9,6 +9,14 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, File, Up
 from pydantic import BaseModel
 from services.auth import get_current_user
 from services.firebase import get_db
+from services.google_sheets import (
+    get_google_sheets_status,
+    resolve_sheets_settings,
+    sync_all_google_sheets,
+    sync_autoapply_jobs_sheet,
+    sync_job_tracker_sheet,
+    test_google_sheets_access,
+)
 from typing import Optional
 import shutil
 import asyncio
@@ -470,6 +478,11 @@ class AutoApplySettingsUpdate(BaseModel):
     sources: Optional[list] = None
     # How many results to fetch per title/location combo (lower = faster)
     results_per_search: Optional[int] = None
+    # Google Sheets
+    google_sheets_enabled: Optional[bool] = None
+    google_sheets_spreadsheet_id: Optional[str] = None
+    google_sheets_job_tracker_tab: Optional[str] = None
+    google_sheets_autoapply_tab: Optional[str] = None
 
 
 def _mask(val):
@@ -487,6 +500,7 @@ async def get_settings(user=Depends(get_current_user)):
         from autoapply.utils.settings import settings as env_settings
         doc = _settings_ref(user_id).get()
         overrides = doc.to_dict() if doc.exists else {}
+        sheets_defaults = resolve_sheets_settings(None, None)
 
         base = {
             "job_titles": env_settings.job_titles,
@@ -519,6 +533,10 @@ async def get_settings(user=Depends(get_current_user)):
             "results_per_search": 15,
             "disabled_sources": env_settings.disabled_sources,
             "sources": [],  # granular per-platform list (stored in Firestore)
+            "google_sheets_enabled": sheets_defaults["enabled"],
+            "google_sheets_spreadsheet_id": sheets_defaults["spreadsheet_id"],
+            "google_sheets_job_tracker_tab": sheets_defaults["job_tracker_tab_base"],
+            "google_sheets_autoapply_tab": sheets_defaults["autoapply_tab_base"],
         }
         for k, v in overrides.items():
             if k in base and v is not None:
@@ -550,6 +568,64 @@ async def update_settings(req: AutoApplySettingsUpdate, user=Depends(get_current
 
     await _run_blocking(_save)
     return {"status": "saved", "updated_fields": list(updates.keys())}
+
+
+class GoogleSheetsSyncRequest(BaseModel):
+    scope: str = "all"  # tracker | autoapply | all
+
+
+@router.get("/google-sheets/status")
+async def google_sheets_status(user=Depends(get_current_user)):
+    user_id = user["uid"]
+
+    def _fetch():
+        return get_google_sheets_status(_fs(), user_id)
+
+    return await _run_blocking(_fetch)
+
+
+@router.post("/google-sheets/test")
+async def google_sheets_test(user=Depends(get_current_user)):
+    user_id = user["uid"]
+
+    def _run():
+        return test_google_sheets_access(_fs(), user_id)
+
+    try:
+        result = await _run_blocking(_run)
+        return result
+    except Exception as e:
+        raise HTTPException(400, f"Google Sheets test failed: {e}")
+
+
+@router.post("/google-sheets/sync")
+async def google_sheets_sync(req: GoogleSheetsSyncRequest, user=Depends(get_current_user)):
+    user_id = user["uid"]
+    scope = (req.scope or "all").strip().lower()
+
+    def _run():
+        db = _fs()
+        if scope == "tracker":
+            return {
+                "status": "ok",
+                "scope": "tracker",
+                "tracker": sync_job_tracker_sheet(db, user_id),
+            }
+        if scope == "autoapply":
+            return {
+                "status": "ok",
+                "scope": "autoapply",
+                "autoapply": sync_autoapply_jobs_sheet(db, user_id),
+            }
+        return {
+            **sync_all_google_sheets(db, user_id),
+            "scope": "all",
+        }
+
+    try:
+        return await _run_blocking(_run)
+    except Exception as e:
+        raise HTTPException(400, f"Google Sheets sync failed: {e}")
 
 
 @router.post("/settings/test-connection")

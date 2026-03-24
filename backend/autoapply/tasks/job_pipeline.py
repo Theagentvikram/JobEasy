@@ -18,7 +18,7 @@ from autoapply.scrapers.yc_scraper import YCScraper
 from autoapply.scrapers.local_boards import LocalBoardsScraper
 from autoapply.scrapers.startup_filter import filter_startup_jobs
 from autoapply.scrapers.base import JobListing
-from autoapply.ai.job_matcher import score_job_match, load_profile
+from autoapply.ai.job_matcher import load_profile, rescore_tailored_resume, score_job_match
 from autoapply.ai.resume_tailor import tailor_resume, generate_cover_letter
 from autoapply.ai.company_research import research_company, find_hiring_manager_email
 from autoapply.ai.groq_client import parse_job_requirements
@@ -26,6 +26,7 @@ from autoapply.resume.pdf_generator import generate_resume_pdf
 from autoapply.applicator.linkedin_apply import LinkedInApplyBot
 from autoapply.applicator.form_filler import GenericFormFiller
 from autoapply.outreach.gmail_client import send_cold_email, generate_cold_email
+from services.google_sheets import sync_autoapply_jobs_sheet
 
 
 def _load_user_settings(user_id: str | None) -> dict:
@@ -67,12 +68,16 @@ def _save_job_to_firestore(user_id: str, db_job, score: float, match: dict):
             "salary_min": db_job.salary_min,
             "salary_max": db_job.salary_max,
             "match_score": score,
+            "match_tier": match.get("tier", ""),
             "match_reasons": match.get("reasons", []),
             "keywords_matched": match.get("keywords_matched", []),
             "keywords_missing": match.get("keywords_missing", []),
             "status": db_job.status.value if hasattr(db_job.status, "value") else str(db_job.status),
             "description": (db_job.description or "")[:1000],
-            "discovered_at": datetime.utcnow().isoformat(),
+            "discovered_at": (
+                db_job.discovered_at.isoformat()
+                if getattr(db_job, "discovered_at", None) else datetime.utcnow().isoformat()
+            ),
             "applied_at": None,
             "cold_email_sent": False,
         }, merge=True)
@@ -343,6 +348,37 @@ async def run_full_pipeline(dry_run: bool = False, user_id: str | None = None, o
                         base_resume_text=base,
                         match_data=match_data,
                     )
+                    tailored_match, rescored = await rescore_tailored_resume(
+                        job_title=db_job.title,
+                        company=db_job.company,
+                        description=db_job.description or "",
+                        tailored_resume_text=tailored.get("resume_markdown", ""),
+                        previous_match=match_data,
+                        requirements=db_job.requirements,
+                    )
+                    final_score = tailored_match.get("score", 0)
+
+                    db_job.match_score = final_score
+                    db_job.match_reasons = tailored_match.get("reasons", [])
+                    db_job.keywords_matched = tailored_match.get("keywords_matched", [])
+                    db_job.keywords_missing = tailored_match.get("keywords_missing", [])
+
+                    if rescored:
+                        logger.info(
+                            f"     ↺ Re-scored tailored resume: {final_score:.0f}% — "
+                            f"{db_job.title} at {db_job.company}"
+                        )
+
+                    if final_score < settings.match_score_threshold:
+                        db_job.status = JobStatus.SKIPPED
+                        _save_job_to_firestore(user_id, db_job, final_score, tailored_match)
+                        stats["skipped"] += 1
+                        logger.info(
+                            f"     ↷ Skipping after tailoring: {final_score:.0f}% — "
+                            f"{db_job.title} at {db_job.company}"
+                        )
+                        await db.commit()
+                        continue
 
                     # Cover letter
                     cover_letter = await generate_cover_letter(
@@ -361,6 +397,7 @@ async def run_full_pipeline(dry_run: bool = False, user_id: str | None = None, o
                     )
                     db_job.tailored_resume_path = resume_path
                     db_job.status = JobStatus.RESUME_TAILORED
+                    _save_job_to_firestore(user_id, db_job, final_score, tailored_match)
 
                     if not dry_run:
                         # Apply
@@ -412,6 +449,13 @@ async def run_full_pipeline(dry_run: bool = False, user_id: str | None = None, o
             run_log.emails_sent = stats["emails_sent"]
             run_log.status = "completed"
             await db.commit()
+
+            if user_id:
+                try:
+                    from services.firebase import get_db as _fs
+                    sync_autoapply_jobs_sheet(_fs(), user_id)
+                except Exception as e:
+                    logger.warning(f"[GoogleSheets] Failed to sync AutoApply jobs: {e}")
 
             # Save run to Firestore for pipeline history endpoint
             if user_id:

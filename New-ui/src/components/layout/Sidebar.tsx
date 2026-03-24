@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  FileSpreadsheet,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -36,6 +37,7 @@ const nav = [
 ]
 
 const bottomNav = [
+  { to: '/dashboard/sheets', icon: FileSpreadsheet, label: 'Google Sheets' },
   { to: '/dashboard/plans', icon: CreditCard, label: 'Plans' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ]
