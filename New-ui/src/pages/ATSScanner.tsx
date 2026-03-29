@@ -120,7 +120,7 @@ function UploadZone({
         'border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200',
         dragging
           ? 'border-brand-400 bg-brand-50 dark:bg-brand-950'
-          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600',
+          : 'border-slate-200 dark:border-dark-border-subtle hover:border-slate-300 dark:hover:border-slate-600',
         file ? '' : 'cursor-pointer'
       )}
     >
@@ -143,7 +143,7 @@ function UploadZone({
         </div>
       ) : (
         <div>
-          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 bg-slate-100 dark:bg-dark-elevated rounded-full flex items-center justify-center mx-auto mb-3">
             <Upload size={20} className="text-slate-400 dark:text-slate-500" />
           </div>
           <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -173,7 +173,7 @@ function SectionScore({ label, score }: { label: string; score: number }) {
         <span className="font-medium text-slate-600 dark:text-slate-400 capitalize">{label}</span>
         <span className={cn('font-bold', scoreColor(score))}>{score}</span>
       </div>
-      <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-slate-100 dark:bg-dark-elevated rounded-full overflow-hidden">
         <div
           className={cn(
             'h-full rounded-full transition-all duration-700',
@@ -348,7 +348,7 @@ function HistoryItem({ scan, onSelect }: { scan: ATSScan; onSelect: () => void }
   return (
     <button
       onClick={onSelect}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left"
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-hover transition-colors cursor-pointer text-left"
     >
       <ScoreRing score={scan.score} size={36} />
       <div className="flex-1 min-w-0">
@@ -438,8 +438,8 @@ export default function ATSScanner() {
   return (
     <div className="flex h-full">
       {/* Left panel */}
-      <div className="w-80 flex-shrink-0 border-r border-slate-100 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900">
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+      <div className="w-80 flex-shrink-0 border-r border-slate-100 dark:border-dark-border flex flex-col bg-white dark:bg-dark-surface">
+        <div className="p-5 border-b border-slate-100 dark:border-dark-border">
           <div className="flex items-center gap-2 mb-1">
             <ScanText size={16} className="text-brand-700" />
             <h1 className="text-base font-bold text-slate-900 dark:text-slate-50">ATS Scanner</h1>
@@ -453,7 +453,7 @@ export default function ATSScanner() {
         <div className="p-5 space-y-4 flex-1 overflow-y-auto">
           {/* Limits */}
           {user && (
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="bg-slate-50 dark:bg-dark-card rounded-lg px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
               <span className="font-semibold text-slate-700 dark:text-slate-200">
                 {user.plan === 'pro' ? '20' : '1'}
               </span>{' '}
@@ -479,7 +479,7 @@ export default function ATSScanner() {
               value={jobDesc}
               onChange={(e) => setJobDesc(e.target.value)}
               rows={8}
-              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent resize-none"
+              className="w-full border border-slate-200 dark:border-dark-border-subtle rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-dark-card focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent resize-none"
             />
           </div>
 
@@ -501,10 +501,10 @@ export default function ATSScanner() {
         </div>
 
         {/* History */}
-        <div className="border-t border-slate-100 dark:border-slate-800">
+        <div className="border-t border-slate-100 dark:border-dark-border">
           <button
             onClick={loadHistory}
-            className="w-full flex items-center justify-between px-5 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+            className="w-full flex items-center justify-between px-5 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer transition-colors"
           >
             Scan history
             <ChevronDown size={14} className="text-slate-400 dark:text-slate-500" />
@@ -524,7 +524,7 @@ export default function ATSScanner() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30 dark:bg-slate-950">
+      <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30 dark:bg-dark-bg">
         {scanning ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <Spinner size={28} />

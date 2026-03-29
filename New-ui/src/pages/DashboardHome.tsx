@@ -117,7 +117,7 @@ export default function DashboardHome() {
       : null
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="w-full">
       {/* Header — renders immediately, no loading gate */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
@@ -178,7 +178,7 @@ export default function DashboardHome() {
               value={user?.plan === 'pro' ? 'Pro' : 'Free'}
               sub={user?.plan_type || 'upgrade for more'}
               icon={CheckCircle2}
-              color={user?.plan === 'pro' ? 'bg-brand-50 dark:bg-brand-950 text-brand-700' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'}
+              color={user?.plan === 'pro' ? 'bg-brand-50 dark:bg-brand-950 text-brand-700' : 'bg-slate-100 dark:bg-dark-elevated text-slate-500'}
             />
           </>
         )}
@@ -231,10 +231,10 @@ export default function DashboardHome() {
                   </Link>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                <div className="divide-y divide-slate-100 dark:divide-dark-border-subtle">
                   {resumes.slice(0, 4).map((r) => (
                     <Link key={r.id} to={`/dashboard/resumes/${r.id}/edit`}>
-                      <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-dark-hover/50 transition-colors cursor-pointer">
                         <div className="w-8 h-8 bg-brand-50 dark:bg-brand-950 rounded-lg flex items-center justify-center flex-shrink-0">
                           <FileText size={15} className="text-brand-700" />
                         </div>
@@ -282,7 +282,7 @@ export default function DashboardHome() {
                   </Link>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                <div className="divide-y divide-slate-100 dark:divide-dark-border-subtle">
                   {scans.slice(0, 4).map((scan) => (
                     <div key={scan.id} className="flex items-center gap-3 px-4 py-3">
                       <ScoreRing score={scan.score} size={40} />

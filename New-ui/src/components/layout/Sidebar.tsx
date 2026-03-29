@@ -24,16 +24,16 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { cn } from '../ui'
 
-const nav = [
+const nav: Array<{ to: string; icon: React.ElementType; label: string; exact?: boolean; beta?: boolean }> = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Overview', exact: true },
   { to: '/dashboard/ats', icon: ScanText, label: 'ATS Scanner' },
   { to: '/dashboard/resumes', icon: FileText, label: 'My Resumes' },
   { to: '/dashboard/desk', icon: User, label: 'Career Desk' },
   { to: '/dashboard/tracker', icon: BriefcaseBusiness, label: 'Job Tracker' },
   { to: '/dashboard/assistant', icon: Bot, label: 'AI Assistant' },
-  { to: '/dashboard/autopilot', icon: Navigation, label: 'Auto Pilot' },
-  { to: '/dashboard/autoapply', icon: Rocket, label: 'AutoApply' },
-  { to: '/dashboard/command',   icon: Zap,        label: 'Command Center' },
+  { to: '/dashboard/autopilot', icon: Navigation, label: 'Copilot' },
+  { to: '/dashboard/autoapply', icon: Rocket, label: 'AutoApply', beta: true },
+  { to: '/dashboard/command',   icon: Zap,        label: 'Ops Center', beta: true },
 ]
 
 const bottomNav = [
@@ -64,13 +64,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'flex flex-col h-screen bg-white border-r border-slate-100 flex-shrink-0 dark:bg-slate-900 dark:border-slate-800 transition-all duration-200',
-        collapsed ? 'w-14' : 'w-56'
+        'flex flex-col h-screen bg-white border-r border-slate-100 flex-shrink-0 dark:bg-dark-surface dark:border-dark-border transition-all duration-200',
+        collapsed ? 'w-14' : 'w-52 lg:w-56 xl:w-60 2xl:w-64'
       )}
     >
       {/* Logo + collapse toggle */}
       <div className={cn(
-        'flex items-center border-b border-slate-100 dark:border-slate-800 flex-shrink-0',
+        'flex items-center border-b border-slate-100 dark:border-dark-border flex-shrink-0',
         collapsed ? 'justify-center py-4 px-2' : 'justify-between px-5 py-4'
       )}>
         {!collapsed && (
@@ -85,7 +85,7 @@ export function Sidebar() {
         )}
         <button
           onClick={toggleCollapsed}
-          className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors flex-shrink-0"
+          className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-dark-hover cursor-pointer transition-colors flex-shrink-0"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
@@ -94,13 +94,13 @@ export function Sidebar() {
 
       {/* Plan badge */}
       {user && !collapsed && (
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-dark-border">
           <span
             className={cn(
               'text-xs font-semibold px-2 py-0.5 rounded-full',
               user.plan === 'pro'
                 ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
-                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                : 'bg-slate-100 text-slate-500 dark:bg-dark-card dark:text-slate-400'
             )}
           >
             {user.plan === 'pro' ? `Pro · ${user.plan_type}` : 'Free plan'}
@@ -110,7 +110,8 @@ export function Sidebar() {
 
       {/* Primary nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {nav.map(({ to, icon: Icon, label, exact }) => (
+        {nav.map(({ to, icon: Icon, label, exact, beta }) => {
+          return (
           <NavLink
             key={to}
             to={to}
@@ -118,18 +119,18 @@ export function Sidebar() {
             title={collapsed ? label : undefined}
             className={({ isActive }) =>
               cn(
-                'flex items-center rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer group',
-                collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2',
+                'flex items-center rounded-lg text-[13px] xl:text-sm font-medium transition-colors duration-150 cursor-pointer group',
+                collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2 xl:py-2.5',
                 isActive
                   ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-dark-hover dark:hover:text-slate-100'
               )
             }
           >
             {({ isActive }) => (
               <>
                 <Icon
-                  size={16}
+                  size={17}
                   className={cn(
                     'flex-shrink-0',
                     isActive ? 'text-brand-700 dark:text-brand-400' : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'
@@ -137,18 +138,25 @@ export function Sidebar() {
                 />
                 {!collapsed && (
                   <>
-                    <span className="flex-1">{label}</span>
+                    <span className="flex-1 flex items-center gap-2">
+                      {label}
+                      {beta && (
+                        <span className="text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                          BETA
+                        </span>
+                      )}
+                    </span>
                     {isActive && <ChevronRight size={12} className="text-brand-400 dark:text-brand-500" />}
                   </>
                 )}
               </>
             )}
           </NavLink>
-        ))}
+        )})}
       </nav>
 
       {/* Bottom nav */}
-      <div className="border-t border-slate-100 dark:border-slate-800 px-2 py-3 space-y-0.5">
+      <div className="border-t border-slate-100 dark:border-dark-border px-2 py-3 space-y-0.5">
         {bottomNav.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -160,7 +168,7 @@ export function Sidebar() {
                 collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2',
                 isActive
                   ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-dark-hover dark:hover:text-slate-100'
               )
             }
           >
@@ -186,7 +194,7 @@ export function Sidebar() {
               // Use window.location.origin to avoid navigating inside the /new basename
               window.location.href = window.location.origin + '/'
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 cursor-pointer transition-colors dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 cursor-pointer transition-colors dark:text-slate-500 dark:hover:bg-dark-hover dark:hover:text-slate-300"
             title="Switch back to the classic UI"
           >
             <span className="text-base leading-none">←</span>
@@ -196,12 +204,12 @@ export function Sidebar() {
 
         {/* Dark mode toggle + user */}
         {user && (
-          <div className={cn('mt-2 pt-2 border-t border-slate-100 dark:border-slate-800', collapsed && 'flex flex-col items-center gap-1')}>
+          <div className={cn('mt-2 pt-2 border-t border-slate-100 dark:border-dark-border', collapsed && 'flex flex-col items-center gap-1')}>
             <button
               onClick={toggle}
               title={isDark ? 'Light mode' : 'Dark mode'}
               className={cn(
-                'flex items-center rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 cursor-pointer transition-colors dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+                'flex items-center rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 cursor-pointer transition-colors dark:text-slate-400 dark:hover:bg-dark-hover dark:hover:text-slate-100',
                 collapsed ? 'justify-center p-2.5 w-full' : 'gap-3 px-3 py-2 w-full'
               )}
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}

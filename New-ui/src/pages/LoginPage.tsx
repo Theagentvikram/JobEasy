@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { Button, Input } from '../components/ui'
 
 export default function LoginPage() {
-  const { signInWithEmail, signInWithGoogle, guestLogin, devLogin } = useAuth()
+  const { signInWithEmail, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -14,8 +14,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
-  const [devLoading, setDevLoading] = useState(false)
-  const [guestLoading, setGuestLoading] = useState(false)
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +43,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-dark-bg flex">
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-brand-700 flex-col justify-between p-12">
         <Link to="/" className="flex items-center gap-2.5">
@@ -82,7 +80,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-slate-50 dark:bg-slate-900">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-slate-50 dark:bg-dark-surface">
         <div className="w-full max-w-sm">
           <div className="mb-8">
             <Link to="/" className="flex items-center gap-2 lg:hidden mb-6">
@@ -101,7 +99,7 @@ export default function LoginPage() {
           <button
             onClick={handleGoogle}
             disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mb-5 bg-white dark:bg-slate-800"
+            className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-dark-border-subtle rounded-lg py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-dark-hover hover:border-slate-300 dark:hover:border-slate-600 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mb-5 bg-white dark:bg-dark-card"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
@@ -113,9 +111,9 @@ export default function LoginPage() {
           </button>
 
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <div className="flex-1 h-px bg-slate-200 dark:bg-dark-elevated" />
             <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">or</span>
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <div className="flex-1 h-px bg-slate-200 dark:bg-dark-elevated" />
           </div>
 
           {/* Email form */}
@@ -144,7 +142,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg pl-9 pr-9 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors duration-150"
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg pl-9 pr-9 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-dark-card focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors duration-150"
                 />
                 <button
                   type="button"
@@ -175,45 +173,6 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          {/* Guest login */}
-          <button
-            onClick={async () => {
-              setGuestLoading(true)
-              setError('')
-              try {
-                await guestLogin()
-                navigate('/dashboard')
-              } catch {
-                setError('Guest login failed. Please try again.')
-              } finally {
-                setGuestLoading(false)
-              }
-            }}
-            disabled={guestLoading}
-            className="w-full mt-3 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer disabled:opacity-50 bg-white dark:bg-slate-800"
-          >
-            {guestLoading ? 'Entering...' : 'Continue as Guest'}
-          </button>
-
-          {/* Dev login — only works when backend has DEV_MODE=1 */}
-          <button
-            onClick={async () => {
-              setDevLoading(true)
-              setError('')
-              try {
-                await devLogin()
-                navigate('/dashboard')
-              } catch {
-                setError('Dev login failed — is the backend running with DEV_MODE=1?')
-              } finally {
-                setDevLoading(false)
-              }
-            }}
-            disabled={devLoading}
-            className="w-full mt-3 border border-dashed border-amber-400 dark:border-amber-600 rounded-lg py-2 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {devLoading ? 'Logging in...' : 'Dev Login (skip Firebase)'}
-          </button>
         </div>
       </div>
     </div>

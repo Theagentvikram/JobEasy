@@ -14,7 +14,7 @@ function SectionCard({ icon: Icon, title, description, children }: {
 }) {
   return (
     <Card className="p-5">
-      <div className="flex items-start gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-slate-700">
+      <div className="flex items-start gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-dark-border-subtle">
         <div className="w-8 h-8 bg-brand-50 dark:bg-brand-950 rounded-lg flex items-center justify-center flex-shrink-0">
           <Icon size={15} className="text-brand-700" />
         </div>
@@ -97,7 +97,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full max-w-3xl">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Settings</h1>
@@ -114,7 +114,7 @@ export default function Settings() {
       <div className="space-y-4">
         {/* Appearance */}
         <Card className="p-5">
-          <div className="flex items-start gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-start gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-dark-border-subtle">
             <div className="w-8 h-8 bg-brand-50 dark:bg-brand-950 rounded-lg flex items-center justify-center flex-shrink-0">
               {isDark ? <Moon size={15} className="text-brand-700" /> : <Sun size={15} className="text-brand-700" />}
             </div>
@@ -130,7 +130,7 @@ export default function Settings() {
                 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 cursor-pointer',
                 !isDark
                   ? 'border-brand-700 bg-brand-50 dark:bg-brand-950/50 text-brand-700'
-                  : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                  : 'border-slate-200 dark:border-dark-border-subtle text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
               )}
             >
               <Sun size={16} /> Light
@@ -141,7 +141,7 @@ export default function Settings() {
                 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 cursor-pointer',
                 isDark
                   ? 'border-brand-700 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
-                  : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                  : 'border-slate-200 dark:border-dark-border-subtle text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
               )}
             >
               <Moon size={16} /> Dark
@@ -150,7 +150,7 @@ export default function Settings() {
         </Card>
 
         {/* Profile */}
-        <SectionCard icon={User} title="Account" description="Your Firebase account details">
+        <SectionCard icon={User} title="Account" description="Your account details">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center text-xl font-bold text-brand-700 dark:text-brand-300">
               {user?.displayName?.charAt(0).toUpperCase() || 'U'}
@@ -170,7 +170,7 @@ export default function Settings() {
             <Input label="Email" value={user?.email || ''} disabled className="opacity-60" />
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-            Profile details are managed through Firebase Authentication.
+            Profile details are synced with your login provider.
           </p>
         </SectionCard>
 
@@ -179,10 +179,10 @@ export default function Settings() {
           {loading ? (
             <div className="py-4 text-center text-sm text-slate-400 dark:text-slate-500">Loading…</div>
           ) : (
-            <div className="space-y-1 divide-y divide-slate-50 dark:divide-slate-700">
+            <div className="space-y-1 divide-y divide-slate-50 dark:divide-dark-border-subtle">
               <Toggle
-                label="JobSpy integration"
-                description="Enable job scraping from LinkedIn, Indeed, and Glassdoor"
+                label="Enhanced job search"
+                description="Enable broader job discovery from multiple platforms"
                 checked={settings.jobspy_enabled}
                 onChange={(v) => setSettings((s) => ({ ...s, jobspy_enabled: v }))}
               />
@@ -212,7 +212,7 @@ export default function Settings() {
 
         {/* Notifications */}
         <SectionCard icon={Bell} title="Notifications" description="Control when and how JobEasy contacts you">
-          <div className="space-y-1 divide-y divide-slate-50 dark:divide-slate-700">
+          <div className="space-y-1 divide-y divide-slate-50 dark:divide-dark-border-subtle">
             <Toggle
               label="Job application reminders"
               description="Get reminders when a job in your tracker reaches 'Apply today'"
@@ -235,7 +235,7 @@ export default function Settings() {
         <SectionCard icon={ShieldAlert} title="Account management">
           <div className="space-y-3">
             {user?.plan === 'pro' && (
-              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-dark-elevated/50 rounded-xl">
                 <div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Downgrade to free</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Your plan remains active until its expiry date</p>

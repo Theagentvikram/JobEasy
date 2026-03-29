@@ -29,7 +29,7 @@ function normaliseStatus(s: string): JobStatus {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; badge: 'default' | 'brand' | 'warning' | 'success' | 'danger' | 'accent' }> = {
-  saved:      { label: 'Not applied', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-50 dark:bg-slate-800', badge: 'default' },
+  saved:      { label: 'Not applied', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-50 dark:bg-dark-card', badge: 'default' },
   applied:    { label: 'Applied',     color: 'text-brand-700 dark:text-brand-400', bg: 'bg-brand-50 dark:bg-brand-950/40', badge: 'brand' },
   interview:  { label: 'Interview',   color: 'text-violet-700 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', badge: 'accent' },
   offer:      { label: 'Offer 🎉',    color: 'text-green-700 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40', badge: 'success' },
@@ -66,7 +66,7 @@ function KanbanCard({ job, onStatusChange, onDelete, onDragStart }: {
         e.dataTransfer.effectAllowed = 'move'
         onDragStart(job.id)
       }}
-      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2 hover:shadow-sm transition-shadow cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95 transition-all duration-150"
+      className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl p-3 space-y-2 hover:shadow-sm transition-shadow cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95 transition-all duration-150"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -87,21 +87,21 @@ function KanbanCard({ job, onStatusChange, onDelete, onDragStart }: {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-6 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden w-40">
+              <div className="absolute right-0 top-6 z-20 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl shadow-lg overflow-hidden w-40">
                 <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold px-3 pt-2 pb-1">Move to</p>
                 {(['saved', 'applied', 'interview', 'offer', 'rejected'] as JobStatus[]).map((s) => (
                   <button
                     key={s}
                     onClick={() => { onStatusChange(job.id, s); setMenuOpen(false) }}
                     className={cn(
-                      'w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer',
+                      'w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer',
                       job.status === s ? 'font-semibold text-brand-700 dark:text-brand-400' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
                     {STATUS_CONFIG[s]?.label ?? s}
                   </button>
                 ))}
-                <div className="border-t border-slate-100 dark:border-slate-700 mt-1">
+                <div className="border-t border-slate-100 dark:border-dark-border-subtle mt-1">
                   <button
                     onClick={() => { onDelete(job.id); setMenuOpen(false) }}
                     className="w-full text-left px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
@@ -196,7 +196,7 @@ function KanbanBoard({ jobs, onStatusChange, onDelete }: {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className={cn('text-xs font-semibold', cfg.color)}>{cfg.label}</span>
-                <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-dark-elevated px-1.5 py-0.5 rounded-full font-medium">
                   {colJobs.length}
                 </span>
               </div>
@@ -219,7 +219,7 @@ function KanbanBoard({ jobs, onStatusChange, onDelete }: {
               {colJobs.length === 0 && (
                 <div className={cn(
                   'border-2 border-dashed rounded-xl h-20 flex items-center justify-center transition-colors',
-                  isOver ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'border-slate-100 dark:border-slate-700'
+                  isOver ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'border-slate-100 dark:border-dark-border-subtle'
                 )}>
                   <p className={cn('text-xs', isOver ? 'text-brand-500' : 'text-slate-300 dark:text-slate-600')}>
                     {isOver ? 'Drop here' : 'Empty'}
@@ -265,7 +265,7 @@ function TableView({ jobs, onStatusChange, onDelete }: {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-100 dark:border-slate-800">
+          <tr className="border-b border-slate-100 dark:border-dark-border">
             {['Role', 'Company', 'Status', 'Source', 'Date', 'Priority', 'Apply', 'Resume', ''].map((h) => (
               <th key={h} className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-left px-3 py-2.5 whitespace-nowrap">
                 {h}
@@ -277,7 +277,7 @@ function TableView({ jobs, onStatusChange, onDelete }: {
           {jobs.map((job) => {
             const cfg = STATUS_CONFIG[normaliseStatus(job.status)] ?? STATUS_CONFIG['saved']
             return (
-              <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-dark-hover/50 transition-colors group">
                 <td className="px-3 py-2.5">
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-slate-100">{job.title}</p>
@@ -402,7 +402,7 @@ function AddJobModal({ open, onClose, onAdd }: {
             <select
               value={form.jobType}
               onChange={(e) => patch({ jobType: e.target.value })}
-              className="border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 cursor-pointer"
+              className="border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 cursor-pointer"
             >
               {['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'].map((t) => (
                 <option key={t}>{t}</option>
@@ -415,7 +415,7 @@ function AddJobModal({ open, onClose, onAdd }: {
             <select
               value={form.status}
               onChange={(e) => patch({ status: e.target.value as JobStatus })}
-              className="border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 cursor-pointer"
+              className="border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 cursor-pointer"
             >
               {(['saved', 'applied', 'interview', 'offer', 'rejected'] as JobStatus[]).map((s) => (
                 <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
@@ -428,7 +428,7 @@ function AddJobModal({ open, onClose, onAdd }: {
             <select
               value={form.priority}
               onChange={(e) => patch({ priority: Number(e.target.value) })}
-              className="border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 cursor-pointer"
+              className="border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 cursor-pointer"
             >
               {[0, 1, 2, 3].map((p) => (
                 <option key={p} value={p}>{p === 0 ? 'None' : '★'.repeat(p)}</option>
@@ -447,7 +447,7 @@ function AddJobModal({ open, onClose, onAdd }: {
 
       {error && <p className="text-xs text-red-600 dark:text-red-400 mt-3">{error}</p>}
 
-      <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-slate-100 dark:border-slate-700">
+      <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-slate-100 dark:border-dark-border-subtle">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={submit} loading={saving}>
           <Plus size={14} /> Add job
@@ -545,12 +545,12 @@ export default function JobTracker() {
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+          <div className="flex border border-slate-200 dark:border-dark-border-subtle rounded-lg overflow-hidden">
             <button
               onClick={() => setView('kanban')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
-                view === 'kanban' ? 'bg-brand-700 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                view === 'kanban' ? 'bg-brand-700 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-dark-hover'
               )}
             >
               <LayoutGrid size={14} /> Board
@@ -559,7 +559,7 @@ export default function JobTracker() {
               onClick={() => setView('table')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
-                view === 'table' ? 'bg-brand-700 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                view === 'table' ? 'bg-brand-700 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-dark-hover'
               )}
             >
               <List size={14} /> List
@@ -580,7 +580,7 @@ export default function JobTracker() {
             'text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors cursor-pointer',
             filterStatus === 'all'
               ? 'bg-brand-700 text-white'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+              : 'bg-slate-100 dark:bg-dark-card text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-dark-hover'
           )}
         >
           All ({jobs.length})

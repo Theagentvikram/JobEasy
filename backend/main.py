@@ -57,6 +57,32 @@ def health_check():
     return {"status": "healthy", "service": "JobEasy Backend"}
 
 
+from pydantic import BaseModel, EmailStr
+
+
+class ContactMessage(BaseModel):
+    name: str
+    email: EmailStr
+    message: str
+
+
+@app.post("/contact")
+async def submit_contact(msg: ContactMessage):
+    from datetime import datetime
+    try:
+        from services.firebase import get_db
+        db = get_db()
+        db.collection("contact_messages").add({
+            "name": msg.name,
+            "email": msg.email,
+            "message": msg.message,
+            "created_at": datetime.utcnow().isoformat(),
+        })
+    except Exception:
+        pass  # Non-blocking — don't fail the response
+    return {"ok": True}
+
+
 @app.on_event("startup")
 async def startup():
     import asyncio

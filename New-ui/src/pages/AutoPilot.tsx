@@ -53,7 +53,7 @@ const SOURCE_COLORS: Record<string, string> = {
   zip_recruiter: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
   wellfound: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
   naukri: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-  default: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  default: 'bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-slate-300',
 }
 
 function sourceLabel(s: string) {
@@ -64,7 +64,7 @@ function sourceLabel(s: string) {
     zip_recruiter: 'ZipRecruiter',
     wellfound: 'Wellfound',
     naukri: 'Naukri',
-    jobspy: 'JobSpy',
+    jobspy: 'Multi-source',
   }
   return map[s] ?? s
 }
@@ -110,7 +110,7 @@ function KeywordChips({
       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
         Job Keywords
       </label>
-      <div className="flex flex-wrap gap-2 p-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 min-h-[48px] focus-within:ring-2 focus-within:ring-brand-700 focus-within:border-transparent focus-within:bg-white dark:focus-within:bg-slate-800 transition-all">
+      <div className="flex flex-wrap gap-2 p-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-dark-surface min-h-[48px] focus-within:ring-2 focus-within:ring-brand-700 focus-within:border-transparent focus-within:bg-white dark:focus-within:bg-slate-800 transition-all">
         {keywords.map((kw) => (
           <span
             key={kw}
@@ -265,7 +265,7 @@ function JobCard({ job, resumeId }: { job: AutoPilotJob; resumeId?: string }) {
 
       {/* Expanded: JD + key changes */}
       {expanded && (
-        <div className="space-y-3 border-t border-slate-100 dark:border-slate-700 pt-3">
+        <div className="space-y-3 border-t border-slate-100 dark:border-dark-border-subtle pt-3">
           {job.key_changes.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Resume changes for this job:</p>
@@ -290,7 +290,7 @@ function JobCard({ job, resumeId }: { job: AutoPilotJob; resumeId?: string }) {
       )}
 
       {/* Action row */}
-      <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-700">
+      <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-dark-border-subtle">
         <button
           onClick={() => setExpanded((v) => !v)}
           className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer transition-colors"
@@ -339,12 +339,12 @@ function DeskEmptyState({ onSynced }: { onSynced: (text: string, name: string) =
       const name = res.data?.desk?.profile?.name || ''
       if (text.trim().length >= 50) {
         onSynced(text, name)
-        toast.success('Career Desk populated from your resume!')
+        toast('Career Desk populated from your resume!', 'success')
       } else {
-        toast.warning('Resume parsed but not enough data. Fill in your Career Desk manually.')
+        toast('Resume parsed but not enough data. Fill in your Career Desk manually.', 'warning')
       }
     } catch {
-      toast.error('No uploaded resume found. Upload one in My Resumes first.')
+      toast('No uploaded resume found. Upload one in My Resumes first.', 'error')
     } finally {
       setSyncing(false)
     }
@@ -418,6 +418,7 @@ export default function AutoPilotPage() {
     queryKey: ['autopilot-desk-text'],
     queryFn: () => api.get('/user/desk/text').then(r => r.data),
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   })
 
   const settingsQuery = useQuery({
@@ -477,11 +478,11 @@ export default function AutoPilotPage() {
 
   async function handleSearch() {
     if (keywords.length === 0) {
-      toast.warning('Add at least one keyword to search')
+      toast('Add at least one keyword to search', 'warning')
       return
     }
     if (resumeText.trim().length < 50) {
-      toast.warning('Your Career Desk is empty — add your details in Career Desk first')
+      toast('Your Career Desk is empty — add your details in Career Desk first', 'warning')
       return
     }
 
@@ -516,7 +517,7 @@ export default function AutoPilotPage() {
       const close = streamProgress(sid, token, handleProgressEvent)
       closeStreamRef.current = close
     } catch (err: any) {
-      toast.error('Failed to start search: ' + (err?.response?.data?.detail ?? 'Unknown error'))
+      toast('Failed to start search: ' + (err?.response?.data?.detail ?? 'Unknown error'), 'error')
       setPhase('search')
     }
   }
@@ -571,7 +572,7 @@ export default function AutoPilotPage() {
         if (event.saved_resume_ids?.length) {
           event.saved_resume_ids.forEach((r) => { doneMap[r.job_id] = r.resume_id })
           setJobResumeMap(doneMap)
-          toast.success(`${event.saved_resume_ids.length} tailored resumes saved to Resume Builder!`)
+          toast(`${event.saved_resume_ids.length} tailored resumes saved to Resume Builder!`, 'success')
         }
         addLog(`All done! Showing results…`, 'success')
         // Invalidate Job Tracker so new jobs appear without manual refresh
@@ -590,7 +591,7 @@ export default function AutoPilotPage() {
 
       case 'error':
         addLog(`Error: ${event.message}`, 'error')
-        toast.error(event.message)
+        toast(event.message, 'error')
         if (event.message.includes('No jobs found')) {
           setPhase('search')
         }
@@ -657,7 +658,7 @@ export default function AutoPilotPage() {
           // 409 = already exists, skip silently
         }
       }
-      toast.success(`${readyJobs.length} jobs saved to Job Tracker!`)
+      toast(`${readyJobs.length} jobs saved to Job Tracker!`, 'success')
     } catch {
       // Non-fatal
     }
@@ -676,7 +677,7 @@ export default function AutoPilotPage() {
       setJobResumeMap(map)
       setPhase('results')
     } catch {
-      toast.error('Failed to load session')
+      toast('Failed to load session', 'error')
     }
   }
 
@@ -686,9 +687,9 @@ export default function AutoPilotPage() {
       await autopilot.deleteSession(sid)
       qc.setQueryData<AutoPilotSession[]>(['autopilot-sessions'], (old = []) => old.filter((s) => s.session_id !== sid))
       if (sessionId === sid) setPhase('search')
-      toast.success('Session deleted')
+      toast('Session deleted', 'success')
     } catch {
-      toast.error('Delete failed')
+      toast('Delete failed', 'error')
     }
   }
 
@@ -710,15 +711,15 @@ export default function AutoPilotPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 w-full">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
           <Zap size={22} className="text-brand-600" />
-          Auto Pilot
+          Copilot
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Enter keywords → get 3 best-match jobs, each with a tailored resume and direct apply link. Saved to your Job Tracker automatically.
+          Scrapes jobs, scores fit, tailors resumes, and pushes ready roles to Job Tracker automatically.
         </p>
       </div>
 
@@ -745,10 +746,10 @@ export default function AutoPilotPage() {
                       onFocus={() => setLocationOpen(true)}
                       onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
                       placeholder="Remote, United States, etc."
-                      className="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
                     />
                     {locationOpen && (
-                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
                         {[
                           { group: '🌍 Global', items: ['Remote', 'Worldwide'] },
                           { group: '🇺🇸 United States', items: ['United States', 'New York, NY', 'San Francisco, CA', 'Seattle, WA', 'Austin, TX', 'Chicago, IL', 'Boston, MA'] },
@@ -762,7 +763,7 @@ export default function AutoPilotPage() {
                           if (filtered.length === 0) return null
                           return (
                             <div key={group}>
-                              <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900/50 sticky top-0">{group}</div>
+                              <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-dark-surface/50 sticky top-0">{group}</div>
                               {filtered.map(item => (
                                 <button
                                   key={item}
@@ -922,7 +923,7 @@ export default function AutoPilotPage() {
                     <span>{progress.current} processed</span>
                     <span>{progress.total} total</span>
                   </div>
-                  <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-100 dark:bg-dark-elevated rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand-600 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
@@ -939,7 +940,7 @@ export default function AutoPilotPage() {
                   { label: 'Tailored', value: stats.tailored, icon: <Sparkles size={14} />, color: 'text-violet-600 dark:text-violet-400' },
                   { label: 'Ready', value: stats.done, icon: <CheckCircle2 size={14} />, color: 'text-brand-600 dark:text-brand-400' },
                 ].map(({ label, value, icon, color }) => (
-                  <div key={label} className="flex flex-col items-center gap-1 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                  <div key={label} className="flex flex-col items-center gap-1 p-3 bg-slate-50 dark:bg-dark-card/50 rounded-xl">
                     <span className={cn('flex items-center gap-1 text-xs font-medium', color)}>
                       {icon} {label}
                     </span>
@@ -965,7 +966,7 @@ export default function AutoPilotPage() {
                 <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Jobs Ready So Far ({liveJobs.length})
                 </p>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                <div className="h-px flex-1 bg-slate-200 dark:bg-dark-elevated" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {liveJobs.slice(0, 6).map((job) => (
@@ -1031,7 +1032,7 @@ export default function AutoPilotPage() {
                 <select
                   value={filterSource}
                   onChange={(e) => setFilterSource(e.target.value)}
-                  className="text-xs border border-slate-200 dark:border-slate-600 rounded-md px-2 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                  className="text-xs border border-slate-200 dark:border-slate-600 rounded-md px-2 py-1 bg-white dark:bg-dark-card text-slate-700 dark:text-slate-200"
                 >
                   <option value="all">All</option>
                   {uniqueSources.map((s) => (
@@ -1061,7 +1062,7 @@ export default function AutoPilotPage() {
               { label: 'Good (55–74)', count: jobs.filter((j) => j.match_score >= 55 && j.match_score < 75).length, color: 'bg-amber-500' },
               { label: 'Low (<55)', count: jobs.filter((j) => j.match_score < 55).length, color: 'bg-red-400' },
             ].map(({ label, count, color }) => (
-              <div key={label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div key={label} className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl px-4 py-3 flex items-center gap-3">
                 <div className={cn('w-2 h-8 rounded-full', color)} />
                 <div>
                   <p className="text-lg font-bold text-slate-900 dark:text-slate-50 tabular-nums">{count}</p>

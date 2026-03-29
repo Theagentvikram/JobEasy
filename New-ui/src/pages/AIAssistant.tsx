@@ -35,7 +35,7 @@ function renderInline(text: string, isUser: boolean): React.ReactNode[] {
           key={i}
           className={cn(
             'px-1.5 py-0.5 rounded text-[11px] font-mono',
-            isUser ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300'
+            isUser ? 'bg-white/20' : 'bg-slate-100 dark:bg-dark-surface text-slate-700 dark:text-slate-300'
           )}
         >
           {part.slice(1, -1)}
@@ -123,7 +123,7 @@ function MessageBubble({ msg }: { msg: Message }) {
       <div
         className={cn(
           'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-          isUser ? 'bg-brand-700' : 'bg-slate-100 dark:bg-slate-700'
+          isUser ? 'bg-brand-700' : 'bg-slate-100 dark:bg-dark-elevated'
         )}
       >
         {isUser ? <User size={14} className="text-white" /> : <Bot size={14} className="text-slate-600 dark:text-slate-300" />}
@@ -133,7 +133,7 @@ function MessageBubble({ msg }: { msg: Message }) {
           'max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed',
           isUser
             ? 'bg-brand-700 text-white rounded-tr-sm'
-            : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-tl-sm'
+            : 'bg-white dark:bg-dark-elevated border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-tl-sm'
         )}
       >
         {renderMarkdown(msg.content, isUser)}
@@ -145,10 +145,10 @@ function MessageBubble({ msg }: { msg: Message }) {
 function TypingIndicator() {
   return (
     <div className="flex gap-3">
-      <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+      <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-dark-elevated flex items-center justify-center flex-shrink-0">
         <Bot size={14} className="text-slate-600 dark:text-slate-300" />
       </div>
-      <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl rounded-tl-sm px-4 py-3">
+      <div className="bg-white dark:bg-dark-elevated border border-slate-200 dark:border-slate-600 rounded-2xl rounded-tl-sm px-4 py-3">
         <div className="flex gap-1.5 items-center">
           <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse-dot" />
           <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse-dot delay-200" />
@@ -209,28 +209,54 @@ export default function AIAssistant() {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let streamDone = false
+      let sseBuffer = ''
+
+      const processSseLine = (rawLine: string) => {
+        const line = rawLine.trim()
+        if (!line.startsWith('data:')) return
+
+        const data = line.slice(5).trim()
+        if (data === '[DONE]') {
+          streamDone = true
+          return
+        }
+
+        const parsed = JSON.parse(data) as { error?: string; token?: string }
+        if (parsed.error) throw new Error(parsed.error)
+        if (!parsed.token) return
+
+        fullReply += parsed.token
+        setMessages((prev) => {
+          const updated = [...prev]
+          updated[updated.length - 1] = { ...updated[updated.length - 1], content: fullReply }
+          return updated
+        })
+      }
 
       while (!streamDone) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') { streamDone = true; break }
+        sseBuffer += decoder.decode(value, { stream: true })
+        const lines = sseBuffer.split('\n')
+        sseBuffer = lines.pop() || ''
+
+        for (const line of lines) {
           try {
-            const parsed = JSON.parse(data)
-            if (parsed.error) throw new Error(parsed.error)
-            if (parsed.token) {
-              fullReply += parsed.token
-              setMessages((prev) => {
-                const updated = [...prev]
-                updated[updated.length - 1] = { ...updated[updated.length - 1], content: fullReply }
-                return updated
-              })
-            }
-          } catch (e) { console.error('Chat parse error:', e) }
+            processSseLine(line)
+            if (streamDone) break
+          } catch (e) {
+            console.error('Chat parse error:', e)
+          }
+        }
+      }
+
+      const tail = (sseBuffer + decoder.decode()).trim()
+      if (tail && !streamDone) {
+        try {
+          processSseLine(tail)
+        } catch (e) {
+          console.error('Chat parse error:', e)
         }
       }
 
@@ -258,9 +284,9 @@ export default function AIAssistant() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50/30 dark:bg-slate-950">
+    <div className="flex flex-col h-screen bg-slate-50/30 dark:bg-dark-bg">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white dark:bg-dark-surface border-b border-slate-100 dark:border-dark-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-brand-50 dark:bg-brand-950 rounded-xl flex items-center justify-center">
             <Bot size={18} className="text-brand-700" />
@@ -269,7 +295,7 @@ export default function AIAssistant() {
             <h1 className="text-base font-bold text-slate-900 dark:text-slate-50">AI Career Coach</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block animate-pulse-dot" />
-              Powered by Gemini · Context-aware
+              Online · Context-aware
             </p>
           </div>
         </div>
@@ -298,7 +324,7 @@ export default function AIAssistant() {
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-300 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/50 hover:text-brand-800 dark:hover:text-brand-300 transition-all duration-150 cursor-pointer"
+                  className="text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl hover:border-brand-300 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/50 hover:text-brand-800 dark:hover:text-brand-300 transition-all duration-150 cursor-pointer"
                 >
                   {s}
                 </button>
@@ -317,7 +343,7 @@ export default function AIAssistant() {
       </div>
 
       {/* Input */}
-      <div className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+      <div className="bg-white dark:bg-dark-surface border-t border-slate-100 dark:border-dark-border px-6 py-4">
         <div className="flex gap-3 items-end max-w-4xl mx-auto">
           <textarea
             ref={inputRef}
@@ -331,7 +357,7 @@ export default function AIAssistant() {
             }}
             placeholder="Ask anything about your career, resume, or job search…"
             rows={1}
-            className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent resize-none"
+            className="flex-1 border border-slate-200 dark:border-dark-border-subtle rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-dark-card focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent resize-none"
             style={{ minHeight: '44px', maxHeight: '120px' }}
           />
           <Button

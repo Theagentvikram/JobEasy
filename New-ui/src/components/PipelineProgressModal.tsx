@@ -116,10 +116,10 @@ export default function PipelineProgressModal({ open, dryRun, onClose }: Props) 
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={isDone ? onClose : undefined} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="relative w-full max-w-lg bg-white dark:bg-dark-surface rounded-2xl shadow-2xl border border-slate-200 dark:border-dark-border-subtle overflow-hidden">
 
         {/* Progress bar — full width at top */}
-        <div className="h-1 w-full bg-slate-100 dark:bg-slate-800">
+        <div className="h-1 w-full bg-slate-100 dark:bg-dark-card">
           <div
             className={`h-full transition-all duration-700 ease-out ${
               status?.status === 'error' ? 'bg-red-500' : 'bg-brand-600'
@@ -129,7 +129,7 @@ export default function PipelineProgressModal({ open, dryRun, onClose }: Props) 
         </div>
 
         {/* Header */}
-        <div className={`flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 ${dryRun ? 'bg-violet-50 dark:bg-violet-950/30' : 'bg-brand-50 dark:bg-brand-950/30'}`}>
+        <div className={`flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-dark-border ${dryRun ? 'bg-violet-50 dark:bg-violet-950/30' : 'bg-brand-50 dark:bg-brand-950/30'}`}>
           <div className="flex items-center gap-2.5">
             {dryRun && <Eye size={16} className="text-violet-600 dark:text-violet-400" />}
             <div>
@@ -145,7 +145,7 @@ export default function PipelineProgressModal({ open, dryRun, onClose }: Props) 
             <span className="text-sm font-bold tabular-nums text-slate-700 dark:text-slate-300">{pct}%</span>
             <span className="text-xs font-mono text-slate-400">{fmt(elapsed)}</span>
             {isDone && (
-              <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors">
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-hover text-slate-400 hover:text-slate-600 cursor-pointer transition-colors">
                 <X size={16} />
               </button>
             )}
@@ -166,7 +166,7 @@ export default function PipelineProgressModal({ open, dryRun, onClose }: Props) 
                     errored ? 'bg-red-100 dark:bg-red-950 text-red-600'
                     : done   ? 'bg-brand-100 dark:bg-brand-900/50 text-brand-700'
                     : active ? 'bg-brand-600 text-white shadow-sm shadow-brand-200'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                    : 'bg-slate-100 dark:bg-dark-card text-slate-400'
                   }`}>
                     {errored ? <XCircle size={13} />
                      : done  ? <CheckCircle2 size={13} />
@@ -210,7 +210,7 @@ export default function PipelineProgressModal({ open, dryRun, onClose }: Props) 
                 <span>Scoring jobs</span>
                 <span>{status.scored} / {status.discovered}</span>
               </div>
-              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-slate-100 dark:bg-dark-card rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brand-500 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min((status.scored / status.discovered) * 100, 100)}%` }}
@@ -227,7 +227,7 @@ export default function PipelineProgressModal({ open, dryRun, onClose }: Props) 
                 { label: 'Matched', value: status.scored },
                 { label: dryRun ? 'Would apply' : 'Applied', value: status.applied },
               ].map(s => (
-                <div key={s.label} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-center">
+                <div key={s.label} className="bg-slate-50 dark:bg-dark-card rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-slate-900 dark:text-slate-50">{s.value}</p>
                   <p className="text-[11px] text-slate-400 mt-0.5">{s.label}</p>
                 </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ScanText,
@@ -11,6 +12,8 @@ import {
   ShieldCheck,
   TrendingUp,
   ChevronRight,
+  MessageCircle,
+  Send,
 } from 'lucide-react'
 import { Button } from '../components/ui'
 
@@ -18,7 +21,7 @@ import { Button } from '../components/ui'
 
 function Navbar() {
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-100 dark:border-slate-800">
+    <header className="sticky top-0 z-40 bg-white/90 dark:bg-dark-surface/90 backdrop-blur border-b border-slate-100 dark:border-dark-border">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-brand-700 rounded-lg flex items-center justify-center">
@@ -33,6 +36,7 @@ function Navbar() {
           <a href="#features" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer">Features</a>
           <a href="#how-it-works" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer">How it works</a>
           <a href="#pricing" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer">Pricing</a>
+          <a href="#contact" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer">Contact</a>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -100,13 +104,13 @@ function Hero() {
 
       {/* Score dashboard mockup */}
       <div className="max-w-4xl mx-auto mt-16">
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-2xl shadow-xl overflow-hidden">
           {/* Browser bar */}
-          <div className="flex items-center gap-1.5 px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <div className="flex items-center gap-1.5 px-4 py-3 border-b border-slate-100 dark:border-dark-border-subtle bg-slate-50 dark:bg-dark-surface">
             <div className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-600" />
             <div className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-600" />
             <div className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-600" />
-            <div className="ml-2 flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-md px-3 py-1 text-xs text-slate-400 dark:text-slate-500 max-w-xs">
+            <div className="ml-2 flex-1 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-600 rounded-md px-3 py-1 text-xs text-slate-400 dark:text-slate-500 max-w-xs">
               app.jobeasy.ai/dashboard/ats
             </div>
           </div>
@@ -114,9 +118,9 @@ function Hero() {
           {/* Mock ATS result */}
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Score */}
-            <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 rounded-xl">
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-dark-surface rounded-xl">
               <svg width="96" height="96" viewBox="0 0 88 88">
-                <circle cx="44" cy="44" r="38" fill="none" stroke="#f1f5f9" strokeWidth="8" className="dark:stroke-slate-700" />
+                <circle cx="44" cy="44" r="38" fill="none" stroke="#f1f5f9" strokeWidth="8" className="dark:stroke-dark-elevated" />
                 <circle
                   cx="44"
                   cy="44"
@@ -135,7 +139,7 @@ function Hero() {
             </div>
 
             {/* Keywords found */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+            <div className="p-4 bg-slate-50 dark:bg-dark-surface rounded-xl">
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Keywords detected</p>
               <div className="flex flex-wrap gap-1.5">
                 {['React', 'TypeScript', 'Node.js', 'REST API', 'AWS', 'CI/CD'].map(k => (
@@ -145,7 +149,7 @@ function Hero() {
             </div>
 
             {/* Missing keywords */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+            <div className="p-4 bg-slate-50 dark:bg-dark-surface rounded-xl">
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Missing keywords</p>
               <div className="flex flex-wrap gap-1.5">
                 {['GraphQL', 'Docker', 'Kubernetes', 'Redis'].map(k => (
@@ -196,7 +200,7 @@ const features = [
     icon: Bot,
     title: 'AI Career Coach',
     description:
-      'Chat with a Gemini-powered AI that knows your resume and career context. Get interview prep, negotiation tips, LinkedIn profile advice, and job-search strategy.',
+      'Chat with an AI that knows your resume and career context. Get interview prep, negotiation tips, LinkedIn profile advice, and job-search strategy.',
     color: 'brand',
   },
   {
@@ -210,7 +214,7 @@ const features = [
 
 function Features() {
   return (
-    <section id="features" className="py-20 px-6 bg-slate-50/50 dark:bg-slate-800/50">
+    <section id="features" className="py-20 px-6 bg-slate-50/50 dark:bg-dark-card/50">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-brand-700 dark:text-brand-400 text-sm font-semibold mb-2">Everything you need</p>
@@ -226,7 +230,7 @@ function Features() {
           {features.map(({ icon: Icon, title, description, color }) => (
             <div
               key={title}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 cursor-default"
+              className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl p-6 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 cursor-default"
             >
               <div
                 className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${
@@ -280,7 +284,7 @@ function HowItWorks() {
           {steps.map(({ step, title, description }, i) => (
             <div key={step} className="relative">
               {i < steps.length - 1 && (
-                <div className="hidden md:block absolute top-5 left-full w-full h-px bg-slate-200 dark:bg-slate-700 -translate-x-8 z-0" />
+                <div className="hidden md:block absolute top-5 left-full w-full h-px bg-slate-200 dark:bg-dark-elevated -translate-x-8 z-0" />
               )}
               <div className="relative z-10">
                 <div className="w-10 h-10 rounded-full bg-brand-700 text-white font-bold text-sm flex items-center justify-center mb-4">
@@ -352,7 +356,7 @@ const plans = [
 
 function Pricing() {
   return (
-    <section id="pricing" className="py-20 px-6 bg-slate-50/50 dark:bg-slate-800/50">
+    <section id="pricing" className="py-20 px-6 bg-slate-50/50 dark:bg-dark-card/50">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-brand-700 dark:text-brand-400 text-sm font-semibold mb-2">Pricing</p>
@@ -369,7 +373,7 @@ function Pricing() {
               className={`rounded-xl border p-6 ${
                 highlight
                   ? 'border-brand-700 bg-brand-700 text-white shadow-lg shadow-brand-200 dark:shadow-brand-900/50'
-                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                  : 'border-slate-200 dark:border-dark-border-subtle bg-white dark:bg-dark-card'
               }`}
             >
               <div className="mb-5">
@@ -451,7 +455,7 @@ function Testimonials() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {testimonials.map(({ name, role, text }) => (
-            <div key={name} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+            <div key={name} className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl p-6">
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4">"{text}"</p>
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{name}</p>
@@ -489,11 +493,120 @@ function CTABanner() {
   )
 }
 
+// ─── Contact Form ────────────────────────────────────────────────────────────
+
+function ContactForm() {
+  const [form, setForm] = useState({ name: '', email: '', message: '' })
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name || !form.email || !form.message) return
+    setStatus('sending')
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      await fetch(`${apiUrl}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      setStatus('sent')
+      setForm({ name: '', email: '', message: '' })
+    } catch {
+      // Fallback: open mailto
+      const subject = encodeURIComponent(`JobEasy Contact: ${form.name}`)
+      const body = encodeURIComponent(`From: ${form.name} (${form.email})\n\n${form.message}`)
+      window.open(`mailto:support@jobeasy.ai?subject=${subject}&body=${body}`, '_blank')
+      setStatus('sent')
+    }
+  }
+
+  return (
+    <section id="contact" className="py-20 px-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-brand-700 dark:text-brand-400 text-sm font-semibold mb-2">Get in touch</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
+            We'd love to hear from you
+          </h2>
+          <p className="mt-3 text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
+            Have a question, feedback, or feature request? Drop us a message and we'll get back to you.
+          </p>
+        </div>
+
+        {status === 'sent' ? (
+          <div className="text-center py-12 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/50 rounded-2xl">
+            <CheckCircle2 size={40} className="text-green-500 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">Message sent!</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">We'll get back to you within 24 hours.</p>
+            <button
+              onClick={() => setStatus('idle')}
+              className="mt-4 text-sm text-brand-700 dark:text-brand-400 font-medium hover:underline cursor-pointer"
+            >
+              Send another message
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-2xl p-6 sm:p-8 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Your name"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-dark-surface text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-dark-surface text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Message</label>
+              <textarea
+                required
+                rows={5}
+                placeholder="Tell us what's on your mind..."
+                value={form.message}
+                onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-dark-surface text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors resize-none"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={status === 'sending'}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-800 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {status === 'sending' ? 'Sending...' : (
+                <>
+                  <Send size={14} />
+                  Send message
+                </>
+              )}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
+  )
+}
+
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 function Footer() {
   return (
-    <footer className="border-t border-slate-100 dark:border-slate-800 py-8 px-6 bg-white dark:bg-slate-900">
+    <footer className="border-t border-slate-100 dark:border-dark-border py-8 px-6 bg-white dark:bg-dark-surface">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-brand-700 rounded-md flex items-center justify-center">
@@ -509,7 +622,7 @@ function Footer() {
         <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
           <a href="#" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Privacy</a>
           <a href="#" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Terms</a>
-          <a href="#" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Contact</a>
+          <a href="#contact" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Contact</a>
         </div>
       </div>
     </footer>
@@ -520,7 +633,7 @@ function Footer() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-white dark:bg-dark-bg">
       <Navbar />
       <Hero />
       <Features />
@@ -528,6 +641,7 @@ export default function LandingPage() {
       <Pricing />
       <Testimonials />
       <CTABanner />
+      <ContactForm />
       <Footer />
     </div>
   )

@@ -11,11 +11,26 @@ interface DeskExp { id: string; role: string; company: string; startDate: string
 interface DeskEdu { id: string; degree: string; school: string; year: string; gpa: string; description: string }
 interface DeskProject { id: string; name: string; tech: string; description: string; link: string }
 interface DeskCert { id: string; name: string; issuer: string; date: string }
-interface Desk { profile: Profile; skills: string[]; experiences: DeskExp[]; education: DeskEdu[]; projects: DeskProject[]; certifications: DeskCert[] }
+interface DeskAchievement { id: string; title: string; subtitle: string; date: string; description: string }
+interface Desk { profile: Profile; skills: string[]; experiences: DeskExp[]; education: DeskEdu[]; projects: DeskProject[]; certifications: DeskCert[]; achievements: DeskAchievement[] }
 
 const emptyDesk: Desk = {
   profile: { name: '', role: '', email: '', phone: '', location: '', linkedin: '', website: '', github: '', summary: '' },
-  skills: [], experiences: [], education: [], projects: [], certifications: [],
+  skills: [], experiences: [], education: [], projects: [], certifications: [], achievements: [],
+}
+
+const normalizeSkills = (skills: unknown): string[] => {
+  if (!Array.isArray(skills)) return []
+  const seen = new Set<string>()
+  const normalized: string[] = []
+  for (const item of skills) {
+    const value = String(item || '').trim()
+    const key = value.toLowerCase()
+    if (!value || seen.has(key)) continue
+    seen.add(key)
+    normalized.push(value)
+  }
+  return normalized
 }
 
 function SectionHeader({ icon: Icon, title, action }: { icon: React.ElementType; title: string; action?: React.ReactNode }) {
@@ -37,11 +52,12 @@ interface DeskProfile { id: string; name: string }
 function parseDesk(d: Record<string, unknown>): Desk {
   return {
     profile: { ...emptyDesk.profile, ...((d.profile as Record<string, string>) || {}) },
-    skills: Array.isArray(d.skills) ? d.skills as string[] : [],
+    skills: normalizeSkills(d.skills),
     experiences: Array.isArray(d.experiences) ? d.experiences as DeskExp[] : [],
     education: Array.isArray(d.education) ? d.education as DeskEdu[] : [],
     projects: Array.isArray(d.projects) ? d.projects as DeskProject[] : [],
     certifications: Array.isArray(d.certifications) ? d.certifications as DeskCert[] : [],
+    achievements: Array.isArray(d.achievements) ? d.achievements as DeskAchievement[] : [],
   }
 }
 
@@ -122,6 +138,7 @@ export default function CareerDesk() {
   const invalidateDesk = () => {
     qc.invalidateQueries({ queryKey: ['desk-profiles'] })
     qc.invalidateQueries({ queryKey: ['desk-data'] })
+    qc.invalidateQueries({ queryKey: ['autopilot-desk-text'] })
   }
 
   const switchProfile = async (profileId: string) => {
@@ -161,6 +178,7 @@ export default function CareerDesk() {
     setSaving(true)
     try {
       await api.put(`/user/desk/profiles/${activeProfileId}`, desk)
+      invalidateDesk()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } finally {
@@ -189,7 +207,7 @@ export default function CareerDesk() {
         ? `/user/desk/sync-from-resume?resume_id=${resumeId}`
         : '/user/desk/sync-from-resume'
       await api.post(url)
-      qc.invalidateQueries({ queryKey: ['desk-data', activeProfileId] })
+      invalidateDesk()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {
@@ -203,7 +221,7 @@ export default function CareerDesk() {
 
   const addSkill = () => {
     const s = skillInput.trim()
-    if (!s || desk.skills.includes(s)) return
+    if (!s || desk.skills.some((item) => item.toLowerCase() === s.toLowerCase())) return
     setDesk((d) => ({ ...d, skills: [...d.skills, s] }))
     setSkillInput('')
   }
@@ -229,8 +247,22 @@ export default function CareerDesk() {
   const patchCert = (id: string, u: Partial<DeskCert>) => setDesk((d) => ({ ...d, certifications: d.certifications.map((c) => c.id === id ? { ...c, ...u } : c) }))
   const removeCert = (id: string) => setDesk((d) => ({ ...d, certifications: d.certifications.filter((c) => c.id !== id) }))
 
+  // Achievements
+  const addAchievement = () => setDesk((d) => ({
+    ...d,
+    achievements: [...d.achievements, { id: uid(), title: '', subtitle: '', date: '', description: '' }],
+  }))
+  const patchAchievement = (id: string, u: Partial<DeskAchievement>) => setDesk((d) => ({
+    ...d,
+    achievements: d.achievements.map((a) => a.id === id ? { ...a, ...u } : a),
+  }))
+  const removeAchievement = (id: string) => setDesk((d) => ({
+    ...d,
+    achievements: d.achievements.filter((a) => a.id !== id),
+  }))
+
   if (loading) return (
-    <div className="max-w-4xl mx-auto space-y-5">
+    <div className="w-full max-w-5xl space-y-5">
       <div className="flex items-center justify-between mb-2">
         <div className="space-y-2"><Skeleton className="h-6 w-36" /><Skeleton className="h-4 w-64" /></div>
         <Skeleton className="h-9 w-40" />
@@ -245,15 +277,15 @@ export default function CareerDesk() {
     {showResumePicker && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowResumePicker(false)} />
-        <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="relative w-full max-w-md bg-white dark:bg-dark-surface rounded-2xl shadow-2xl border border-slate-200 dark:border-dark-border-subtle overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-dark-border">
             <div>
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Pick a Resume to Import</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 The selected resume's data will fill your Career Desk profile.
               </p>
             </div>
-            <button onClick={() => setShowResumePicker(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 cursor-pointer">
+            <button onClick={() => setShowResumePicker(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-hover text-slate-400 cursor-pointer">
               <X size={16} />
             </button>
           </div>
@@ -274,7 +306,7 @@ export default function CareerDesk() {
                   <button
                     key={r.id}
                     onClick={() => syncFromResume(r.id)}
-                    className="w-full flex items-start gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50/50 dark:hover:bg-brand-950/20 transition-all text-left cursor-pointer group"
+                    className="w-full flex items-start gap-3 p-3 rounded-xl border border-slate-100 dark:border-dark-border-subtle hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50/50 dark:hover:bg-brand-950/20 transition-all text-left cursor-pointer group"
                   >
                     <div className="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-950 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-brand-100 dark:group-hover:bg-brand-900 transition-colors">
                       <FileText size={14} className="text-brand-700 dark:text-brand-400" />
@@ -301,7 +333,7 @@ export default function CareerDesk() {
       </div>
     )}
 
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl">
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Career Desk</h1>
@@ -316,7 +348,7 @@ export default function CareerDesk() {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setProfileMenuOpen(v => !v)}
-              className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-dark-hover transition-colors"
             >
               <User size={13} />
               <span className="max-w-[120px] truncate">{activeProfileName}</span>
@@ -324,16 +356,16 @@ export default function CareerDesk() {
             </button>
 
             {profileMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden">
-                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
+              <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl shadow-lg z-50 overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-dark-border-subtle">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Switch Profile</p>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {profiles.map(p => (
-                    <div key={p.id} className={`flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 ${p.id === activeProfileId ? 'bg-brand-50 dark:bg-brand-950/40' : ''}`}>
+                    <div key={p.id} className={`flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-dark-hover ${p.id === activeProfileId ? 'bg-brand-50 dark:bg-brand-950/40' : ''}`}>
                       {renamingId === p.id ? (
                         <input
-                          className="flex-1 text-sm border border-brand-400 rounded px-2 py-0.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 focus:outline-none"
+                          className="flex-1 text-sm border border-brand-400 rounded px-2 py-0.5 bg-white dark:bg-dark-surface text-slate-900 dark:text-slate-50 focus:outline-none"
                           value={renameValue}
                           autoFocus
                           onChange={e => setRenameValue(e.target.value)}
@@ -368,11 +400,11 @@ export default function CareerDesk() {
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-slate-100 dark:border-slate-700 p-2">
+                <div className="border-t border-slate-100 dark:border-dark-border-subtle p-2">
                   {creatingProfile ? (
                     <div className="flex gap-2">
                       <input
-                        className="flex-1 text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
+                        className="flex-1 text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-dark-surface text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700"
                         placeholder="Profile name (e.g. 'Mom', 'Dev Role')"
                         value={newProfileName}
                         autoFocus
@@ -424,7 +456,7 @@ export default function CareerDesk() {
           <div className="flex gap-2 mb-3">
             <input placeholder="Add a skill and press Enter…" value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
-              className="flex-1 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700" />
+              className="flex-1 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700" />
             <Button size="sm" variant="secondary" onClick={addSkill}><Plus size={13} /> Add</Button>
           </div>
           {desk.skills.length === 0
@@ -447,7 +479,7 @@ export default function CareerDesk() {
             ? <p className="text-xs text-slate-400 dark:text-slate-500">No experiences added.</p>
             : <div className="space-y-4">
                 {desk.experiences.map((exp) => (
-                  <div key={exp.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                  <div key={exp.id} className="border border-slate-100 dark:border-dark-border-subtle rounded-xl p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 grid grid-cols-2 gap-3">
                         <Input placeholder="Job title" value={exp.role} onChange={(e) => patchExp(exp.id, { role: e.target.value })} />
@@ -477,7 +509,7 @@ export default function CareerDesk() {
             ? <p className="text-xs text-slate-400 dark:text-slate-500">No education added.</p>
             : <div className="space-y-4">
                 {desk.education.map((edu) => (
-                  <div key={edu.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                  <div key={edu.id} className="border border-slate-100 dark:border-dark-border-subtle rounded-xl p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 grid grid-cols-2 gap-3">
                         <Input placeholder="Degree (e.g. B.Tech Computer Science)" value={edu.degree} onChange={(e) => patchEdu(edu.id, { degree: e.target.value })} />
@@ -500,7 +532,7 @@ export default function CareerDesk() {
             ? <p className="text-xs text-slate-400 dark:text-slate-500">Add portfolio projects, side projects, or notable contributions.</p>
             : <div className="space-y-4">
                 {desk.projects.map((proj) => (
-                  <div key={proj.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                  <div key={proj.id} className="border border-slate-100 dark:border-dark-border-subtle rounded-xl p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 grid grid-cols-2 gap-3">
                         <Input placeholder="Project name" value={proj.name} onChange={(e) => patchProject(proj.id, { name: e.target.value })} />
@@ -516,6 +548,29 @@ export default function CareerDesk() {
           }
         </Card>
 
+        {/* Achievements */}
+        <Card className="p-5">
+          <SectionHeader icon={Award} title={`Achievements (${desk.achievements.length})`} action={<Button size="sm" variant="secondary" onClick={addAchievement}><Plus size={13} /> Add</Button>} />
+          {desk.achievements.length === 0
+            ? <p className="text-xs text-slate-400 dark:text-slate-500">Add awards, notable wins, leadership highlights, or measurable accomplishments.</p>
+            : <div className="space-y-4">
+                {desk.achievements.map((achievement) => (
+                  <div key={achievement.id} className="border border-slate-100 dark:border-dark-border-subtle rounded-xl p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 grid grid-cols-3 gap-3">
+                        <Input placeholder="Title (e.g. Hackathon Winner)" value={achievement.title} onChange={(e) => patchAchievement(achievement.id, { title: e.target.value })} />
+                        <Input placeholder="Subtitle (e.g. IIT Delhi, Team Lead)" value={achievement.subtitle} onChange={(e) => patchAchievement(achievement.id, { subtitle: e.target.value })} />
+                        <Input placeholder="Date (e.g. Nov 2024)" value={achievement.date} onChange={(e) => patchAchievement(achievement.id, { date: e.target.value })} />
+                      </div>
+                      <button onClick={() => removeAchievement(achievement.id)} className="mt-0.5 p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer transition-colors"><Trash2 size={15} /></button>
+                    </div>
+                    <Textarea placeholder="Describe the achievement and why it matters." value={achievement.description} rows={2} onChange={(e) => patchAchievement(achievement.id, { description: e.target.value })} />
+                  </div>
+                ))}
+              </div>
+          }
+        </Card>
+
         {/* Certifications */}
         <Card className="p-5">
           <SectionHeader icon={Award} title={`Certifications (${desk.certifications.length})`} action={<Button size="sm" variant="secondary" onClick={addCert}><Plus size={13} /> Add</Button>} />
@@ -523,7 +578,7 @@ export default function CareerDesk() {
             ? <p className="text-xs text-slate-400 dark:text-slate-500">Add certifications, courses, or licenses.</p>
             : <div className="space-y-3">
                 {desk.certifications.map((cert) => (
-                  <div key={cert.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4">
+                  <div key={cert.id} className="border border-slate-100 dark:border-dark-border-subtle rounded-xl p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex-1 grid grid-cols-3 gap-3">
                         <Input placeholder="Certification name" value={cert.name} onChange={(e) => patchCert(cert.id, { name: e.target.value })} />

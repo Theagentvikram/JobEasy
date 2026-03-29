@@ -48,6 +48,15 @@
   --color-text-secondary: #475569;
   --color-text-muted: #94a3b8;
 
+  /* Dark surface palette — blacker tones */
+  --color-dark-bg: #09090b;
+  --color-dark-surface: #0c0c0f;
+  --color-dark-card: #131316;
+  --color-dark-elevated: #1a1a1f;
+  --color-dark-border: #1f1f25;
+  --color-dark-border-subtle: #27272e;
+  --color-dark-hover: #1e1e24;
+
   /* Font */
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 
@@ -75,11 +84,12 @@ body {
   line-height: 1.6;
 }
 
-/* Dark mode base */
+/* Dark mode base — blacker tones */
 html.dark body {
-  background: #020617;
-  color: #f8fafc;
+  background: #09090b;
+  color: #f4f4f5;
 }
+
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -87,8 +97,8 @@ html.dark body {
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-html.dark ::-webkit-scrollbar-thumb { background: #475569; }
-html.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+html.dark ::-webkit-scrollbar-thumb { background: #27272e; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
 /* Focus */
 :focus-visible {

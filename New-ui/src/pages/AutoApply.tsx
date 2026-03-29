@@ -41,9 +41,25 @@ const SOURCE_CONFIG: Record<string, { label: string; color: string }> = {
   wellfound: { label: 'Wellfound', color: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400' },
   naukri: { label: 'Naukri', color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400' },
   yc_waas: { label: 'YC Startups', color: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' },
-  jobspy: { label: 'JobSpy', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' },
+  remoteok: { label: 'RemoteOK', color: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400' },
+  remotive: { label: 'Remotive', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400' },
+  arbeitnow: { label: 'Arbeitnow', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400' },
+  themuse: { label: 'TheMuse', color: 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-400' },
+  jobspy: { label: 'Multi-source', color: 'bg-slate-100 text-slate-700 dark:bg-dark-card dark:text-slate-400' },
   zip_recruiter: { label: 'ZipRecruiter', color: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400' },
 }
+
+const COUNTRY_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: '', label: 'Auto-detect from location' },
+  { value: 'USA', label: 'United States' },
+  { value: 'Canada', label: 'Canada' },
+  { value: 'UK', label: 'United Kingdom' },
+  { value: 'India', label: 'India' },
+  { value: 'South Africa', label: 'South Africa' },
+  { value: 'Australia', label: 'Australia' },
+  { value: 'UAE', label: 'UAE' },
+  { value: 'Singapore', label: 'Singapore' },
+]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -130,13 +146,13 @@ function TagInput({
 
   return (
     <div
-      className="min-h-[2.5rem] flex flex-wrap gap-1.5 items-center px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 cursor-text focus-within:ring-2 focus-within:ring-brand-700 focus-within:border-transparent transition-all"
+      className="min-h-[2.5rem] flex flex-wrap gap-1.5 items-center px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-dark-card cursor-text focus-within:ring-2 focus-within:ring-brand-700 focus-within:border-transparent transition-all"
       onClick={() => inputRef.current?.focus()}
     >
       {tags.map((tag, i) => (
         <span
           key={i}
-          className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-xs font-medium"
+          className="inline-flex items-center gap-1 bg-slate-100 dark:bg-dark-elevated text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-xs font-medium"
         >
           {tag}
           <button
@@ -188,17 +204,20 @@ function PasswordField({
   helper?: React.ReactNode
 }) {
   const [show, setShow] = useState(false)
+  const masked = value === '••••••••'
+  const renderedValue = masked ? '' : value
+  const renderedPlaceholder = masked ? 'Saved key hidden. Type to replace.' : placeholder
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <div className="relative">
         <input
           type={show ? 'text' : 'password'}
-          value={value}
+          value={renderedValue}
           onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={renderedPlaceholder}
           autoComplete="off"
-          className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-10 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+          className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-10 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
         />
         <button
           type="button"
@@ -299,7 +318,7 @@ function ModelSelect({
               onChange(e.target.value)
             }
           }}
-          className="w-full appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-9 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
+          className="w-full appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-9 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
         >
           {options.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -314,7 +333,7 @@ function ModelSelect({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder="e.g. llama3-8b-8192"
-          className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
+          className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
         />
       )}
     </div>
@@ -327,10 +346,12 @@ function emptySettings(): AutoApplySettings {
   return {
     job_titles: '',
     job_locations: '',
+    country_indeed: '',
     min_salary: 0,
     max_applications_per_day: 20,
     match_score_threshold: 60,
     blacklist_companies: '',
+    startup_only_enabled: false,
     ai_provider: 'groq',
     ai_model: '',
     groq_api_key: '',
@@ -352,6 +373,11 @@ function emptySettings(): AutoApplySettings {
     sources_wellfound: true,
     sources_naukri: true,
     sources_yc: true,
+    sources_free_apis: true,
+    sources_apify: true,
+    apify_enabled: false,
+    apify_api_key: '',
+    apify_actor_google: 'apify/google-search-scraper',
     sources: [],
     results_per_search: 15,
     google_sheets_enabled: false,
@@ -370,6 +396,10 @@ const QUICK_SOURCES = [
   { key: 'wellfound', label: 'Wellfound' },
   { key: 'naukri',    label: 'Naukri' },
   { key: 'yc_waas',   label: 'YC Startups' },
+  { key: 'remoteok',  label: 'RemoteOK' },
+  { key: 'remotive',  label: 'Remotive' },
+  { key: 'arbeitnow', label: 'Arbeitnow' },
+  { key: 'themuse',   label: 'TheMuse' },
 ]
 
 function QuickRunModal({
@@ -381,7 +411,17 @@ function QuickRunModal({
   open: boolean
   settings: AutoApplySettings
   onClose: () => void
-  onRun: (dryRun: boolean, overrides: { job_titles?: string; job_locations?: string; results_per_search?: number; disabled_sources?: string }) => void
+  onRun: (dryRun: boolean, overrides: {
+    job_titles?: string
+    job_locations?: string
+    results_per_search?: number
+    disabled_sources?: string
+    sources_jobspy?: boolean
+    sources_wellfound?: boolean
+    sources_naukri?: boolean
+    sources_yc?: boolean
+    sources_free_apis?: boolean
+  }) => void
 }) {
   const defaultTitles = tagsFromString(settings.job_titles)
   const defaultLocations = tagsFromString(settings.job_locations)
@@ -413,21 +453,31 @@ function QuickRunModal({
   const buildOverrides = () => {
     const allKeys = QUICK_SOURCES.map(s => s.key)
     const disabled = allKeys.filter(k => !enabled.includes(k))
+    const sourcesJobspy = ['linkedin', 'indeed', 'glassdoor'].some(k => enabled.includes(k))
+    const sourcesWellfound = enabled.includes('wellfound')
+    const sourcesNaukri = enabled.includes('naukri')
+    const sourcesYc = enabled.includes('yc_waas')
+    const sourcesFreeApis = ['remoteok', 'remotive', 'arbeitnow', 'themuse'].some(k => enabled.includes(k))
     return {
       job_titles: titles.join(', '),
       job_locations: locations.join(', '),
       results_per_search: results,
       disabled_sources: disabled.join(','),
+      sources_jobspy: sourcesJobspy,
+      sources_wellfound: sourcesWellfound,
+      sources_naukri: sourcesNaukri,
+      sources_yc: sourcesYc,
+      sources_free_apis: sourcesFreeApis,
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="relative w-full max-w-md bg-white dark:bg-dark-surface rounded-2xl shadow-2xl border border-slate-200 dark:border-dark-border-subtle overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-dark-border flex items-center justify-between">
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Configure this run</p>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 cursor-pointer"><X size={15} /></button>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-hover text-slate-400 cursor-pointer"><X size={15} /></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -450,7 +500,7 @@ function QuickRunModal({
               {QUICK_SOURCES.map(src => {
                 const on = enabled.includes(src.key)
                 return (
-                  <label key={src.key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${on ? 'border-brand-400 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-700' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
+                  <label key={src.key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${on ? 'border-brand-400 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-700' : 'border-slate-200 dark:border-dark-border-subtle hover:border-slate-300'}`}>
                     <input type="checkbox" className="sr-only" checked={on} onChange={() => toggleSource(src.key)} />
                     <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 ${on ? 'bg-brand-700 border-brand-700' : 'border-slate-300 dark:border-slate-500'}`}>
                       {on && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -498,25 +548,25 @@ const ALL_SOURCES = [
   {
     key: 'linkedin',
     label: 'LinkedIn',
-    desc: 'Scraped via JobSpy — works reliably for most searches.',
+    desc: 'Works reliably for most searches across regions.',
     warning: null,
   },
   {
     key: 'indeed',
     label: 'Indeed',
-    desc: 'Scraped via JobSpy — generally stable across countries.',
+    desc: 'Generally stable across countries.',
     warning: null,
   },
   {
     key: 'glassdoor',
     label: 'Glassdoor',
-    desc: 'Scraped via JobSpy — Glassdoor actively blocks scrapers. Expect failures ~70–80% of the time.',
-    warning: 'Glassdoor blocks automated scraping frequently. Disable if you see repeated errors.',
+    desc: 'May experience intermittent availability. Expect occasional failures.',
+    warning: 'This source has intermittent availability. Disable if you see repeated errors.',
   },
   {
     key: 'zip_recruiter',
     label: 'ZipRecruiter',
-    desc: 'Scraped via JobSpy — US/Canada/UK only. Disabled automatically for other countries.',
+    desc: 'US/Canada/UK only. Disabled automatically for other countries.',
     warning: 'Only works for US, Canada, and UK locations. Ignored for other countries.',
   },
   {
@@ -536,6 +586,36 @@ const ALL_SOURCES = [
     label: 'YC Work at a Startup',
     desc: 'Direct listings from Y Combinator portfolio companies.',
     warning: null,
+  },
+  {
+    key: 'remoteok',
+    label: 'RemoteOK (Free API)',
+    desc: 'Global remote-first jobs from RemoteOK public API.',
+    warning: null,
+  },
+  {
+    key: 'remotive',
+    label: 'Remotive (Free API)',
+    desc: 'Remote engineering and product jobs from Remotive API.',
+    warning: null,
+  },
+  {
+    key: 'arbeitnow',
+    label: 'Arbeitnow (Free API)',
+    desc: 'Global jobs from Arbeitnow public API, strong in EU/remote roles.',
+    warning: null,
+  },
+  {
+    key: 'themuse',
+    label: 'TheMuse (Free API)',
+    desc: 'US and global tech roles from The Muse public jobs API.',
+    warning: null,
+  },
+  {
+    key: 'apify_fallback',
+    label: 'Apify Priority (All Portals)',
+    desc: 'Uses your Apify account first across portals, then falls back to built-in scrapers if needed.',
+    warning: 'Requires your Apify API key. Leave disabled if you do not use Apify.',
   },
   // ── Country-specific boards (auto-activated based on location) ──────────────
   {
@@ -635,7 +715,7 @@ function SourceRow({
   onToggle: (key: string) => void
 }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer group rounded-lg border border-slate-100 dark:border-slate-700 px-3 py-2.5 hover:border-brand-200 dark:hover:border-brand-800 transition-colors">
+    <label className="flex items-start gap-3 cursor-pointer group rounded-lg border border-slate-100 dark:border-dark-border-subtle px-3 py-2.5 hover:border-brand-200 dark:hover:border-brand-800 transition-colors">
       <div className="relative mt-0.5 flex-shrink-0">
         <input type="checkbox" className="sr-only peer" checked={enabled} onChange={() => onToggle(src.key)} />
         <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-500 peer-checked:bg-brand-700 peer-checked:border-brand-700 transition-colors flex items-center justify-center">
@@ -652,7 +732,7 @@ function SourceRow({
             {src.label}
           </p>
           {!enabled && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500">OFF</span>
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-dark-elevated text-slate-400 dark:text-slate-500">OFF</span>
           )}
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{src.desc}</p>
@@ -717,7 +797,7 @@ function SettingsTab({
     setSaveError('')
     try {
       // Derive disabled_sources string from enabled sources array
-      const payload = { ...form }
+      const payload: Partial<AutoApplySettings> & { disabled_sources?: string } = { ...form }
       if (form.sources && form.sources.length > 0) {
         const allKnown = Object.keys(SOURCE_BOOL_KEYS)
         const disabled = allKnown.filter(k => !form.sources!.includes(k))
@@ -777,6 +857,11 @@ function SettingsTab({
     wellfound: 'sources_wellfound',
     naukri: 'sources_naukri',
     yc_waas: 'sources_yc',
+    remoteok: 'sources_free_apis',
+    remotive: 'sources_free_apis',
+    arbeitnow: 'sources_free_apis',
+    themuse: 'sources_free_apis',
+    apify_fallback: 'sources_apify',
     // Country-specific boards: tracked only in sources[] array
     pnet: undefined,
     careerjunction: undefined,
@@ -807,19 +892,22 @@ function SettingsTab({
     set('sources', updated)
     // Mirror to coarse boolean fields for JobSpy-grouped sources
     const boolKey = SOURCE_BOOL_KEYS[key]
-    if (boolKey && boolKey !== 'sources_jobspy') {
+    if (boolKey && boolKey !== 'sources_jobspy' && boolKey !== 'sources_free_apis') {
       set(boolKey, updated.includes(key) as AutoApplySettings[typeof boolKey])
     }
     // sources_jobspy = true if any of the JobSpy-powered platforms is on
     const jobspyOn = ['linkedin', 'indeed', 'glassdoor', 'zip_recruiter'].some(k => updated.includes(k))
     set('sources_jobspy', jobspyOn)
+    // sources_free_apis = true if any free API source is on
+    const freeApisOn = ['remoteok', 'remotive', 'arbeitnow', 'themuse'].some(k => updated.includes(k))
+    set('sources_free_apis', freeApisOn)
   }
 
   const providerOptions = [
-    { value: 'groq', label: 'Groq (Free)' },
-    { value: 'openai', label: 'OpenAI' },
-    { value: 'anthropic', label: 'Anthropic / Claude' },
-    { value: 'ollama', label: 'Ollama (Local / Raspberry Pi)' },
+    { value: 'groq', label: 'Fast AI (Free)' },
+    { value: 'openai', label: 'Premium AI' },
+    { value: 'anthropic', label: 'Advanced AI' },
+    { value: 'ollama', label: 'Local AI (Self-hosted)' },
   ]
 
   return (
@@ -861,6 +949,21 @@ function SettingsTab({
           />
         </Field>
 
+        <Field label="Country" hint="Used for location-aware source behavior">
+          <div className="relative">
+            <select
+              value={form.country_indeed || ''}
+              onChange={e => set('country_indeed', e.target.value)}
+              className="w-full appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-9 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
+            >
+              {COUNTRY_OPTIONS.map(opt => (
+                <option key={opt.value || 'auto'} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+        </Field>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Minimum Salary" hint="Enter value in rupees (e.g. 1200000 for 12 LPA)">
             <div className="relative">
@@ -872,7 +975,7 @@ function SettingsTab({
                 value={form.min_salary || ''}
                 onChange={e => set('min_salary', Number(e.target.value))}
                 placeholder="e.g. 1200000"
-                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pl-7 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pl-7 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
               />
             </div>
             {form.min_salary > 0 && (
@@ -887,7 +990,7 @@ function SettingsTab({
               <button
                 type="button"
                 onClick={() => set('max_applications_per_day', Math.max(1, form.max_applications_per_day - 1))}
-                className="w-8 h-9 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                className="w-8 h-9 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer transition-colors"
               >
                 –
               </button>
@@ -897,12 +1000,12 @@ function SettingsTab({
                 max={100}
                 value={form.max_applications_per_day}
                 onChange={e => set('max_applications_per_day', Number(e.target.value))}
-                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-center bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-center bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
               />
               <button
                 type="button"
                 onClick={() => set('max_applications_per_day', Math.min(100, form.max_applications_per_day + 1))}
-                className="w-8 h-9 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                className="w-8 h-9 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer transition-colors"
               >
                 +
               </button>
@@ -933,6 +1036,17 @@ function SettingsTab({
             placeholder="e.g. TCS, Wipro, Infosys"
           />
         </Field>
+
+        <div className="pt-1">
+          <Toggle
+            checked={!!form.startup_only_enabled}
+            onChange={v => set('startup_only_enabled', v)}
+            label="Startup-only mode (apply AI startup filter)"
+          />
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+            When enabled, searches are narrowed to AI startup-style roles. When disabled, all matching roles are kept.
+          </p>
+        </div>
       </SectionCard>
 
       {/* Section 2: Sources */}
@@ -944,7 +1058,7 @@ function SettingsTab({
         {/* Global platforms */}
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Global Platforms</p>
         <div className="space-y-2 mb-4">
-          {ALL_SOURCES.filter(s => ['linkedin','indeed','glassdoor','zip_recruiter','wellfound','naukri','yc_waas'].includes(s.key)).map(src => (
+          {ALL_SOURCES.filter(s => ['linkedin','indeed','glassdoor','zip_recruiter','wellfound','naukri','yc_waas','remoteok','remotive','arbeitnow','themuse','apify_fallback'].includes(s.key)).map(src => (
             <SourceRow key={src.key} src={src} enabled={isSourceEnabled(src.key)} onToggle={toggleSource} />
           ))}
         </div>
@@ -955,9 +1069,47 @@ function SettingsTab({
           These activate automatically when your job locations include cities from that country.
         </p>
         <div className="space-y-2">
-          {ALL_SOURCES.filter(s => !['linkedin','indeed','glassdoor','zip_recruiter','wellfound','naukri','yc_waas'].includes(s.key)).map(src => (
+          {ALL_SOURCES.filter(s => !['linkedin','indeed','glassdoor','zip_recruiter','wellfound','naukri','yc_waas','remoteok','remotive','arbeitnow','themuse'].includes(s.key)).map(src => (
             <SourceRow key={src.key} src={src} enabled={isSourceEnabled(src.key)} onToggle={toggleSource} />
           ))}
+        </div>
+      </SectionCard>
+
+      {/* Section 2b: Apify Priority */}
+      <SectionCard title="Apify Priority" icon={Globe}>
+        <Toggle
+          checked={!!form.apify_enabled}
+          onChange={v => set('apify_enabled', v)}
+          label="Enable Apify as primary scraper (fallback to built-in scrapers)"
+        />
+
+        <div className="pt-2 grid grid-cols-1 gap-4">
+          <PasswordField
+            label="Apify API Key"
+            value={form.apify_api_key}
+            onChange={v => set('apify_api_key', v)}
+            placeholder="apify_api_..."
+            helper={
+              <a
+                href="https://console.apify.com/account/integrations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-brand-700"
+              >
+                Get Apify API token {'->'}
+              </a>
+            }
+          />
+
+          <Field label="Apify Actor" hint="Default is recommended for broad portal fallback">
+            <input
+              type="text"
+              value={form.apify_actor_google || 'apify/google-search-scraper'}
+              onChange={e => set('apify_actor_google', e.target.value)}
+              placeholder="apify/google-search-scraper"
+              className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
+            />
+          </Field>
         </div>
       </SectionCard>
 
@@ -968,7 +1120,7 @@ function SettingsTab({
             <select
               value={form.ai_provider}
               onChange={e => { set('ai_provider', e.target.value); setTestState('idle'); setTestMsg('') }}
-              className="w-full appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-9 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
+              className="w-full appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-9 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
             >
               {providerOptions.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -993,7 +1145,7 @@ function SettingsTab({
                 value={form.ollama_host}
                 onChange={e => set('ollama_host', e.target.value)}
                 placeholder="http://192.168.1.x:11434"
-                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors font-mono"
               />
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1066,7 +1218,7 @@ function SettingsTab({
               ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400'
               : testState === 'fail'
               ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
-              : 'bg-slate-50 dark:bg-slate-700 text-slate-500'
+              : 'bg-slate-50 dark:bg-dark-elevated text-slate-500'
           }`}>
             {testState === 'ok' && <CheckCircle2 size={14} />}
             {testState === 'fail' && <XCircle size={14} />}
@@ -1095,14 +1247,14 @@ function SettingsTab({
         />
 
         {form.cold_email_enabled && (
-          <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-700">
+          <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-dark-border-subtle">
             <Field label="Gmail Sender Email">
               <input
                 type="email"
                 value={form.gmail_sender_email}
                 onChange={e => set('gmail_sender_email', e.target.value)}
                 placeholder="you@gmail.com"
-                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
               />
             </Field>
 
@@ -1131,7 +1283,7 @@ function SettingsTab({
                   max={500}
                   value={form.daily_email_limit}
                   onChange={e => set('daily_email_limit', Number(e.target.value))}
-                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
                 />
               </Field>
 
@@ -1142,7 +1294,7 @@ function SettingsTab({
                   max={3600}
                   value={form.email_delay_seconds}
                   onChange={e => set('email_delay_seconds', Number(e.target.value))}
-                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+                  className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
                 />
               </Field>
             </div>
@@ -1165,7 +1317,7 @@ function SettingsTab({
             value={form.linkedin_email}
             onChange={e => set('linkedin_email', e.target.value)}
             placeholder="your@email.com"
-            className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
+            className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors"
           />
         </Field>
 
@@ -1189,7 +1341,7 @@ function SettingsTab({
               <select
                 value={form.pipeline_hour}
                 onChange={e => set('pipeline_hour', Number(e.target.value))}
-                className="appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-8 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
+                className="appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-8 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
               >
                 {Array.from({ length: 24 }, (_, i) => (
                   <option key={i} value={i}>{padTwo(i)}</option>
@@ -1206,7 +1358,7 @@ function SettingsTab({
               <select
                 value={form.pipeline_minute}
                 onChange={e => set('pipeline_minute', Number(e.target.value))}
-                className="appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-8 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
+                className="appearance-none border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 pr-8 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent transition-colors cursor-pointer"
               >
                 {Array.from({ length: 60 }, (_, i) => (
                   <option key={i} value={i}>{padTwo(i)}</option>
@@ -1324,7 +1476,7 @@ function OverviewTab({
             No runs yet — hit "Run Pipeline" to start.
           </p>
         ) : (
-          <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-700">
+          <div className="space-y-0 divide-y divide-slate-100 dark:divide-dark-border-subtle">
             {history.map((run) => (
               <div key={run.id} className="flex items-center justify-between py-3">
                 <div>
@@ -1385,7 +1537,7 @@ function JobsTab({
             className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
               sourceFilter === 'all'
                 ? 'bg-brand-700 text-white'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                : 'bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-dark-hover'
             }`}
           >
             All ({jobs.length})
@@ -1434,7 +1586,7 @@ function JobsTab({
             {filtered.map((job) => (
               <div
                 key={job.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-hover/50 transition-colors"
               >
                 {/* Score badge */}
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${
@@ -1481,7 +1633,9 @@ function JobsTab({
                     {job.status}
                   </Badge>
                   {job.cold_email_sent && (
-                    <Mail size={12} className="text-violet-500" title="Cold email sent" />
+                    <span title="Cold email sent">
+                      <Mail size={12} className="text-violet-500" />
+                    </span>
                   )}
                   {job.url && (
                     <a
@@ -1584,7 +1738,7 @@ export default function AutoApply() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+      <div className="w-full space-y-5">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <Skeleton className="h-7 w-40" />
@@ -1592,7 +1746,7 @@ export default function AutoApply() {
           </div>
           <Skeleton className="h-6 w-28 rounded-full" />
         </div>
-        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-px">
+        <div className="flex gap-1 border-b border-slate-200 dark:border-dark-border-subtle pb-px">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-9 w-24 rounded-t-lg" />)}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -1633,7 +1787,7 @@ export default function AutoApply() {
       onClose={() => setShowQuickRun(false)}
       onRun={(dry, overrides) => handleRun(dry, overrides)}
     />
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+    <div className="w-full space-y-5">
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
@@ -1642,7 +1796,7 @@ export default function AutoApply() {
             AutoApply
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            AI startup job discovery · Wellfound · Naukri · YC · LinkedIn
+            Full pipeline automation: discover, score, tailor, and submit applications.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1658,7 +1812,7 @@ export default function AutoApply() {
           )}
           <button
             onClick={() => refetchAll()}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-hover transition-colors cursor-pointer"
             title="Refresh"
           >
             <RefreshCw size={14} />
@@ -1691,7 +1845,7 @@ export default function AutoApply() {
       )}
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700 -mb-1">
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-dark-border-subtle -mb-1">
         {tabs.map(tab => (
           <button
             key={tab.id}

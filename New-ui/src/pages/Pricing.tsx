@@ -162,7 +162,7 @@ function PlanCard({
         'border rounded-2xl p-6 flex flex-col relative',
         plan.highlight
           ? 'border-brand-700 shadow-lg shadow-brand-100 dark:shadow-brand-900/30'
-          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+          : 'border-slate-200 dark:border-dark-border-subtle bg-white dark:bg-dark-card'
       )}
     >
       {plan.highlight && (
@@ -284,7 +284,7 @@ export default function Pricing() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="text-center mb-10">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Upgrade your plan</h1>

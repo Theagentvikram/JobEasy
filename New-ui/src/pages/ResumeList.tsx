@@ -143,12 +143,12 @@ function TemplateCard({
         'w-full text-left border rounded-xl p-3 transition-all duration-150 cursor-pointer',
         selected
           ? 'border-brand-700 ring-2 ring-brand-700 ring-offset-1'
-          : 'border-slate-200 dark:border-slate-700 hover:border-brand-300 hover:shadow-sm'
+          : 'border-slate-200 dark:border-dark-border-subtle hover:border-brand-300 hover:shadow-sm'
       )}
     >
       <div className={cn(
         'w-full aspect-[3/4] rounded-lg mb-3 overflow-hidden border',
-        selected ? 'border-brand-200' : 'border-slate-100 dark:border-slate-700'
+        selected ? 'border-brand-200' : 'border-slate-100 dark:border-dark-border-subtle'
       )}>
         <TemplateThumbnail id={template.id} />
       </div>
@@ -166,7 +166,7 @@ function MiniResumePreview({ resume }: { resume: Resume }) {
 
   if (!hasContent) {
     return (
-      <div className="h-36 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center border-b border-slate-100 dark:border-slate-700">
+      <div className="h-36 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center border-b border-slate-100 dark:border-dark-border-subtle">
         <div className="text-center">
           <FileText size={28} className="text-slate-300 dark:text-slate-600 mx-auto" />
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Empty resume</p>
@@ -176,7 +176,7 @@ function MiniResumePreview({ resume }: { resume: Resume }) {
   }
 
   return (
-    <div className="h-36 bg-white border-b border-slate-100 dark:border-slate-700 overflow-hidden relative">
+    <div className="h-36 bg-white border-b border-slate-100 dark:border-dark-border-subtle overflow-hidden relative">
       <div
         className="absolute inset-0 origin-top-left"
         style={{ transform: 'scale(0.38)', width: '263%' }}
@@ -252,7 +252,7 @@ function ResumeCard({
           <div className="relative flex-shrink-0">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-hover cursor-pointer transition-colors"
               aria-label="Resume options"
             >
               <MoreVertical size={15} />
@@ -260,10 +260,10 @@ function ResumeCard({
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-8 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden w-36">
+                <div className="absolute right-0 top-8 z-20 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border-subtle rounded-xl shadow-lg overflow-hidden w-36">
                   <button
                     onClick={() => { setMenuOpen(false); navigate(`/dashboard/resumes/${resume.id}/edit`) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer transition-colors"
                   >
                     <Edit size={13} /> Edit
                   </button>
@@ -280,9 +280,9 @@ function ResumeCard({
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          {resume.score > 0 && (
+          {(resume.score ?? 0) > 0 && (
             <Badge
-              variant={resume.score >= 80 ? 'success' : resume.score >= 60 ? 'warning' : 'danger'}
+              variant={(resume.score ?? 0) >= 80 ? 'success' : (resume.score ?? 0) >= 60 ? 'warning' : 'danger'}
             >
               ATS {resume.score}
             </Badge>
@@ -374,7 +374,7 @@ export default function ResumeList() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">My Resumes</h1>
@@ -390,7 +390,7 @@ export default function ResumeList() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div key={i} className="rounded-xl border border-slate-200 dark:border-dark-border-subtle overflow-hidden">
               <Skeleton className="h-36 rounded-none" />
               <div className="p-4 space-y-2">
                 <Skeleton className="h-4 w-3/4" />
@@ -429,7 +429,7 @@ export default function ResumeList() {
                 ))}
                 <button
                   onClick={() => setShowNewModal(true)}
-                  className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl h-full min-h-48 flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-500 hover:border-brand-300 dark:hover:border-brand-600 hover:text-brand-600 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 transition-all duration-200 cursor-pointer"
+                  className="border-2 border-dashed border-slate-200 dark:border-dark-border-subtle rounded-xl h-full min-h-48 flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-500 hover:border-brand-300 dark:hover:border-brand-600 hover:text-brand-600 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 transition-all duration-200 cursor-pointer"
                 >
                   <Plus size={24} />
                   <span className="text-sm font-medium">New resume</span>
@@ -478,14 +478,14 @@ export default function ResumeList() {
             </div>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-slate-700 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="border-t border-slate-100 dark:border-dark-border-subtle pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button onClick={createBlank} loading={creating} className="w-full">
               <FileText size={15} /> Start from scratch
             </Button>
 
             <div>
               <label
-                className="flex items-center justify-center gap-2 w-full h-9 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors px-4"
+                className="flex items-center justify-center gap-2 w-full h-9 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer transition-colors px-4"
                 aria-label="Import resume from file"
               >
                 <Upload size={15} />

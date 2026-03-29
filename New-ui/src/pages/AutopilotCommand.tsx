@@ -1,7 +1,7 @@
 /**
  * Autopilot Command Center
  *
- * Unified view: funnel stats → live job table → run history → Pi/Ollama settings.
+ * Unified view: funnel stats → live job table → run history → AI settings.
  * Replaces the fragmented AutoApply + AutoPilot split for the auto-application workflow.
  */
 
@@ -51,7 +51,7 @@ import PipelineProgressModal from '../components/PipelineProgressModal'
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  discovered: { label: 'Discovered', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
+  discovered: { label: 'Discovered', color: 'bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-slate-400' },
   scored:     { label: 'Scored',      color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400' },
   skipped:    { label: 'Skipped',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' },
   tailored:   { label: 'Tailored',    color: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400' },
@@ -79,11 +79,11 @@ const SCORE_BAR = (s: number) =>
   s >= 80 ? 'bg-brand-500' : s >= 60 ? 'bg-amber-400' : 'bg-red-400'
 
 const AI_PROVIDERS = [
-  { value: 'groq',      label: 'Groq (free · cloud)',          needsKey: true },
-  { value: 'openai',    label: 'OpenAI (cloud)',                needsKey: true },
-  { value: 'anthropic', label: 'Anthropic / Claude (cloud)',    needsKey: true },
-  { value: 'ollama',    label: 'Ollama — Raspberry Pi (local)', needsKey: false },
-  { value: 'openclaw',  label: 'OpenClaw (custom endpoint)',    needsKey: true },
+  { value: 'groq',      label: 'Fast AI (free · cloud)',         needsKey: true },
+  { value: 'openai',    label: 'Premium AI (cloud)',             needsKey: true },
+  { value: 'anthropic', label: 'Advanced AI (cloud)',            needsKey: true },
+  { value: 'ollama',    label: 'Local AI (self-hosted)',         needsKey: false },
+  { value: 'openclaw',  label: 'Custom endpoint',               needsKey: true },
 ]
 
 // ─── Tiny helpers ────────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ function StatPill({
   label, value, icon: Icon, accent,
 }: { label: string; value: string | number; icon: React.ElementType; accent: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-100 dark:border-dark-border bg-white dark:bg-dark-surface">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${accent}`}>
         <Icon size={15} />
       </div>
@@ -166,10 +166,10 @@ function RunRow({ run }: { run: PipelineRun }) {
     : 'text-red-500 dark:text-red-400'
 
   return (
-    <div className="border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden">
+    <div className="border border-slate-100 dark:border-dark-border rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-dark-surface hover:bg-slate-50 dark:hover:bg-dark-hover/60 transition-colors text-left"
       >
         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${run.status === 'completed' ? 'bg-brand-500' : run.status === 'running' ? 'bg-blue-500 animate-pulse' : 'bg-red-400'}`} />
         <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">
@@ -190,7 +190,7 @@ function RunRow({ run }: { run: PipelineRun }) {
         {open ? <ChevronUp size={14} className="text-slate-400 flex-shrink-0" /> : <ChevronDown size={14} className="text-slate-400 flex-shrink-0" />}
       </button>
       {open && (
-        <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 bg-slate-50 dark:bg-slate-800/40 grid grid-cols-3 gap-3 text-center">
+        <div className="border-t border-slate-100 dark:border-dark-border px-4 py-3 bg-slate-50 dark:bg-dark-card/40 grid grid-cols-3 gap-3 text-center">
           {[
             { label: 'Discovered', v: run.discovered, c: 'text-slate-700 dark:text-slate-300' },
             { label: 'Applied',    v: run.applied,    c: 'text-brand-600 dark:text-brand-400' },
@@ -214,12 +214,12 @@ function JobRow({ job }: { job: AutoApplyJob }) {
   const score = Math.round(job.match_score ?? 0)
 
   return (
-    <tr className="group border-b border-slate-50 dark:border-slate-800/60 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+    <tr className="group border-b border-slate-50 dark:border-dark-border/60 hover:bg-slate-50/60 dark:hover:bg-dark-hover/30 transition-colors">
       {/* Score */}
       <td className="py-2.5 pl-4 pr-3 w-16">
         <div className="flex flex-col items-center gap-1">
           <span className={`text-sm font-bold leading-none ${SCORE_COLOR(score)}`}>{score}</span>
-          <div className="w-10 h-1 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+          <div className="w-10 h-1 rounded-full bg-slate-100 dark:bg-dark-elevated overflow-hidden">
             <div className={`h-full rounded-full ${SCORE_BAR(score)}`} style={{ width: `${score}%` }} />
           </div>
         </div>
@@ -415,17 +415,17 @@ function SettingsPanel({
           </select>
         </Field>
 
-        {/* Ollama config */}
+        {/* Local AI config */}
         {isOllama && (
           <>
             <div className="flex items-start gap-2 p-3 rounded-lg bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800">
               <Server size={14} className="text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-brand-700 dark:text-brand-300 leading-relaxed">
-                Your Raspberry Pi at <span className="font-mono font-semibold">{form.ollama_host}</span> will handle all AI inference — no API keys needed.
+                Your local server at <span className="font-mono font-semibold">{form.ollama_host}</span> will handle all AI inference — no API keys needed.
                 Uses <span className="font-semibold">{form.ollama_model}</span> for scoring and <span className="font-semibold">{form.ollama_fast_model}</span> for parsing.
               </p>
             </div>
-            <Field label="Ollama Host URL">
+            <Field label="Host URL">
               <input
                 type="text"
                 value={form.ollama_host}
@@ -595,7 +595,7 @@ function SettingsPanel({
 // ─── Reusable form primitives ─────────────────────────────────────────────────
 
 const inputCls =
-  'w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition-colors'
+  'w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-card text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition-colors'
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
@@ -659,11 +659,11 @@ function TagInput({ tags, onChange, placeholder }: { tags: string[]; onChange: (
 
   return (
     <div
-      className="min-h-[2.25rem] flex flex-wrap gap-1.5 items-center px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 cursor-text focus-within:ring-2 focus-within:ring-brand-600 focus-within:border-transparent transition-all"
+      className="min-h-[2.25rem] flex flex-wrap gap-1.5 items-center px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-dark-card cursor-text focus-within:ring-2 focus-within:ring-brand-600 focus-within:border-transparent transition-all"
       onClick={() => ref.current?.focus()}
     >
       {tags.map((t, i) => (
-        <span key={i} className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-xs font-medium">
+        <span key={i} className="inline-flex items-center gap-1 bg-slate-100 dark:bg-dark-elevated text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-xs font-medium">
           {t}
           <button type="button" onClick={e => { e.stopPropagation(); remove(i) }} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
             <X size={10} />
@@ -793,18 +793,18 @@ export default function AutopilotCommand() {
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Zap size={20} className="text-brand-600" />
-            Autopilot Command Center
+            Automation Ops Center
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Full-funnel job application pipeline — scrape → score → apply → track
+            Unified monitoring and controls for Copilot + AutoApply runs, jobs, and settings.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Pi badge */}
+          {/* Local AI badge */}
           {isOllama && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-50 dark:bg-brand-900/30 border border-brand-100 dark:border-brand-800 text-xs font-medium text-brand-700 dark:text-brand-300">
               <Server size={12} />
-              Pi · {settings?.ollama_model}
+              Local AI · {settings?.ollama_model}
             </div>
           )}
           <Button size="sm" variant="outline" onClick={() => load()}>
@@ -825,7 +825,7 @@ export default function AutopilotCommand() {
       {/* ── Stats row ── */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatPill label="Discovered"   value={stats.total_discovered} icon={Globe}     accent="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" />
+          <StatPill label="Discovered"   value={stats.total_discovered} icon={Globe}     accent="bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-slate-400" />
           <StatPill label="Applied"      value={stats.total_applied}    icon={Briefcase} accent="bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300" />
           <StatPill label="Emails Sent"  value={stats.total_emails}     icon={Mail}      accent="bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" />
           <StatPill label="Avg Score"    value={`${stats.avg_match_score}%`} icon={TrendingUp} accent="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" />
@@ -845,7 +845,7 @@ export default function AutopilotCommand() {
           </div>
           <FunnelBar stats={stats} />
           {stats.by_source && Object.keys(stats.by_source).length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-dark-border">
               {Object.entries(stats.by_source).map(([src, count]) => {
                 const m = SOURCE_META[src] ?? { label: src, color: 'bg-slate-100 text-slate-600' }
                 return (
@@ -860,7 +860,7 @@ export default function AutopilotCommand() {
       )}
 
       {/* ── Tab bar ── */}
-      <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center gap-1 border-b border-slate-100 dark:border-dark-border">
         {([
           { id: 'jobs',     label: `Jobs (${jobs.length})`,       icon: Briefcase },
           { id: 'history',  label: `Runs (${history.length})`,    icon: Activity },
@@ -889,7 +889,7 @@ export default function AutopilotCommand() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowFilters(f => !f)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 dark:border-dark-border-subtle rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-dark-hover cursor-pointer transition-colors"
             >
               <Filter size={12} />
               Filters
@@ -906,7 +906,7 @@ export default function AutopilotCommand() {
                   'px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors',
                   statusFilter === s
                     ? 'bg-brand-600 text-white'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    : 'border border-slate-200 dark:border-dark-border-subtle text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-dark-hover'
                 )}
               >
                 {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -959,7 +959,7 @@ export default function AutopilotCommand() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+                    <tr className="border-b border-slate-100 dark:border-dark-border bg-slate-50/60 dark:bg-dark-card/40">
                       <th className="py-2.5 pl-4 pr-3 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide w-16">Score</th>
                       <th className="py-2.5 px-2 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Role</th>
                       <th className="py-2.5 px-2 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide hidden sm:table-cell">Location</th>

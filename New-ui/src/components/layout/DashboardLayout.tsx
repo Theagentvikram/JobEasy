@@ -8,7 +8,7 @@ export function DashboardLayout() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-white dark:bg-slate-950">
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-dark-bg">
         <Spinner size={28} />
       </div>
     )
@@ -18,10 +18,10 @@ export function DashboardLayout() {
   if (!firebaseUser && !user) return <Navigate to="/login" replace />
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-surface dark:bg-dark-bg">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-6 max-w-7xl mx-auto">
+      <main className="flex-1 overflow-y-auto min-w-0">
+        <div className="p-4 sm:p-5 lg:p-6 xl:p-8 max-w-[1600px] mx-auto w-full">
           <Outlet />
         </div>
       </main>

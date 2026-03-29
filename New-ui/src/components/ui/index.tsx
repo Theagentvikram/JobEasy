@@ -68,9 +68,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900 shadow-sm',
       secondary:
         'bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 dark:bg-brand-900/30 dark:text-brand-300 dark:border-brand-800 dark:hover:bg-brand-900/50',
-      ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+      ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-dark-hover dark:hover:text-slate-100',
       danger: 'bg-danger-500 text-white hover:bg-danger-600',
-      outline: 'border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100',
+      outline: 'border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-dark-hover dark:hover:text-slate-100',
     }
 
     const sizes = {
@@ -129,7 +129,7 @@ interface BadgeProps {
 
 export function Badge({ variant = 'default', size = 'sm', children, className }: BadgeProps) {
   const variants = {
-    default: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    default: 'bg-slate-100 text-slate-600 dark:bg-dark-elevated dark:text-slate-300',
     success: 'bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-400',
     warning: 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
     danger: 'bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-400',
@@ -168,7 +168,7 @@ export function Card({ children, className, hover, onClick }: CardProps) {
     <div
       onClick={onClick}
       className={cn(
-        'bg-white border border-slate-200 rounded-xl dark:bg-slate-800 dark:border-slate-700',
+        'bg-white border border-slate-200 rounded-xl dark:bg-dark-card dark:border-dark-border-subtle',
         hover && 'cursor-pointer transition-shadow duration-200 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600',
         onClick && 'cursor-pointer',
         className
@@ -208,7 +208,7 @@ export function Input({ label, error, icon, className, id, ...props }: InputProp
           id={inputId}
           className={cn(
             'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400',
-            'bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
+            'bg-slate-50 dark:bg-dark-surface dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
             'focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent focus:bg-white dark:focus:bg-slate-800',
             'transition-colors duration-150',
             error && 'border-red-400 focus:ring-red-500',
@@ -245,7 +245,7 @@ export function Textarea({ label, error, className, id, ...props }: TextareaProp
         id={inputId}
         className={cn(
           'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400',
-          'bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
+          'bg-slate-50 dark:bg-dark-surface dark:border-slate-600 dark:text-slate-50 dark:placeholder:text-slate-500',
           'focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-transparent focus:bg-white dark:focus:bg-slate-800',
           'transition-colors duration-150 resize-y min-h-24',
           error && 'border-red-400',
@@ -321,16 +321,16 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       <div
         className={cn(
           'relative bg-white rounded-xl shadow-xl w-full animate-fade-in',
-          'dark:bg-slate-800 dark:shadow-2xl',
+          'dark:bg-dark-card dark:shadow-2xl',
           sizes[size]
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-dark-border-subtle">
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-700"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-dark-hover"
               aria-label="Close modal"
             >
               <X size={16} />
@@ -355,7 +355,7 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4 dark:bg-slate-800 dark:text-slate-500">
+      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4 dark:bg-dark-card dark:text-slate-500">
         {icon}
       </div>
       <h3 className="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-100">{title}</h3>
@@ -375,7 +375,7 @@ export function ScoreRing({ score, size = 80 }: { score: number; size?: number }
 
   return (
     <svg width={size} height={size} viewBox="0 0 88 88" role="img" aria-label={`ATS score: ${score}`}>
-      <circle cx="44" cy="44" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="8" className="dark:stroke-slate-700" />
+      <circle cx="44" cy="44" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="8" className="dark:stroke-dark-elevated" />
       <circle
         cx="44"
         cy="44"
@@ -409,7 +409,7 @@ export function ScoreRing({ score, size = 80 }: { score: number; size?: number }
 
 export function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={cn('animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700', className)} />
+    <div className={cn('animate-pulse rounded-lg bg-slate-200 dark:bg-dark-elevated', className)} />
   )
 }
 
