@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /new/
+
+Sitemap: https://www.jobeasy.app/sitemap.xml

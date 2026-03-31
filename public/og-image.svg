@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="JobEasy social preview image">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#042f2e"/>
+      <stop offset="100%" stop-color="#022c22"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.8" cy="0.15" r="0.9">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <rect x="70" y="70" width="1060" height="490" rx="36" fill="#ffffff" fill-opacity="0.08"/>
+  <rect x="70" y="70" width="1060" height="490" rx="36" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
+
+  <rect x="120" y="160" width="122" height="122" rx="28" fill="url(#badge)"/>
+  <rect x="147" y="199" width="68" height="46" rx="11" fill="#ffffff"/>
+  <rect x="158" y="181" width="46" height="20" rx="10" fill="#ffffff"/>
+  <path d="M165 223l11 11 20-20" fill="none" stroke="#0f766e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="275" y="225" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="800">JobEasy</text>
+  <text x="120" y="330" fill="#d1fae5" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="600">AI Resume Builder, ATS Scanner and Job Tracker</text>
+  <text x="120" y="392" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="500">Build ATS-ready resumes, match job keywords, and organize</text>
+  <text x="120" y="436" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="500">applications and referrals in one AI career workspace.</text>
+
+  <rect x="120" y="474" width="355" height="54" rx="27" fill="#10b981"/>
+  <text x="157" y="510" fill="#042f2e" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">www.jobeasy.app</text>
+</svg>

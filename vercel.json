@@ -3,6 +3,6 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/new/:path*", "destination": "/new/index.html" },
-    { "source": "/((?!new/).*)", "destination": "/index.html" }
+    { "source": "/((?!new/|.*\\..*).*)", "destination": "/index.html" }
   ]
 }
